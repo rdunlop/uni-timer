@@ -17,7 +17,7 @@
 //
 // Needed Libraries
 // - Download and provide https://github.com/joeyoung/arduino_keypads/blob/master/Keypad_I2C/Keypad_I2C.h/.cpp in the Keypad_I2C folder
-// -
+// - Download and provide https://github.com/adafruit/SD in the SD folder. (this replaces the SD library included by the GPS library
 //
 // NOTES:
 // [1] The GPS is used to know the absolute time. The RTC clock is used to keep things accurate
@@ -30,6 +30,10 @@
 // https://www.bastelgarage.ch/index.php?route=extension/d_blog_module/post&post_id=8
 // https://github.com/joeyoung/arduino_keypads/blob/master/Keypad_I2C/Keypad_I2C.h
 
+/* ************************* Capabilities flags ******************************************* */
+/* Set these flags to enable certain combinations of components */
+//#define ENABLE_GPS
+//#define ENABLE_RTC
 
 /* *********************** Includes *********************************** */
 // - Common
@@ -37,10 +41,14 @@
 
 // - SENSOR
 // - GPS
+#ifdef ENABLE_GPS
 #include <Adafruit_GPS.h>
 #include <SoftwareSerial.h>
+#endif
 // - RTC
+#ifdef ENABLE_RTC
 #include "RTClib.h"
+#endif
 // - DISPLAY
 #include <Adafruit_GFX.h>
 #include "Adafruit_LEDBackpack.h"
@@ -48,7 +56,10 @@
 #include "Keypad.h"
 #include "Keypad_I2C.h"
 // - PRINTER
+#include <SoftwareSerial.h>
 #include <Adafruit_Thermal.h>
+// - SD Card
+#include <SD.h>
 // - BUZZER
 // - BUTTON
 
@@ -100,11 +111,11 @@ byte columnsPins [cols] = {4, 5, 6}; // columns pins
 Keypad_I2C i2cKeypad (makeKeymap (keyLayout), linePins, columnsPins, rows, cols, KEYPAD_EXPANSION_I2CADDR); 
 
 // GPS ------------------------------------------
+#ifdef ENABLE_GPS
 SoftwareSerial gpsSerial(GPS_DIGITAL_OUTPUT, GPS_DIGITAL_INPUT);
 Adafruit_GPS GPS(&gpsSerial);
 
 volatile unsigned long count = 0;
-volatile unsigned long rtc_start_ms = micros();
 volatile unsigned long pps_start_ms = micros();
 
 // NOTE: The GPS PPS signal will ONLY fire when there is GPS lock.
@@ -114,11 +125,14 @@ void pps_interrupt(){
   Serial.println(now - pps_start_ms);
   pps_start_ms = now;
 }
+#endif
 
 // RTC -----------------------------------------
+#ifdef ENABLE_RTC
 RTC_DS3231 rtc;
 
 volatile byte rtc_interrupt_flag = false;
+volatile unsigned long rtc_start_ms = micros();
 
 // RTC SQW signal is an active-low signal, so it needs INPUT_PULLUP
 void rtc_interrupt(){
@@ -128,6 +142,7 @@ void rtc_interrupt(){
   Serial.println(now - rtc_start_ms);
   rtc_start_ms = now;
 }
+#endif
 
 // PRINTER -------------------------------------
 SoftwareSerial printerSerial(PRINTER_DIGITAL_INPUT, PRINTER_DIGITAL_OUTPUT); // Declare SoftwareSerial obj first
@@ -155,10 +170,13 @@ void setup () {
   
 
   // GPS
+  #ifdef ENABLE_GPS
   pinMode(GPS_PPS_DIGITAL_INPUT, INPUT);
   attachInterrupt(digitalPinToInterrupt(GPS_PPS_DIGITAL_INPUT), pps_interrupt, RISING);
+  #endif
 
   // RTC
+  #ifdef ENABLE_RTC
   if (! rtc.begin()) {
     Serial.println("Couldn't find RTC");
     while (1);
@@ -174,18 +192,25 @@ void setup () {
 
   pinMode(RTC_SQW_DIGITAL_INPUT, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(RTC_SQW_DIGITAL_INPUT), rtc_interrupt, RISING);
+  #endif
 
   // PRINTER
   printerSerial.begin(19200); // this printer has a 19200 baud
-  printer.begin();        // Init printer (same regardless of serial type)
+  printer.begin();
   printer.inverseOff();
   printer.println("Hello Robin");
   printer.feed(2);
+  printer.sleep();
+  // printer.wake();
 }
 
 /************************************* (main program) ********* *****************************/
+#ifdef ENABLE_GPS
 uint32_t last_gps_print_time = millis();
+#endif
+#ifdef ENABLE_RTC
 uint32_t last_rtc_print_time = millis();
+#endif
 void loop () {
   char read_key = i2cKeypad.getKey ();
 
@@ -208,14 +233,16 @@ void loop () {
   } else {
     digitalWrite(LED_BUILTIN, HIGH);    // flash the le
   }
-//  if (rtc_interrupt_flag) {
-//    digitalWrite(LED_BUILTIN, HIGH);    // flash the led
-//    delay(100);                         // wait a little bit
-//    digitalWrite(LED_BUILTIN, LOW);     // turn off led
-//    rtc_interrupt_flag =  false;                      // clear the flag until timer sets it again
-//  }
+  #ifdef ENABLE_RTC
+  if (rtc_interrupt_flag) {
+    digitalWrite(LED_BUILTIN, HIGH);    // flash the led
+    delay(100);                         // wait a little bit
+    digitalWrite(LED_BUILTIN, LOW);     // turn off led
+    rtc_interrupt_flag =  false;                      // clear the flag until timer sets it again
+  }
+  #endif
 
-  
+  #ifdef ENABLE_GPS
   // if millis() or timer wraps around, we'll just reset it
   if (last_gps_print_time > millis())  last_gps_print_time = millis();
   // approximately every 2 seconds or so, print out the current GPS stats
@@ -223,7 +250,9 @@ void loop () {
     last_gps_print_time = millis(); // reset the timer
     printGPS();
   }
+  #endif
 
+  #ifdef ENABLE_RTC
   // if millis() or timer wraps around, we'll just reset it
   if (last_rtc_print_time > millis())  last_rtc_print_time = millis();
   // approximately every 2 seconds or so, print out the current GPS stats
@@ -231,6 +260,7 @@ void loop () {
     last_rtc_print_time = millis(); // reset the timer
     printRTC();
   }
+  #endif
 }
 
 /* ********************** Helper Methods ************** */
@@ -246,6 +276,7 @@ void beep() {
   Serial.println("Beep");
 }
 
+#ifdef ENABLE_GPS
 void printGPS() {
   // read data from the GPS in the 'main loop'
   char c = GPS.read();
@@ -293,7 +324,9 @@ void printGPS() {
     Serial.print("Satellites: "); Serial.println((int)GPS.satellites);
   }
 }
+#endif
 
+#ifdef ENABLE_RTC
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 void printRTC() {
   DateTime now = rtc.now();
@@ -340,3 +373,4 @@ void printRTC() {
   
   Serial.println();
 }
+#endif
