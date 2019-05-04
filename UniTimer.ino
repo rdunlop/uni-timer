@@ -47,16 +47,20 @@
 // - KEYPAD_EXPANSION
 #include "Keypad.h"
 #include "Keypad_I2C.h"
+// - PRINTER
+#include <Adafruit_Thermal.h>
 // - BUZZER
 // - BUTTON
 
 
 /* *************************** (Defining Global Variables) ************************** */
 // - SENSOR
-#define SENSOR_DIGITAL_INPUT 1 // still not determined
+#define SENSOR_DIGITAL_INPUT 6 // still not determined
 // - GPS
 #define GPS_PPS_DIGITAL_INPUT 2 // has to be pin 2 or 3 because of interrupt behavior
 #define GPSECHO true // for debugging
+#define GPS_DIGITAL_OUTPUT 8 // software serial
+#define GPS_DIGITAL_INPUT 7 // software serial
 // - RTC
 #define RTC_SQW_DIGITAL_INPUT 3 // has to be pin 2 or 3 because of interrupt behavior
 #define RTC_I2CADDR 0x00 // UNKNOWN
@@ -64,6 +68,9 @@
 #define DISPLAY_I2CADDR 0x70
 // - KEYPAD_EXPANSION
 #define KEYPAD_EXPANSION_I2CADDR 0x38 // I2C address from PCF8574
+// - PRINTER
+#define PRINTER_DIGITAL_OUTPUT 4 // Arduino transmit  YELLOW WIRE  labeled RX on printer
+#define PRINTER_DIGITAL_INPUT 5 // Arduino receive   GREEN WIRE   labeled TX on printer
 // - BUZZER
 #define BUZZER_DIGITAL_OUTPUT 13
 // - BUTTON
@@ -93,8 +100,8 @@ byte columnsPins [cols] = {4, 5, 6}; // columns pins
 Keypad_I2C i2cKeypad (makeKeymap (keyLayout), linePins, columnsPins, rows, cols, KEYPAD_EXPANSION_I2CADDR); 
 
 // GPS ------------------------------------------
-SoftwareSerial mySerial(8, 7);
-Adafruit_GPS GPS(&mySerial);
+SoftwareSerial gpsSerial(GPS_DIGITAL_OUTPUT, GPS_DIGITAL_INPUT);
+Adafruit_GPS GPS(&gpsSerial);
 
 volatile unsigned long count = 0;
 volatile unsigned long rtc_start_ms = micros();
@@ -121,6 +128,10 @@ void rtc_interrupt(){
   Serial.println(now - rtc_start_ms);
   rtc_start_ms = now;
 }
+
+// PRINTER -------------------------------------
+SoftwareSerial printerSerial(PRINTER_DIGITAL_INPUT, PRINTER_DIGITAL_OUTPUT); // Declare SoftwareSerial obj first
+Adafruit_Thermal printer(&printerSerial);     // Pass addr to printer constructor
 
 /******** ***********************************(set up)*** *************** **********************/
 void setup () {
@@ -164,6 +175,12 @@ void setup () {
   pinMode(RTC_SQW_DIGITAL_INPUT, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(RTC_SQW_DIGITAL_INPUT), rtc_interrupt, RISING);
 
+  // PRINTER
+  printerSerial.begin(19200); // this printer has a 19200 baud
+  printer.begin();        // Init printer (same regardless of serial type)
+  printer.inverseOff();
+  printer.println("Hello Robin");
+  printer.feed(2);
 }
 
 /************************************* (main program) ********* *****************************/
@@ -184,12 +201,19 @@ void loop () {
       beep();
     }
   }
-  if (rtc_interrupt_flag) {
+  Serial.println(digitalRead(SENSOR_DIGITAL_INPUT));
+  delay(100);
+  if(digitalRead(SENSOR_DIGITAL_INPUT)) {
     digitalWrite(LED_BUILTIN, HIGH);    // flash the led
-    delay(100);                         // wait a little bit
+  } else {
     digitalWrite(LED_BUILTIN, LOW);     // turn off led
-    rtc_interrupt_flag =  false;                      // clear the flag until timer sets it again
   }
+//  if (rtc_interrupt_flag) {
+//    digitalWrite(LED_BUILTIN, HIGH);    // flash the led
+//    delay(100);                         // wait a little bit
+//    digitalWrite(LED_BUILTIN, LOW);     // turn off led
+//    rtc_interrupt_flag =  false;                      // clear the flag until timer sets it again
+//  }
 
   
   // if millis() or timer wraps around, we'll just reset it
