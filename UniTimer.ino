@@ -33,33 +33,47 @@
 /* ************************* Capabilities flags ******************************************* */
 /* Set these flags to enable certain combinations of components */
 //#define ENABLE_GPS
+#define ENABLE_GPS2
 //#define ENABLE_RTC
+//#define ENABLE_DISPLAY
+//#define ENABLE_KEYPAD
+//#define ENABLE_PRINTER
+//#define ENABLE_SD
 
 /* *********************** Includes *********************************** */
-// - Common
-#include "Wire.h"
-
 // - SENSOR
 // - GPS
 #ifdef ENABLE_GPS
 #include <Adafruit_GPS.h>
 #include <SoftwareSerial.h>
 #endif
+#ifdef ENABLE_GPS2
+#include <SoftwareSerial.h>
+#include <TinyGPS.h>
+#endif
 // - RTC
 #ifdef ENABLE_RTC
 #include "RTClib.h"
 #endif
 // - DISPLAY
+#ifdef ENABLE_DISPLAY
 #include <Adafruit_GFX.h>
 #include "Adafruit_LEDBackpack.h"
+#endif
 // - KEYPAD_EXPANSION
+#ifdef ENABLE_KEYPAD
 #include "Keypad.h"
 #include "Keypad_I2C.h"
+#endif
 // - PRINTER
+#ifdef ENABLE_PRINTER
 #include <SoftwareSerial.h>
 #include <Adafruit_Thermal.h>
+#endif
 // - SD Card
+#ifdef ENABLE_SD
 #include <SD.h>
+#endif
 // - BUZZER
 // - BUTTON
 
@@ -90,9 +104,12 @@
 
 /* ************************** Initialization ******************* */
 // DISPLAY -------------------------------------------
+#ifdef ENABLE_DISPLAY
 Adafruit_7segment display = Adafruit_7segment();
+#endif
 
 // KEYPAD --------------------------------------------
+#ifdef ENABLE_KEYPAD
 const byte rows = 4; // number of lines
 const byte cols = 3; //Number of columns
 
@@ -109,10 +126,14 @@ byte linePins[rows] = {0, 1, 2, 3}; // lines pins
 byte columnsPins [cols] = {4, 5, 6}; // columns pins
 
 Keypad_I2C i2cKeypad (makeKeymap (keyLayout), linePins, columnsPins, rows, cols, KEYPAD_EXPANSION_I2CADDR); 
+#endif
 
 // GPS ------------------------------------------
 #ifdef ENABLE_GPS
 SoftwareSerial gpsSerial(GPS_DIGITAL_OUTPUT, GPS_DIGITAL_INPUT);
+//volatile uint8_t *num;
+//HardwareSerial soundSerial = Serial1;
+//HardwareSerial gpsSerial(soundSerial); //GPS_DIGITAL_OUTPUT, GPS_DIGITAL_INPUT);
 Adafruit_GPS GPS(&gpsSerial);
 
 volatile unsigned long count = 0;
@@ -125,6 +146,10 @@ void pps_interrupt(){
   Serial.println(now - pps_start_ms);
   pps_start_ms = now;
 }
+#endif
+#ifdef ENABLE_GPS2
+TinyGPS gps;
+SoftwareSerial ss(GPS_DIGITAL_OUTPUT, GPS_DIGITAL_INPUT);
 #endif
 
 // RTC -----------------------------------------
@@ -145,8 +170,10 @@ void rtc_interrupt(){
 #endif
 
 // PRINTER -------------------------------------
+#ifdef ENABLE_PRINTER
 SoftwareSerial printerSerial(PRINTER_DIGITAL_INPUT, PRINTER_DIGITAL_OUTPUT); // Declare SoftwareSerial obj first
 Adafruit_Thermal printer(&printerSerial);     // Pass addr to printer constructor
+#endif
 
 /******** ***********************************(set up)*** *************** **********************/
 void setup () {
@@ -155,6 +182,7 @@ void setup () {
   pinMode (LED_BUILTIN, OUTPUT);
 
   // DISPLAY
+  #ifdef ENABLE_DISPLAY
   display.begin(DISPLAY_I2CADDR);
   display.print(0x41, HEX);
   display.writeDisplay();
@@ -164,15 +192,22 @@ void setup () {
     display.writeDisplay();
     delay(1000);
   }
+  #endif
 
   // KEYPAD
-  i2cKeypad.begin();        
+  #ifdef ENABLE_KEYPAD
+  i2cKeypad.begin();
+  #endif      
   
 
   // GPS
   #ifdef ENABLE_GPS
   pinMode(GPS_PPS_DIGITAL_INPUT, INPUT);
   attachInterrupt(digitalPinToInterrupt(GPS_PPS_DIGITAL_INPUT), pps_interrupt, RISING);
+  attachInterrupt(2, pps_interrupt, RISING);
+  #endif
+  #ifdef ENABLE_GPS2
+  ss.begin(9600);
   #endif
 
   // RTC
@@ -195,6 +230,7 @@ void setup () {
   #endif
 
   // PRINTER
+  #ifdef ENABLE_PRINTER
   printerSerial.begin(19200); // this printer has a 19200 baud
   printer.begin();
   printer.inverseOff();
@@ -202,6 +238,7 @@ void setup () {
   printer.feed(2);
   printer.sleep();
   // printer.wake();
+  #endif
 }
 
 /************************************* (main program) ********* *****************************/
@@ -212,6 +249,7 @@ uint32_t last_gps_print_time = millis();
 uint32_t last_rtc_print_time = millis();
 #endif
 void loop () {
+  #ifdef ENABLE_KEYPAD
   char read_key = i2cKeypad.getKey ();
 
   if (read_key != NO_KEY) {
@@ -220,12 +258,15 @@ void loop () {
     if (isDigit(read_key)) {
       Serial.print("value: ");
       Serial.println(intFromChar(read_key));
+      #ifdef ENABLE_DISPLAY
       display.print(intFromChar(read_key), DEC);
       display.writeDisplay();
+      #endif
     } else {
       beep();
     }
   }
+  #endif
   Serial.println(digitalRead(SENSOR_DIGITAL_INPUT));
   delay(100);
   if(digitalRead(SENSOR_DIGITAL_INPUT)) {
@@ -251,6 +292,48 @@ void loop () {
     printGPS();
   }
   #endif
+  #ifdef ENABLE_GPS2
+    bool newData = false;
+  unsigned long chars;
+  unsigned short sentences, failed;
+
+  // For one second we parse GPS data and report some key values
+  for (unsigned long start = millis(); millis() - start < 1000;)
+  {
+    while (ss.available())
+    {
+      char c = ss.read();
+      // Serial.write(c); // uncomment this line if you want to see the GPS data flowing
+      if (gps.encode(c)) // Did a new valid sentence come in?
+        newData = true;
+    }
+  }
+
+  if (newData)
+  {
+    float flat, flon;
+    unsigned long age;
+    gps.f_get_position(&flat, &flon, &age);
+    Serial.print("LAT=");
+    Serial.print(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : flat, 6);
+    Serial.print(" LON=");
+    Serial.print(flon == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : flon, 6);
+    Serial.print(" SAT=");
+    Serial.print(gps.satellites() == TinyGPS::GPS_INVALID_SATELLITES ? 0 : gps.satellites());
+    Serial.print(" PREC=");
+    Serial.print(gps.hdop() == TinyGPS::GPS_INVALID_HDOP ? 0 : gps.hdop());
+  }
+  
+  gps.stats(&chars, &sentences, &failed);
+  Serial.print(" CHARS=");
+  Serial.print(chars);
+  Serial.print(" SENTENCES=");
+  Serial.print(sentences);
+  Serial.print(" CSUM ERR=");
+  Serial.println(failed);
+  if (chars == 0)
+    Serial.println("** No characters received from GPS: check wiring **");
+  #endif
 
   #ifdef ENABLE_RTC
   // if millis() or timer wraps around, we'll just reset it
@@ -264,6 +347,7 @@ void loop () {
 }
 
 /* ********************** Helper Methods ************** */
+#ifdef ENABLE_KEYPAD
 boolean isDigit(char c) {
   return (c >= '0') && (c <= '9');
 }
@@ -271,6 +355,7 @@ boolean isDigit(char c) {
 uint8_t intFromChar(char c) {
   return c - '0';
 }
+#endif
 
 void beep() {
   Serial.println("Beep");
