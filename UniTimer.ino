@@ -204,9 +204,9 @@ void loop () {
   Serial.println(digitalRead(SENSOR_DIGITAL_INPUT));
   delay(100);
   if(digitalRead(SENSOR_DIGITAL_INPUT)) {
-    digitalWrite(LED_BUILTIN, HIGH);    // flash the led
-  } else {
     digitalWrite(LED_BUILTIN, LOW);     // turn off led
+  } else {
+    digitalWrite(LED_BUILTIN, HIGH);    // flash the le
   }
 //  if (rtc_interrupt_flag) {
 //    digitalWrite(LED_BUILTIN, HIGH);    // flash the led
