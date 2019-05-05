@@ -36,9 +36,10 @@
 //#define ENABLE_GPS2
 //#define ENABLE_RTC
 //#define ENABLE_DISPLAY
-//#define ENABLE_KEYPAD
+#define ENABLE_KEYPAD
 //#define ENABLE_PRINTER
 //#define ENABLE_SD
+//#define ENABLE_SD2
 
 /* *********************** Includes *********************************** */
 // - SENSOR
@@ -62,7 +63,7 @@
 #endif
 // - KEYPAD_EXPANSION
 #ifdef ENABLE_KEYPAD
-#include "Keypad.h"
+//#include "Keypad.h"
 #include "Keypad_I2C.h"
 #endif
 // - PRINTER
@@ -73,6 +74,10 @@
 // - SD Card
 #ifdef ENABLE_SD
 #include <SD.h>
+#endif
+#ifdef ENABLE_SD2
+#include <SPI.h>
+#include "SdFat.h"
 #endif
 // - BUZZER
 // - BUTTON
@@ -96,6 +101,11 @@
 // - PRINTER
 #define PRINTER_DIGITAL_OUTPUT 4 // Arduino transmit  YELLOW WIRE  labeled RX on printer
 #define PRINTER_DIGITAL_INPUT 5 // Arduino receive   GREEN WIRE   labeled TX on printer
+// - SD Card
+#define SD_SPI_CHIP_SELECT_OUTPUT 10
+#define SD_SPI_MOSI_INPUT 11
+#define SD_SPI_MISO_INPUT 12
+#define SD_SPI_CLK_OUTPUT 13
 // - BUZZER
 #define BUZZER_DIGITAL_OUTPUT 13
 // - BUTTON
@@ -180,6 +190,12 @@ SoftwareSerial printerSerial(PRINTER_DIGITAL_INPUT, PRINTER_DIGITAL_OUTPUT); // 
 Adafruit_Thermal printer(&printerSerial);     // Pass addr to printer constructor
 #endif
 
+// SD
+#ifdef ENABLE_SD2
+SdFat SD;
+File myFile;
+#endif
+
 /******** ***********************************(set up)*** *************** **********************/
 void setup () {
   // Common
@@ -243,6 +259,19 @@ void setup () {
   printer.feed(2);
   printer.sleep();
   // printer.wake();
+  #endif
+
+  #ifdef ENABLE_SD2
+  Serial.print("Initializing SD card...");
+
+  if (!SD.begin(SD_SPI_CHIP_SELECT_OUTPUT)) {
+    Serial.println("initialization failed!");
+    return;
+  }
+  Serial.println("initialization done.");
+  writeFile("testfile.txt", "hEllo Robin");
+  writeFile("testfile.txt", "Goodbye Robin");
+  readFile("testfile.txt");
   #endif
 }
 
@@ -489,5 +518,46 @@ void printRTC() {
   Serial.println();
   
   Serial.println();
+}
+#endif
+
+#ifdef ENABLE_SD2
+void writeFile(char *filename, char *text) {
+// open the file. note that only one file can be open at a time,
+  // so you have to close this one before opening another.
+  myFile = SD.open(filename, FILE_WRITE);
+
+  // if the file opened okay, write to it:
+  if (myFile) {
+    Serial.print("Writing to ");
+    Serial.println(filename);
+    myFile.println(text);
+    // close the file:
+    myFile.close();
+    Serial.println("done.");
+  } else {
+    // if the file didn't open, print an error:
+    Serial.print("error opening ");
+    Serial.println(filename);
+  }
+}
+
+void readFile(char *filename) {
+  // re-open the file for reading:
+  myFile = SD.open(filename);
+  if (myFile) {
+    Serial.println(filename);
+
+    // read from the file until there's nothing else in it:
+    while (myFile.available()) {
+      Serial.write(myFile.read());
+    }
+    // close the file:
+    myFile.close();
+  } else {
+    // if the file didn't open, print an error:
+    Serial.print("error opening ");
+    Serial.println(filename);
+  }
 }
 #endif
