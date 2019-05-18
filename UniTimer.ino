@@ -25,6 +25,16 @@
 //     Based on https://wyolum.com/syncing-arduino-with-gps-time/.
 //     Whenever we have GPS lock, we keep track of the offset from micros() for the GPS time
 //     and we use that offset whenever we are printing the time.
+// [2] Modified the Keypad_I2C library so that it provides the hardware address of the wire bus.
+//     I had to change the Keypad_I2C.h file:
+//         Keypad_I2C(char* userKeymap, byte* row, byte* col, byte numRows, byte numCols, byte address, byte width = 1) :
+//         #if defined(__arm__) && defined(TEENSYDUINO)
+//         Keypad(userKeymap, row, col, numRows, numCols), TwoWire(address, i2c0_hardware)
+//         #else
+//         Keypad(userKeymap, row, col, numRows, numCols)
+//         #endif
+//         { i2caddr = address; i2cwidth = width;}
+//     There may be a way to specify a default-constructor for TwoWire, so that I don't have to do this?
 /* ****************************************************************************************** */
 
 // https://www.bastelgarage.ch/index.php?route=extension/d_blog_module/post&post_id=8
@@ -49,7 +59,6 @@
 #include <SoftwareSerial.h>
 #endif
 #ifdef ENABLE_GPS2
-#include <SoftwareSerial.h>
 #include <TinyGPS.h>
 #endif
 // - RTC
@@ -61,10 +70,9 @@
 #include <Adafruit_GFX.h>
 #include "Adafruit_LEDBackpack.h"
 #endif
-// - KEYPAD_EXPANSION
+// - KEYPAD
 #ifdef ENABLE_KEYPAD
-//#include "Keypad.h"
-#include "Keypad_I2C.h"
+#include "Keypad.h"
 #endif
 // - PRINTER
 #ifdef ENABLE_PRINTER
@@ -85,31 +93,30 @@
 
 /* *************************** (Defining Global Variables) ************************** */
 // - SENSOR
-#define SENSOR_DIGITAL_INPUT 6 // still not determined
+#define SENSOR_DIGITAL_INPUT 5 // still not determined
 // - GPS
-#define GPS_PPS_DIGITAL_INPUT 2 // has to be pin 2 or 3 because of interrupt behavior
+#define GPS_PPS_DIGITAL_INPUT 2
 //#define GPSECHO true // for debugging
-#define GPS_DIGITAL_OUTPUT 8 // software serial
-#define GPS_DIGITAL_INPUT 7 // software serial
+#define GPS_DIGITAL_OUTPUT 9 // hardware serial #2
+#define GPS_DIGITAL_INPUT 10 // hardware serial #2
 // - RTC
-#define RTC_SQW_DIGITAL_INPUT 3 // has to be pin 2 or 3 because of interrupt behavior
+#define RTC_SQW_DIGITAL_INPUT 2
 #define RTC_I2CADDR 0x00 // UNKNOWN
 // - DISPLAY
 #define DISPLAY_I2CADDR 0x70
-// - KEYPAD_EXPANSION
-#define KEYPAD_EXPANSION_I2CADDR 0x38 // I2C address from PCF8574
+// - KEYPAD
 // - PRINTER
-#define PRINTER_DIGITAL_OUTPUT 4 // Arduino transmit  YELLOW WIRE  labeled RX on printer
-#define PRINTER_DIGITAL_INPUT 5 // Arduino receive   GREEN WIRE   labeled TX on printer
+#define PRINTER_DIGITAL_OUTPUT 8 // Arduino transmit  YELLOW WIRE  labeled RX on printer
+#define PRINTER_DIGITAL_INPUT 7 // Arduino receive   GREEN WIRE   labeled TX on printer
 // - SD Card
-#define SD_SPI_CHIP_SELECT_OUTPUT 10
+#define SD_SPI_CHIP_SELECT_OUTPUT 6
 #define SD_SPI_MOSI_INPUT 11
 #define SD_SPI_MISO_INPUT 12
 #define SD_SPI_CLK_OUTPUT 13
 // - BUZZER
-#define BUZZER_DIGITAL_OUTPUT 13
+#define BUZZER_DIGITAL_OUTPUT 4
 // - BUTTON
-#define BUTTON_DIGITAL_INPUT 3 // unused
+#define BUTTON_DIGITAL_INPUT 25 // unused
 
 
 /* ************************** Initialization ******************* */
@@ -121,21 +128,21 @@ Adafruit_7segment display = Adafruit_7segment();
 // KEYPAD --------------------------------------------
 #ifdef ENABLE_KEYPAD
 const byte rows = 4; // number of lines
-const byte cols = 3; //Number of columns
+const byte cols = 4; //Number of columns
 
 // Here you can enter the symbols of your Keypad
 char keyLayout [rows] [cols] = {
-  { '1', '2', '3'}, 
-  { '4', '5', '6'},
-  { '7', '8', '9'},
-  { '*', '0', '#'}
+  { '1', '2', '3', 'A'}, 
+  { '4', '5', '6', 'B'},
+  { '7', '8', '9', 'C'},
+  { '*', '0', '#', 'D'}
 };
 
 // Here define how the keypad is wired to the IO pins of the PCF8574.
-byte linePins[rows] = {0, 1, 2, 3}; // lines pins
-byte columnsPins [cols] = {4, 5, 6}; // columns pins
+byte linePins[rows] = {20, 21, 22, 23}; // lines pins
+byte columnsPins [cols] = {14, 15, 16, 17}; // columns pins
 
-Keypad_I2C i2cKeypad (makeKeymap (keyLayout), linePins, columnsPins, rows, cols, KEYPAD_EXPANSION_I2CADDR); 
+Keypad keypad (makeKeymap (keyLayout), linePins, columnsPins, rows, cols); 
 #endif
 
 // GPS ------------------------------------------
@@ -163,7 +170,6 @@ void pps_interrupt(){
 #endif
 #ifdef ENABLE_GPS2
 TinyGPS gps;
-SoftwareSerial ss(GPS_DIGITAL_OUTPUT, GPS_DIGITAL_INPUT);
 bool newData = false;
 #endif
 
@@ -202,12 +208,23 @@ void setup () {
   Serial.begin(115200);
   pinMode (LED_BUILTIN, OUTPUT);
 
+  // SENSOR
+  #ifdef ENABLE_SENSOR
+  pinMode(SENSOR_DIGITAL_INPUT, INPUT);
+  #endif
+  
   // DISPLAY
   #ifdef ENABLE_DISPLAY
+  
   display.begin(DISPLAY_I2CADDR);
-  display.print(0x41, HEX);
+  display.print(0x8888, HEX);
   display.writeDisplay();
-  delay(500);
+  #endif
+
+  delay(2000); // wait for serial to connect before starting
+  Serial.println("Starting");
+
+  #ifdef ENABLE_DISPLAY
   for (uint16_t counter = 5; counter > 0; counter--) {
     display.println(counter);
     display.writeDisplay();
@@ -217,7 +234,7 @@ void setup () {
 
   // KEYPAD
   #ifdef ENABLE_KEYPAD
-  i2cKeypad.begin();
+//  keypad.begin();
   #endif      
   
 
@@ -225,10 +242,10 @@ void setup () {
   #if defined(ENABLE_GPS) || defined(ENABLE_GPS2)
   pinMode(GPS_PPS_DIGITAL_INPUT, INPUT);
   attachInterrupt(digitalPinToInterrupt(GPS_PPS_DIGITAL_INPUT), pps_interrupt, RISING);
-  attachInterrupt(2, pps_interrupt, RISING);
   #endif
+  
   #ifdef ENABLE_GPS2
-  ss.begin(9600);
+  Serial2.begin(9600);
   #endif
 
   // RTC
@@ -273,6 +290,10 @@ void setup () {
   writeFile("testfile.txt", "Goodbye Robin");
   readFile("testfile.txt");
   #endif
+
+  #ifdef ENABLE_BUZZER
+  pinMode(BUZZER_DIGITAL_OUTPUT, OUTPUT);
+  #endif
 }
 
 /************************************* (main program) ********* *****************************/
@@ -284,7 +305,7 @@ uint32_t last_rtc_print_time = millis();
 #endif
 void loop () {
   #ifdef ENABLE_KEYPAD
-  char read_key = i2cKeypad.getKey ();
+  char read_key = keypad.getKey ();
 
   if (read_key != NO_KEY) {
     Serial.println ("read");
@@ -296,16 +317,25 @@ void loop () {
       display.print(intFromChar(read_key), DEC);
       display.writeDisplay();
       #endif
+      #ifdef ENABLE_BUZZER
+      tone(BUZZER_DIGITAL_OUTPUT, 1000, 100);
+      #endif
     } else {
       beep();
     }
   }
   #endif
+  
+  #ifdef ENABLE_SENSOR
+//  Serial.print(digitalRead(SENSOR_DIGITAL_INPUT));
   if(digitalRead(SENSOR_DIGITAL_INPUT)) {
     digitalWrite(LED_BUILTIN, LOW);     // turn off led
   } else {
-    digitalWrite(LED_BUILTIN, HIGH);    // flash the le
+    digitalWrite(LED_BUILTIN, HIGH);    // flash the led
+    beep();
   }
+  #endif
+  
   #ifdef ENABLE_RTC
   if (rtc_interrupt_flag) {
     digitalWrite(LED_BUILTIN, HIGH);    // flash the led
@@ -333,9 +363,9 @@ void loop () {
   #endif
   
   #ifdef ENABLE_GPS2
-  while (ss.available())
+  while (Serial2.available())
   {
-    char c = ss.read();
+    char c = Serial2.read();
     #ifdef GPSECH
       Serial.write(c); // uncomment this line if you want to see the GPS data flowing
     #endif
@@ -349,9 +379,9 @@ void loop () {
   if (millis() - last_gps_print_time > 2000) { 
     last_gps_print_time = millis(); // reset the timer
 
-//    printGPS();
+    printGPS();
 
-//    printGPSDate();
+    printGPSDate();
   }
   #endif
 
@@ -379,6 +409,9 @@ uint8_t intFromChar(char c) {
 
 void beep() {
   Serial.println("Beep");
+  #ifdef ENABLE_BUZZER
+  tone(BUZZER_DIGITAL_OUTPUT, 1000, 100);
+  #endif
 }
 
 #ifdef ENABLE_GPS
