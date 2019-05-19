@@ -1,7 +1,3 @@
-//void update_display(int x, int y);
-//void setup_display();
-//void display_countdown();
-
 #ifndef UNI_DISPLAY_H
 #define UNI_DISPLAY_H
 #include "Adafruit_LEDBackpack.h"

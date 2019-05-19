@@ -1,14 +1,42 @@
 // - GPS
 // - This file assumes that the GPS is connected on Serial2
 
-#ifdef ENABLE_GPS
-// Libraries
-#include <TinyGPS.h>
+#include "uni_gps.h"
 
-volatile unsigned long pps_start_ms = micros();
+UniGps::UniGps(int pps_signal_input)
+{
+  _pps_signal_input = pps_signal_input;
+}
+
+// Because interrupt handlers run outside of all object-like constructs
+// we have a static pointer to a GPS instance, so that we can bounce into
+// the interrupt_handler on that object
+UniGps * UniGps::instance0_;
+
+
+// Setup function, for initializin Per-second-interrupt singal, and monitoring for GPS data
+// over serial2
+
+void UniGps::setup() {
+  pps_start_ms = micros();  
+  newData = false;
+  last_gps_print_time = millis();
+  
+  Serial.println("GPS Initializing");
+  pinMode(_pps_signal_input, INPUT);
+  attachInterrupt(digitalPinToInterrupt(_pps_signal_input), pps_interrupt, RISING);
+  instance0_ = this;
+  
+  Serial2.begin(9600);
+}
+
 
 // NOTE: The GPS PPS signal will ONLY fire when there is GPS lock.
-void pps_interrupt(){
+void UniGps::pps_interrupt(){
+  instance0_->handle_interrupt();
+}
+
+void UniGps::handle_interrupt() {
   unsigned long now = micros();
   Serial.print("GPS PPS: ");
   Serial.println(now - pps_start_ms);
@@ -16,22 +44,7 @@ void pps_interrupt(){
   printGPSDate();
 }
 
-TinyGPS gps;
-bool newData = false;
-
-uint32_t last_gps_print_time = millis();
-
-// Setup function, for initializin Per-second-interrupt singal, and monitoring for GPS data
-// over serial2
-void setup_gps() {
-  Serial.println("GPS Initializing");
-  pinMode(GPS_PPS_DIGITAL_INPUT, INPUT);
-  attachInterrupt(digitalPinToInterrupt(GPS_PPS_DIGITAL_INPUT), pps_interrupt, RISING);
-  
-  Serial2.begin(9600);
-}
-
-void loop_gps() {
+void UniGps::loop() {
   while (Serial2.available())
   {
     char c = Serial2.read();
@@ -54,7 +67,7 @@ void loop_gps() {
   }
 }
 
-void printGPS() {
+void UniGps::printGPS() {
   unsigned long chars;
   unsigned short sentences, failed;
   if (newData)
@@ -84,7 +97,7 @@ void printGPS() {
     Serial.println("** No characters received from GPS: check wiring **");
 }
 
-void printGPSDate() {
+void UniGps::printGPSDate() {
   int year;
   byte month, day, hour, minute, second, hundredths;
   unsigned long age;
@@ -100,4 +113,3 @@ void printGPSDate() {
     Serial.println(sz);
   }
 }
-#endif
