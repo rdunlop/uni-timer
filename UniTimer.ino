@@ -6,14 +6,13 @@
 //
 // Expected Hardware Components
 // - SENSOR - Sensor
+// - GPS - GPS Sensor, for setting accurate time signal
 // - RTC - Real Time Clock
 // - DISPLAY - 7 Segment display
 // - KEYPAD_EXPANSION - I2C expansion board, with keypad connected to it
 // - BUZZER - Piezo buzzer
 // - BUTTON - Input button
 //
-// Expected Hardware Setup
-// - Keypad is connected to the I2C expansion board, with the leftmost pin of the keypad connected to P0 of the expansion board.
 //
 // Needed Libraries
 // - Download and provide https://github.com/joeyoung/arduino_keypads/blob/master/Keypad_I2C/Keypad_I2C.h/.cpp in the Keypad_I2C folder
@@ -54,10 +53,7 @@
 
 /* *********************** Includes *********************************** */
 // - SENSOR
-// - GPS
-#ifdef ENABLE_GPS
-#include <TinyGPS.h>
-#endif
+
 // - RTC
 #ifdef ENABLE_RTC
 #include "RTClib.h"
@@ -144,25 +140,6 @@ byte columnsPins [cols] = KEYPAD_COLUMN_WIRES; // columns pins
 Keypad keypad (makeKeymap (keyLayout), linePins, columnsPins, rows, cols); 
 #endif
 
-// GPS ------------------------------------------
-#if defined(ENABLE_GPS)
-
-volatile unsigned long count = 0;
-volatile unsigned long pps_start_ms = micros();
-
-// NOTE: The GPS PPS signal will ONLY fire when there is GPS lock.
-void pps_interrupt(){
-  unsigned long now = micros();
-  Serial.print("GPS PPS: ");
-  Serial.println(now - pps_start_ms);
-  pps_start_ms = now;
-  printGPSDate();
-}
-
-TinyGPS gps;
-bool newData = false;
-#endif
-
 // RTC -----------------------------------------
 #ifdef ENABLE_RTC
 RTC_DS3231 rtc;
@@ -230,12 +207,7 @@ void setup () {
 
   // GPS
   setup_gps();
-  #if defined(ENABLE_GPS)
-  pinMode(GPS_PPS_DIGITAL_INPUT, INPUT);
-  attachInterrupt(digitalPinToInterrupt(GPS_PPS_DIGITAL_INPUT), pps_interrupt, RISING);
   
-  Serial2.begin(9600);
-  #endif
 
   // RTC
   #ifdef ENABLE_RTC
@@ -286,9 +258,6 @@ void setup () {
 }
 
 /************************************* (main program) ********* *****************************/
-#if defined(ENABLE_GPS)
-uint32_t last_gps_print_time = millis();
-#endif
 
 #ifdef ENABLE_RTC
 uint32_t last_rtc_print_time = millis();
@@ -336,29 +305,8 @@ void loop () {
   }
   #endif
 
-  #ifdef ENABLE_GPS
-  while (Serial2.available())
-  {
-    char c = Serial2.read();
-    #ifdef GPSECHO
-      Serial.write(c); // uncomment this line if you want to see the GPS data flowing
-    #endif
-    if (gps.encode(c)) // Did a new valid sentence come in?
-      newData = true;
-  }
+  loop_gps();
   
-  // if millis() or timer wraps around, we'll just reset it
-  if (last_gps_print_time > millis())  last_gps_print_time = millis();
-  // approximately every 2 seconds or so, print out the current GPS stats
-  if (millis() - last_gps_print_time > 2000) { 
-    last_gps_print_time = millis(); // reset the timer
-
-    printGPS();
-
-    printGPSDate();
-  }
-  #endif
-
   #ifdef ENABLE_RTC
   // if millis() or timer wraps around, we'll just reset it
   if (last_rtc_print_time > millis())  last_rtc_print_time = millis();
@@ -388,53 +336,7 @@ void beep() {
   #endif
 }
 
-#ifdef ENABLE_GPS
-void printGPS() {
-  unsigned long chars;
-  unsigned short sentences, failed;
-  if (newData)
-  {
-    float flat, flon;
-    unsigned long age;
-    gps.f_get_position(&flat, &flon, &age);
-    Serial.print("LAT=");
-    Serial.print(flat == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : flat, 6);
-    Serial.print(" LON=");
-    Serial.print(flon == TinyGPS::GPS_INVALID_F_ANGLE ? 0.0 : flon, 6);
-    Serial.print(" SAT=");
-    Serial.print(gps.satellites() == TinyGPS::GPS_INVALID_SATELLITES ? 0 : gps.satellites());
-    Serial.print(" PREC=");
-    Serial.print(gps.hdop() == TinyGPS::GPS_INVALID_HDOP ? 0 : gps.hdop());
-    newData = false;
-  }
-  
-  gps.stats(&chars, &sentences, &failed);
-  Serial.print(" CHARS=");
-  Serial.print(chars);
-  Serial.print(" SENTENCES=");
-  Serial.print(sentences);
-  Serial.print(" CSUM ERR=");
-  Serial.println(failed);
-  if (chars == 0)
-    Serial.println("** No characters received from GPS: check wiring **");
-}
 
-void printGPSDate() {
-  int year;
-  byte month, day, hour, minute, second, hundredths;
-  unsigned long age;
-  gps.crack_datetime(&year, &month, &day, &hour, &minute, &second, &hundredths, &age);
-  if (age == TinyGPS::GPS_INVALID_AGE)
-    Serial.println("********** ******** ");
-  else
-  {
-    char sz[32];
-    sprintf(sz, "%02d/%02d/%02d %02d:%02d:%02d ",
-        month, day, year, hour, minute, second);
-    Serial.println(sz);
-  }
-}
-#endif
 
 #ifdef ENABLE_RTC
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
