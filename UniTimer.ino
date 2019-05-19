@@ -53,15 +53,9 @@
 
 /* *********************** Includes *********************************** */
 // - SENSOR
-
-// - RTC
-#ifdef ENABLE_RTC
-#include "RTClib.h"
-#endif
 // - DISPLAY
 #ifdef ENABLE_DISPLAY
-#include <Adafruit_GFX.h>
-#include "Adafruit_LEDBackpack.h"
+#include "uni_display.h"
 #endif
 // - KEYPAD
 #ifdef ENABLE_KEYPAD
@@ -115,10 +109,6 @@
 
 
 /* ************************** Initialization ******************* */
-// DISPLAY -------------------------------------------
-#ifdef ENABLE_DISPLAY
-Adafruit_7segment display = Adafruit_7segment();
-#endif
 
 // KEYPAD --------------------------------------------
 #ifdef ENABLE_KEYPAD
@@ -140,23 +130,6 @@ byte columnsPins [cols] = KEYPAD_COLUMN_WIRES; // columns pins
 Keypad keypad (makeKeymap (keyLayout), linePins, columnsPins, rows, cols); 
 #endif
 
-// RTC -----------------------------------------
-#ifdef ENABLE_RTC
-RTC_DS3231 rtc;
-
-volatile byte rtc_interrupt_flag = false;
-volatile unsigned long rtc_start_ms = micros();
-
-// RTC SQW signal is an active-low signal, so it needs INPUT_PULLUP
-void rtc_interrupt(){
-  rtc_interrupt_flag = true;
-  Serial.print("RTC: ");
-  unsigned long  now = micros();
-  Serial.println(now - rtc_start_ms);
-  rtc_start_ms = now;
-}
-#endif
-
 // PRINTER -------------------------------------
 #ifdef ENABLE_PRINTER
 SoftwareSerial printerSerial(PRINTER_DIGITAL_INPUT, PRINTER_DIGITAL_OUTPUT); // Declare SoftwareSerial obj first
@@ -167,6 +140,10 @@ Adafruit_Thermal printer(&printerSerial);     // Pass addr to printer constructo
 #ifdef ENABLE_SD2
 SdFat SD;
 File myFile;
+#endif
+
+#ifdef ENABLE_DISPLAY
+UniDisplay display(DISPLAY_I2CADDR);
 #endif
 
 /******** ***********************************(set up)*** *************** **********************/
@@ -182,21 +159,14 @@ void setup () {
   
   // DISPLAY
   #ifdef ENABLE_DISPLAY
-  
-  display.begin(DISPLAY_I2CADDR);
-  display.print(0x8888, HEX);
-  display.writeDisplay();
+  display.setup();
   #endif
 
   delay(2000); // wait for serial to connect before starting
   Serial.println("Starting");
 
   #ifdef ENABLE_DISPLAY
-  for (uint16_t counter = 5; counter > 0; counter--) {
-    display.println(counter);
-    display.writeDisplay();
-    delay(1000);
-  }
+  display.countdown();
   #endif
 
   // KEYPAD
@@ -206,27 +176,15 @@ void setup () {
   
 
   // GPS
+  #ifdef ENABLE_GPS
   setup_gps();
-  
+  #endif
 
   // RTC
   #ifdef ENABLE_RTC
-  if (! rtc.begin()) {
-    Serial.println("Couldn't find RTC");
-    while (1);
-  }
-  if (rtc.lostPower()) {
-    Serial.println("RTC lost power, lets set the time!");
-    // following line sets the RTC to the date & time this sketch was compiled
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
-  }
-  // I don't know if this does anything
-  // enable the 1 Hz output
-  //rtc.writeSqwPinMode (DS3231_SquareWave1Hz);
-
-  pinMode(RTC_SQW_DIGITAL_INPUT, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(RTC_SQW_DIGITAL_INPUT), rtc_interrupt, RISING);
+  setup_rtc();
   #endif
+  
 
   // PRINTER
   #ifdef ENABLE_PRINTER
@@ -259,9 +217,6 @@ void setup () {
 
 /************************************* (main program) ********* *****************************/
 
-#ifdef ENABLE_RTC
-uint32_t last_rtc_print_time = millis();
-#endif
 
 void loop () {
   #ifdef ENABLE_KEYPAD
@@ -274,8 +229,7 @@ void loop () {
       Serial.print("value: ");
       Serial.println(intFromChar(read_key));
       #ifdef ENABLE_DISPLAY
-      display.print(intFromChar(read_key), DEC);
-      display.writeDisplay();
+//      display.update(intFromChar(read_key), DEC);
       #endif
       #ifdef ENABLE_BUZZER
       tone(BUZZER_DIGITAL_OUTPUT, 1000, 100);
@@ -296,26 +250,15 @@ void loop () {
   }
   #endif
   
-  #ifdef ENABLE_RTC
-  if (rtc_interrupt_flag) {
-    digitalWrite(LED_BUILTIN, HIGH);    // flash the led
-    delay(100);                         // wait a little bit
-    digitalWrite(LED_BUILTIN, LOW);     // turn off led
-    rtc_interrupt_flag =  false;                      // clear the flag until timer sets it again
-  }
+  #ifdef ENABLE_GPS
+  loop_gps();
   #endif
 
-  loop_gps();
-  
   #ifdef ENABLE_RTC
-  // if millis() or timer wraps around, we'll just reset it
-  if (last_rtc_print_time > millis())  last_rtc_print_time = millis();
-  // approximately every 2 seconds or so, print out the current GPS stats
-  if (millis() - last_rtc_print_time > 2000) { 
-    last_rtc_print_time = millis(); // reset the timer
-    printRTC();
-  }
+  loop_rtc();
   #endif
+  
+  
 }
 
 /* ********************** Helper Methods ************** */
@@ -338,54 +281,6 @@ void beep() {
 
 
 
-#ifdef ENABLE_RTC
-char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-void printRTC() {
-  DateTime now = rtc.now();
-
-  Serial.println("---------------------------");
-  Serial.println("RTC:");
-  Serial.print(now.year(), DEC);
-  Serial.print('/');
-  Serial.print(now.month(), DEC);
-  Serial.print('/');
-  Serial.print(now.day(), DEC);
-  Serial.print(" (");
-  Serial.print(daysOfTheWeek[now.dayOfTheWeek()]);
-  Serial.print(") ");
-  Serial.print(now.hour(), DEC);
-  Serial.print(':');
-  Serial.print(now.minute(), DEC);
-  Serial.print(':');
-  Serial.print(now.second(), DEC);
-  Serial.println();
-  
-  Serial.print(" since midnight 1/1/1970 = ");
-  Serial.print(now.unixtime());
-  Serial.print("s = ");
-  Serial.print(now.unixtime() / 86400L);
-  Serial.println("d");
-  
-  // calculate a date which is 7 days and 30 seconds into the future
-  DateTime future (now + TimeSpan(7,12,30,6));
-  
-  Serial.print(" now + 7d + 30s: ");
-  Serial.print(future.year(), DEC);
-  Serial.print('/');
-  Serial.print(future.month(), DEC);
-  Serial.print('/');
-  Serial.print(future.day(), DEC);
-  Serial.print(' ');
-  Serial.print(future.hour(), DEC);
-  Serial.print(':');
-  Serial.print(future.minute(), DEC);
-  Serial.print(':');
-  Serial.print(future.second(), DEC);
-  Serial.println();
-  
-  Serial.println();
-}
-#endif
 
 #ifdef ENABLE_SD2
 void writeFile(char *filename, char *text) {
