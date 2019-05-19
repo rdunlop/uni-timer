@@ -42,9 +42,9 @@
 /* ************************* Capabilities flags ******************************************* */
 /* Set these flags to enable certain combinations of components */
 //#define ENABLE_GPS
-#define ENABLE_RTC
+//#define ENABLE_RTC
 //#define ENABLE_DISPLAY
-//#define ENABLE_KEYPAD
+#define ENABLE_KEYPAD
 //#define ENABLE_PRINTER
 //#define ENABLE_SD
 //#define ENABLE_SD2
@@ -65,7 +65,7 @@
 #endif
 // - KEYPAD
 #ifdef ENABLE_KEYPAD
-#include "Keypad.h"
+#include "uni_keypad.h"
 #endif
 // - PRINTER
 #ifdef ENABLE_PRINTER
@@ -98,8 +98,14 @@
 // - DISPLAY
 #define DISPLAY_I2CADDR 0x70
 // - KEYPAD
-#define KEYPAD_COLUMN_WIRES {14, 15, 16, 17}
-#define KEYPAD_ROW_WIRES {20, 21, 22, 23}
+#define KEYPAD_COLUMN_WIRE_1 14
+#define KEYPAD_COLUMN_WIRE_2 15
+#define KEYPAD_COLUMN_WIRE_3 16
+#define KEYPAD_COLUMN_WIRE_4 17
+#define KEYPAD_ROW_WIRE_1 20
+#define KEYPAD_ROW_WIRE_2 21
+#define KEYPAD_ROW_WIRE_3 22
+#define KEYPAD_ROW_WIRE_4 23
 // - PRINTER
 #define PRINTER_DIGITAL_OUTPUT 8 // Arduino transmit  YELLOW WIRE  labeled RX on printer
 #define PRINTER_DIGITAL_INPUT 7 // Arduino receive   GREEN WIRE   labeled TX on printer
@@ -118,22 +124,20 @@
 
 // KEYPAD --------------------------------------------
 #ifdef ENABLE_KEYPAD
-const byte rows = 4; // number of lines
-const byte cols = 4; //Number of columns
-
-// Here you can enter the symbols of your Keypad
-char keyLayout [rows] [cols] = {
-  { '1', '2', '3', 'A'}, 
-  { '4', '5', '6', 'B'},
-  { '7', '8', '9', 'C'},
-  { '*', '0', '#', 'D'}
-};
-
-// Here define how the keypad is wired to the IO pins.
-byte linePins[rows] = KEYPAD_ROW_WIRES; // lines pins
-byte columnsPins [cols] = KEYPAD_COLUMN_WIRES; // columns pins
-
-Keypad keypad (makeKeymap (keyLayout), linePins, columnsPins, rows, cols); 
+//const byte rows = 4; // number of lines
+//const byte cols = 4; //Number of columns
+//byte linePins[rows] = KEYPAD_ROW_WIRES; // lines pins
+//byte columnPins [cols] = KEYPAD_COLUMN_WIRES; // columns pins
+UniKeypad keypad(
+  KEYPAD_ROW_WIRE_1,
+  KEYPAD_ROW_WIRE_2,
+  KEYPAD_ROW_WIRE_3,
+  KEYPAD_ROW_WIRE_4,
+  KEYPAD_COLUMN_WIRE_1,
+  KEYPAD_COLUMN_WIRE_2,
+  KEYPAD_COLUMN_WIRE_3,
+  KEYPAD_COLUMN_WIRE_4
+  );
 #endif
 
 // PRINTER -------------------------------------
@@ -185,7 +189,7 @@ void setup () {
 
   // KEYPAD
   #ifdef ENABLE_KEYPAD
-//  keypad.begin();
+  keypad.setup();
   #endif      
   
 
@@ -234,24 +238,7 @@ void setup () {
 
 void loop () {
   #ifdef ENABLE_KEYPAD
-  char read_key = keypad.getKey ();
-
-  if (read_key != NO_KEY) {
-    Serial.println ("read");
-    Serial.println(read_key);
-    if (isDigit(read_key)) {
-      Serial.print("value: ");
-      Serial.println(intFromChar(read_key));
-      #ifdef ENABLE_DISPLAY
-//      display.update(intFromChar(read_key), DEC);
-      #endif
-      #ifdef ENABLE_BUZZER
-      tone(BUZZER_DIGITAL_OUTPUT, 1000, 100);
-      #endif
-    } else {
-      beep();
-    }
-  }
+  keypad.loop();
   #endif
   
   #ifdef ENABLE_SENSOR
@@ -276,16 +263,6 @@ void loop () {
 }
 
 /* ********************** Helper Methods ************** */
-#ifdef ENABLE_KEYPAD
-boolean isDigit(char c) {
-  return (c >= '0') && (c <= '9');
-}
-
-uint8_t intFromChar(char c) {
-  return c - '0';
-}
-#endif
-
 void beep() {
   Serial.println("Beep");
   #ifdef ENABLE_BUZZER
