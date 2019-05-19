@@ -42,23 +42,20 @@
 
 /* ************************* Capabilities flags ******************************************* */
 /* Set these flags to enable certain combinations of components */
-//#define ENABLE_GPS
-//#define ENABLE_GPS2
-//#define ENABLE_RTC
-//#define ENABLE_DISPLAY
+#define ENABLE_GPS
+#define ENABLE_RTC
+#define ENABLE_DISPLAY
 #define ENABLE_KEYPAD
 //#define ENABLE_PRINTER
 //#define ENABLE_SD
-//#define ENABLE_SD2
+#define ENABLE_SD2
+//#define ENABLE_SENSOR
+//#define ENABLE_BUZZER
 
 /* *********************** Includes *********************************** */
 // - SENSOR
 // - GPS
 #ifdef ENABLE_GPS
-#include <Adafruit_GPS.h>
-#include <SoftwareSerial.h>
-#endif
-#ifdef ENABLE_GPS2
 #include <TinyGPS.h>
 #endif
 // - RTC
@@ -93,7 +90,7 @@
 
 /* *************************** (Defining Global Variables) ************************** */
 // - SENSOR
-#define SENSOR_DIGITAL_INPUT 5 // still not determined
+#define SENSOR_DIGITAL_INPUT 5
 // - GPS
 #define GPS_PPS_DIGITAL_INPUT 2
 //#define GPSECHO true // for debugging
@@ -101,10 +98,12 @@
 #define GPS_DIGITAL_INPUT 10 // hardware serial #2
 // - RTC
 #define RTC_SQW_DIGITAL_INPUT 2
-#define RTC_I2CADDR 0x00 // UNKNOWN
+#define RTC_I2CADDR 0x68
 // - DISPLAY
 #define DISPLAY_I2CADDR 0x70
 // - KEYPAD
+#define KEYPAD_COLUMN_WIRES {14, 15, 16, 17}
+#define KEYPAD_ROW_WIRES {20, 21, 22, 23}
 // - PRINTER
 #define PRINTER_DIGITAL_OUTPUT 8 // Arduino transmit  YELLOW WIRE  labeled RX on printer
 #define PRINTER_DIGITAL_INPUT 7 // Arduino receive   GREEN WIRE   labeled TX on printer
@@ -138,23 +137,15 @@ char keyLayout [rows] [cols] = {
   { '*', '0', '#', 'D'}
 };
 
-// Here define how the keypad is wired to the IO pins of the PCF8574.
-byte linePins[rows] = {20, 21, 22, 23}; // lines pins
-byte columnsPins [cols] = {14, 15, 16, 17}; // columns pins
+// Here define how the keypad is wired to the IO pins.
+byte linePins[rows] = KEYPAD_ROW_WIRES; // lines pins
+byte columnsPins [cols] = KEYPAD_COLUMN_WIRES; // columns pins
 
 Keypad keypad (makeKeymap (keyLayout), linePins, columnsPins, rows, cols); 
 #endif
 
 // GPS ------------------------------------------
-#ifdef ENABLE_GPS
-SoftwareSerial gpsSerial(GPS_DIGITAL_OUTPUT, GPS_DIGITAL_INPUT);
-//volatile uint8_t *num;
-//HardwareSerial soundSerial = Serial1;
-//HardwareSerial gpsSerial(soundSerial); //GPS_DIGITAL_OUTPUT, GPS_DIGITAL_INPUT);
-Adafruit_GPS GPS(&gpsSerial);
-#endif
-
-#if defined(ENABLE_GPS) || defined(ENABLE_GPS2)
+#if defined(ENABLE_GPS)
 
 volatile unsigned long count = 0;
 volatile unsigned long pps_start_ms = micros();
@@ -167,8 +158,7 @@ void pps_interrupt(){
   pps_start_ms = now;
   printGPSDate();
 }
-#endif
-#ifdef ENABLE_GPS2
+
 TinyGPS gps;
 bool newData = false;
 #endif
@@ -239,12 +229,11 @@ void setup () {
   
 
   // GPS
-  #if defined(ENABLE_GPS) || defined(ENABLE_GPS2)
+  setup_gps();
+  #if defined(ENABLE_GPS)
   pinMode(GPS_PPS_DIGITAL_INPUT, INPUT);
   attachInterrupt(digitalPinToInterrupt(GPS_PPS_DIGITAL_INPUT), pps_interrupt, RISING);
-  #endif
   
-  #ifdef ENABLE_GPS2
   Serial2.begin(9600);
   #endif
 
@@ -297,12 +286,14 @@ void setup () {
 }
 
 /************************************* (main program) ********* *****************************/
-#if defined(ENABLE_GPS) || defined(ENABLE_GPS2)
+#if defined(ENABLE_GPS)
 uint32_t last_gps_print_time = millis();
 #endif
+
 #ifdef ENABLE_RTC
 uint32_t last_rtc_print_time = millis();
 #endif
+
 void loop () {
   #ifdef ENABLE_KEYPAD
   char read_key = keypad.getKey ();
@@ -346,27 +337,10 @@ void loop () {
   #endif
 
   #ifdef ENABLE_GPS
-  // read data from the GPS in the 'main loop'
-  char c = GPS.read();
-  // if you want to debug, this is a good time to do it!
-  #ifdef GPSECHO
-    if (c) Serial.print(c);
-  #endif
-  
-  // if millis() or timer wraps around, we'll just reset it
-  if (last_gps_print_time > millis())  last_gps_print_time = millis();
-  // approximately every 2 seconds or so, print out the current GPS stats
-  if (millis() - last_gps_print_time > 2000) { 
-    last_gps_print_time = millis(); // reset the timer
-    printGPS();
-  }
-  #endif
-  
-  #ifdef ENABLE_GPS2
   while (Serial2.available())
   {
     char c = Serial2.read();
-    #ifdef GPSECH
+    #ifdef GPSECHO
       Serial.write(c); // uncomment this line if you want to see the GPS data flowing
     #endif
     if (gps.encode(c)) // Did a new valid sentence come in?
@@ -416,50 +390,6 @@ void beep() {
 
 #ifdef ENABLE_GPS
 void printGPS() {
-  // if a sentence is received, we can check the checksum, parse it...
-  if (GPS.newNMEAreceived()) {
-    // a tricky thing here is if we print the NMEA sentence, or data
-    // we end up not listening and catching other sentences! 
-    // so be very wary if using OUTPUT_ALLDATA and trytng to print out data
-    //Serial.println(GPS.lastNMEA());   // this also sets the newNMEAreceived() flag to false
-  
-    if (!GPS.parse(GPS.lastNMEA()))   // this also sets the newNMEAreceived() flag to false
-      return;  // we can fail to parse a sentence in which case we should just wait for another
-  }
-
-  Serial.println("---------------------------");
-  Serial.println("GPS:");
-  Serial.print("\nTime: ");
-  Serial.print(GPS.hour, DEC); Serial.print(':');
-  Serial.print(GPS.minute, DEC); Serial.print(':');
-  Serial.print(GPS.seconds, DEC); Serial.print('.');
-  Serial.println(GPS.milliseconds);
-  Serial.print("Date: ");
-  Serial.print(GPS.day, DEC); Serial.print('/');
-  Serial.print(GPS.month, DEC); Serial.print("/20");
-  Serial.println(GPS.year, DEC);
-  Serial.print("Fix: "); Serial.print((int)GPS.fix);
-  Serial.print(" quality: "); Serial.println((int)GPS.fixquality); 
-  if (GPS.fix) {
-    Serial.print("Location: ");
-    Serial.print(GPS.latitude, 4); Serial.print(GPS.lat);
-    Serial.print(", "); 
-    Serial.print(GPS.longitude, 4); Serial.println(GPS.lon);
-    Serial.print("Location (in degrees, works with Google Maps): ");
-    Serial.print(GPS.latitudeDegrees, 4);
-    Serial.print(", "); 
-    Serial.println(GPS.longitudeDegrees, 4);
-    
-    Serial.print("Speed (knots): "); Serial.println(GPS.speed);
-    Serial.print("Angle: "); Serial.println(GPS.angle);
-    Serial.print("Altitude: "); Serial.println(GPS.altitude);
-    Serial.print("Satellites: "); Serial.println((int)GPS.satellites);
-  }
-}
-#endif
-
-#ifdef ENABLE_GPS2
-void printGPS() {
   unsigned long chars;
   unsigned short sentences, failed;
   if (newData)
@@ -505,6 +435,7 @@ void printGPSDate() {
   }
 }
 #endif
+
 #ifdef ENABLE_RTC
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 void printRTC() {
