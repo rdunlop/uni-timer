@@ -41,8 +41,8 @@
 
 /* ************************* Capabilities flags ******************************************* */
 /* Set these flags to enable certain combinations of components */
-#define ENABLE_GPS
-//#define ENABLE_RTC
+//#define ENABLE_GPS
+#define ENABLE_RTC
 //#define ENABLE_DISPLAY
 //#define ENABLE_KEYPAD
 //#define ENABLE_PRINTER
@@ -59,6 +59,9 @@
 #endif
 #ifdef ENABLE_GPS
 #include "uni_gps.h"
+#endif
+#ifdef ENABLE_RTC
+#include "uni_rtc.h"
 #endif
 // - KEYPAD
 #ifdef ENABLE_KEYPAD
@@ -153,6 +156,10 @@ UniDisplay display(DISPLAY_I2CADDR);
 UniGps gps(GPS_PPS_DIGITAL_INPUT);
 #endif
 
+#ifdef ENABLE_RTC
+UniRtc rtc(RTC_SQW_DIGITAL_INPUT);
+#endif
+
 /******** ***********************************(set up)*** *************** **********************/
 void setup () {
   // Common
@@ -189,7 +196,7 @@ void setup () {
 
   // RTC
   #ifdef ENABLE_RTC
-  setup_rtc();
+  rtc.setup();
   #endif
   
 
@@ -262,7 +269,7 @@ void loop () {
   #endif
 
   #ifdef ENABLE_RTC
-  loop_rtc();
+  rtc.loop();
   #endif
   
   

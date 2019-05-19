@@ -1,16 +1,22 @@
 // - RTC
-#ifdef ENABLE_RTC
-#include "RTClib.h"
+#include "uni_rtc.h"
 
-RTC_DS3231 rtc;
+UniRtc::UniRtc(int sqw_signal_input)
+{
+  _sqw_signal_input = sqw_signal_input;
+}
 
-volatile byte rtc_interrupt_flag = false;
-volatile unsigned long rtc_start_ms = micros();
-
-uint32_t last_rtc_print_time = millis();
+// Because interrupt handlers run outside of all object-like constructs
+// we have a static pointer to a GPS instance, so that we can bounce into
+// the interrupt_handler on that object
+UniRtc * UniRtc::instance0_;
 
 // RTC SQW signal is an active-low signal, so it needs INPUT_PULLUP
-void rtc_interrupt(){
+void UniRtc::sqw_interrupt(){
+  instance0_->handle_interrupt();
+}
+
+void UniRtc::handle_interrupt() {
   rtc_interrupt_flag = true;
   Serial.print("RTC: ");
   unsigned long  now = micros();
@@ -18,7 +24,11 @@ void rtc_interrupt(){
   rtc_start_ms = now;
 }
 
-void setup_rtc() {
+void UniRtc::setup() {
+  rtc_interrupt_flag = false;
+  rtc_start_ms = micros();
+  last_rtc_print_time = millis();
+  
   if (! rtc.begin()) {
     Serial.println("Couldn't find RTC");
     while (1);
@@ -32,11 +42,11 @@ void setup_rtc() {
   // enable the 1 Hz output
   //rtc.writeSqwPinMode (DS3231_SquareWave1Hz);
 
-  pinMode(RTC_SQW_DIGITAL_INPUT, INPUT_PULLUP);
-  attachInterrupt(digitalPinToInterrupt(RTC_SQW_DIGITAL_INPUT), rtc_interrupt, RISING);
+  pinMode(_sqw_signal_input, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(_sqw_signal_input), sqw_interrupt, RISING);
 }
 
-void loop_rtc() {
+void UniRtc::loop() {
   if (rtc_interrupt_flag) {
     digitalWrite(LED_BUILTIN, HIGH);    // flash the led
     delay(100);                         // wait a little bit
@@ -49,12 +59,12 @@ void loop_rtc() {
   // approximately every 2 seconds or so, print out the current GPS stats
   if (millis() - last_rtc_print_time > 2000) { 
     last_rtc_print_time = millis(); // reset the timer
-    printRTC();
+    print();
   }
 }
 
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
-void printRTC() {
+void UniRtc::print() {
   DateTime now = rtc.now();
 
   Serial.println("---------------------------");
@@ -99,5 +109,3 @@ void printRTC() {
   
   Serial.println();
 }
-
-#endif

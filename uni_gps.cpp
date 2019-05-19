@@ -13,10 +13,8 @@ UniGps::UniGps(int pps_signal_input)
 // the interrupt_handler on that object
 UniGps * UniGps::instance0_;
 
-
 // Setup function, for initializin Per-second-interrupt singal, and monitoring for GPS data
 // over serial2
-
 void UniGps::setup() {
   pps_start_ms = micros();  
   newData = false;
