@@ -69,8 +69,7 @@
 #endif
 // - PRINTER
 #ifdef ENABLE_PRINTER
-#include <SoftwareSerial.h>
-#include <Adafruit_Thermal.h>
+#include "uni_printer.h"
 #endif
 // - SD Card
 #ifdef ENABLE_SD
@@ -142,8 +141,7 @@ UniKeypad keypad(
 
 // PRINTER -------------------------------------
 #ifdef ENABLE_PRINTER
-SoftwareSerial printerSerial(PRINTER_DIGITAL_INPUT, PRINTER_DIGITAL_OUTPUT); // Declare SoftwareSerial obj first
-Adafruit_Thermal printer(&printerSerial);     // Pass addr to printer constructor
+UniPrinter printer(PRINTER_DIGITAL_INPUT, PRINTER_DIGITAL_OUTPUT);
 #endif
 
 // SD
@@ -206,13 +204,7 @@ void setup () {
 
   // PRINTER
   #ifdef ENABLE_PRINTER
-  printerSerial.begin(19200); // this printer has a 19200 baud
-  printer.begin();
-  printer.inverseOff();
-  printer.println("Hello Robin");
-  printer.feed(2);
-  printer.sleep();
-  // printer.wake();
+  printer.setup();  
   #endif
 
   #ifdef ENABLE_SD2
