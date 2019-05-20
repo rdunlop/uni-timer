@@ -45,11 +45,11 @@
 //#define ENABLE_RTC
 //#define ENABLE_DISPLAY
 //#define ENABLE_KEYPAD
-#define ENABLE_PRINTER
+//#define ENABLE_PRINTER
 //#define ENABLE_SD
 //#define ENABLE_SD2
 //#define ENABLE_SENSOR
-//#define ENABLE_BUZZER
+#define ENABLE_BUZZER
 
 /* *********************** Includes *********************************** */
 // - SENSOR
@@ -80,6 +80,9 @@
 #include "SdFat.h"
 #endif
 // - BUZZER
+#ifdef ENABLE_BUZZER
+#include "uni_buzzer.h"
+#endif
 // - BUTTON
 
 
@@ -123,10 +126,6 @@
 
 // KEYPAD --------------------------------------------
 #ifdef ENABLE_KEYPAD
-//const byte rows = 4; // number of lines
-//const byte cols = 4; //Number of columns
-//byte linePins[rows] = KEYPAD_ROW_WIRES; // lines pins
-//byte columnPins [cols] = KEYPAD_COLUMN_WIRES; // columns pins
 UniKeypad keypad(
   KEYPAD_ROW_WIRE_1,
   KEYPAD_ROW_WIRE_2,
@@ -162,6 +161,10 @@ UniGps gps(GPS_PPS_DIGITAL_INPUT);
 UniRtc rtc(RTC_SQW_DIGITAL_INPUT);
 #endif
 
+#ifdef ENABLE_BUZZER
+UniBuzzer buzzer(BUZZER_DIGITAL_OUTPUT);
+#endif 
+
 /******** ***********************************(set up)*** *************** **********************/
 void setup () {
   // Common
@@ -189,7 +192,6 @@ void setup () {
   #ifdef ENABLE_KEYPAD
   keypad.setup();
   #endif      
-  
 
   // GPS
   #ifdef ENABLE_GPS
@@ -207,6 +209,10 @@ void setup () {
   printer.setup();  
   #endif
 
+  #ifdef ENABLE_BUZZER
+  buzzer.setup();
+  #endif
+
   #ifdef ENABLE_SD2
   Serial.print("Initializing SD card...");
 
@@ -218,10 +224,6 @@ void setup () {
   writeFile("testfile.txt", "hEllo Robin");
   writeFile("testfile.txt", "Goodbye Robin");
   readFile("testfile.txt");
-  #endif
-
-  #ifdef ENABLE_BUZZER
-  pinMode(BUZZER_DIGITAL_OUTPUT, OUTPUT);
   #endif
 }
 
@@ -258,7 +260,7 @@ void loop () {
 void beep() {
   Serial.println("Beep");
   #ifdef ENABLE_BUZZER
-  tone(BUZZER_DIGITAL_OUTPUT, 1000, 100);
+  buzzer.beep();
   #endif
 }
 
