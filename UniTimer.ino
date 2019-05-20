@@ -44,8 +44,8 @@
 //#define ENABLE_GPS
 //#define ENABLE_RTC
 //#define ENABLE_DISPLAY
-#define ENABLE_KEYPAD
-//#define ENABLE_PRINTER
+//#define ENABLE_KEYPAD
+#define ENABLE_PRINTER
 //#define ENABLE_SD
 //#define ENABLE_SD2
 //#define ENABLE_SENSOR

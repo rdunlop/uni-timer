@@ -11,17 +11,28 @@ UniKeypad::UniKeypad(byte r1, byte r2, byte r3, byte r4, byte c1, byte c2, byte 
   columnPins[1] = c2;
   columnPins[2] = c3;
   columnPins[3] = c4; // columns pins
-}
 
-void UniKeypad::setup() {
-  // Here you can enter the symbols of your Keypad
-  char keyLayout [4] [4] = {
+  // Use locals to make easy declaration/representation
+  char layout[4][4] = {
     { '1', '2', '3', 'A'}, 
     { '4', '5', '6', 'B'},
     { '7', '8', '9', 'C'},
     { '*', '0', '#', 'D'}
   };
-  _keypad = Keypad(makeKeymap (keyLayout), linePins, columnPins, 4, 4); 
+  // Copy the locals into the class-level long-term memory element
+  for(int i = 0; i < 4; i++) {
+    for (int j = 0; j < 4; j++) {
+      keyLayout[i][j] = layout[i][j];
+    }
+  }
+}
+
+void UniKeypad::setup() {
+  // Here you can enter the symbols of your Keypad
+  // NOTE: The keypad library REQUIRES that all of the arrays that are passed in for configuration
+  // Are declared in some form of long-term storage (like global static variables, etc).
+  // Using 'locals' will NOT work.
+  _keypad = new Keypad(makeKeymap (keyLayout), linePins, columnPins, 4, 4); 
 }
 
 void UniKeypad::loop() {

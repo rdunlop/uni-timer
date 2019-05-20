@@ -11,7 +11,8 @@ class UniKeypad
   private:
     byte linePins[4];
     byte columnPins[4];
-    Keypad _keypad;
+    char keyLayout [4][4];
+    Keypad *_keypad;
     boolean isDigit(char);
     uint8_t intFromChar(char);
 };
