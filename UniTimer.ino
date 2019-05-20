@@ -12,10 +12,9 @@
 // - KEYPAD_EXPANSION - I2C expansion board, with keypad connected to it
 // - BUZZER - Piezo buzzer
 // - BUTTON - Input button
-//
+// - SD - MicroSD Storage card
 //
 // Needed Libraries
-// - Download and provide https://github.com/joeyoung/arduino_keypads/blob/master/Keypad_I2C/Keypad_I2C.h/.cpp in the Keypad_I2C folder
 // - Download and provide https://github.com/adafruit/SD in the SD folder. (this replaces the SD library included by the GPS library
 //
 // NOTES:
@@ -41,15 +40,14 @@
 
 /* ************************* Capabilities flags ******************************************* */
 /* Set these flags to enable certain combinations of components */
-//#define ENABLE_GPS
-//#define ENABLE_RTC
-//#define ENABLE_DISPLAY
-//#define ENABLE_KEYPAD
-//#define ENABLE_PRINTER
-//#define ENABLE_SD
-#define ENABLE_SD2
-//#define ENABLE_SENSOR
-//#define ENABLE_BUZZER
+#define ENABLE_GPS
+#define ENABLE_RTC
+#define ENABLE_DISPLAY
+#define ENABLE_KEYPAD
+#define ENABLE_PRINTER
+#define ENABLE_SD
+#define ENABLE_SENSOR
+#define ENABLE_BUZZER
 
 /* *********************** Includes *********************************** */
 // - SENSOR
@@ -73,9 +71,6 @@
 #endif
 // - SD Card
 #ifdef ENABLE_SD
-#include <SD.h>
-#endif
-#ifdef ENABLE_SD2
 #include "uni_sd.h"
 #endif
 // - BUZZER
@@ -143,7 +138,7 @@ UniPrinter printer(PRINTER_DIGITAL_INPUT, PRINTER_DIGITAL_OUTPUT);
 #endif
 
 // SD
-#ifdef ENABLE_SD2
+#ifdef ENABLE_SD
 UniSd sd(
   SD_SPI_CHIP_SELECT_OUTPUT,
   SD_SPI_MOSI_INPUT,
@@ -205,7 +200,6 @@ void setup () {
   rtc.setup();
   #endif
   
-
   // PRINTER
   #ifdef ENABLE_PRINTER
   printer.setup();  
@@ -215,7 +209,7 @@ void setup () {
   buzzer.setup();
   #endif
 
-  #ifdef ENABLE_SD2
+  #ifdef ENABLE_SD
   sd.setup();
   #endif
 }
