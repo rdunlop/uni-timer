@@ -11,6 +11,7 @@ class UniPrinter
     void loop();
     void print(char *);
     void hello();
+    boolean hasPaper();
   private:
     int _tx_pin;
     int _rx_pin;

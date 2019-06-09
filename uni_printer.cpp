@@ -18,6 +18,10 @@ void UniPrinter::setup() {
 
 void UniPrinter::loop() { }
 
+boolean UniPrinter::hasPaper() {
+  printer->hasPaper();
+}
+
 void UniPrinter::hello() { 
   printer->println("Hello Robin");
   printer->feed(2);

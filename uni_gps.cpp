@@ -2,6 +2,7 @@
 // - This file assumes that the GPS is connected on Serial2
 
 #include "uni_gps.h"
+//#define GPSECHO
 
 UniGps::UniGps(int pps_signal_input)
 {
@@ -26,6 +27,7 @@ void UniGps::setup() {
   instance0_ = this;
   
   Serial2.begin(9600);
+  Serial.println("GPS Done init");
 }
 
 
@@ -52,7 +54,9 @@ void UniGps::loop() {
     if (gps.encode(c)) // Did a new valid sentence come in?
       newData = true;
   }
-  
+}
+
+void UniGps::printPeriodically() {
   // if millis() or timer wraps around, we'll just reset it
   if (last_gps_print_time > millis())  last_gps_print_time = millis();
   // approximately every 2 seconds or so, print out the current GPS stats
@@ -65,9 +69,23 @@ void UniGps::loop() {
   }
 }
 
+int UniGps::getDateTime(int *minute, int *second) {
+  int year;
+  byte month, day, hour, new_minute, new_second, hundredths;
+  unsigned long age;
+  gps.crack_datetime(&year, &month, &day, &hour, &new_minute, &new_second, &hundredths, &age);
+  *minute = new_minute;
+  *second = new_second;
+  
+  return 1;
+}
+
 void UniGps::printGPS() {
   unsigned long chars;
   unsigned short sentences, failed;
+  
+  Serial.println("---------------------------");
+  Serial.println("GPS:");
   if (newData)
   {
     float flat, flon;

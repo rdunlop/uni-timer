@@ -11,6 +11,9 @@ class UniRtc
     UniRtc(int sqw_signal_input);
     void setup();
     void loop();
+    void printPeriodically();
+    void setDateTime(int year, int month, int day, int hour, int minute, int second);
+    DateTime getDateTime();
   private:
     volatile byte rtc_interrupt_flag;
     volatile unsigned long rtc_start_ms;

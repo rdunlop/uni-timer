@@ -17,6 +17,7 @@ void UniSd::setup() {
     return;
   }
   Serial.println("initialization done.");
+  test();
 }
 
 void UniSd::test() {

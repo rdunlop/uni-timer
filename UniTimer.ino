@@ -85,7 +85,6 @@
 #define SENSOR_DIGITAL_INPUT 5
 // - GPS
 #define GPS_PPS_DIGITAL_INPUT 2
-//#define GPSECHO true // for debugging
 #define GPS_DIGITAL_OUTPUT 9 // hardware serial #2
 #define GPS_DIGITAL_INPUT 10 // hardware serial #2
 // - RTC
@@ -94,14 +93,23 @@
 // - DISPLAY
 #define DISPLAY_I2CADDR 0x70
 // - KEYPAD
-#define KEYPAD_COLUMN_WIRE_1 14
-#define KEYPAD_COLUMN_WIRE_2 15
-#define KEYPAD_COLUMN_WIRE_3 16
-#define KEYPAD_COLUMN_WIRE_4 17
-#define KEYPAD_ROW_WIRE_1 20
-#define KEYPAD_ROW_WIRE_2 21
-#define KEYPAD_ROW_WIRE_3 22
-#define KEYPAD_ROW_WIRE_4 23
+//#define KEYPAD_COLUMN_WIRE_1 14
+//#define KEYPAD_COLUMN_WIRE_2 15
+//#define KEYPAD_COLUMN_WIRE_3 16
+//#define KEYPAD_COLUMN_WIRE_4 17
+//#define KEYPAD_ROW_WIRE_1 20
+//#define KEYPAD_ROW_WIRE_2 21
+//#define KEYPAD_ROW_WIRE_3 22
+//#define KEYPAD_ROW_WIRE_4 23
+
+#define KEYPAD_COLUMN_WIRE_1 23
+#define KEYPAD_COLUMN_WIRE_2 22
+#define KEYPAD_COLUMN_WIRE_3 21
+#define KEYPAD_COLUMN_WIRE_4 20
+#define KEYPAD_ROW_WIRE_1 17
+#define KEYPAD_ROW_WIRE_2 16
+#define KEYPAD_ROW_WIRE_3 15
+#define KEYPAD_ROW_WIRE_4 14
 // - PRINTER
 #define PRINTER_DIGITAL_OUTPUT 8 // Arduino transmit  YELLOW WIRE  labeled RX on printer
 #define PRINTER_DIGITAL_INPUT 7 // Arduino receive   GREEN WIRE   labeled TX on printer
@@ -129,7 +137,7 @@ UniKeypad keypad(
   KEYPAD_COLUMN_WIRE_2,
   KEYPAD_COLUMN_WIRE_3,
   KEYPAD_COLUMN_WIRE_4
-  );
+);
 #endif
 
 // PRINTER -------------------------------------
@@ -160,7 +168,7 @@ UniRtc rtc(RTC_SQW_DIGITAL_INPUT);
 
 #ifdef ENABLE_BUZZER
 UniBuzzer buzzer(BUZZER_DIGITAL_OUTPUT);
-#endif 
+#endif
 
 /******** ***********************************(set up)*** *************** **********************/
 void setup () {
@@ -169,84 +177,133 @@ void setup () {
   pinMode (LED_BUILTIN, OUTPUT);
 
   // SENSOR
-  #ifdef ENABLE_SENSOR
+#ifdef ENABLE_SENSOR
   pinMode(SENSOR_DIGITAL_INPUT, INPUT);
-  #endif
-  
+#endif
+
   // DISPLAY
-  #ifdef ENABLE_DISPLAY
+#ifdef ENABLE_DISPLAY
   display.setup();
-  #endif
+#endif
 
   delay(2000); // wait for serial to connect before starting
   Serial.println("Starting");
 
-  #ifdef ENABLE_DISPLAY
+#ifdef ENABLE_DISPLAY
   display.countdown();
-  #endif
+#endif
 
   // KEYPAD
-  #ifdef ENABLE_KEYPAD
+#ifdef ENABLE_KEYPAD
   keypad.setup();
-  #endif      
+#endif
 
   // GPS
-  #ifdef ENABLE_GPS
+#ifdef ENABLE_GPS
   gps.setup();
-  #endif
+#endif
 
   // RTC
-  #ifdef ENABLE_RTC
+#ifdef ENABLE_RTC
   rtc.setup();
-  #endif
-  
+#endif
+
   // PRINTER
-  #ifdef ENABLE_PRINTER
-  printer.setup();  
-  #endif
+#ifdef ENABLE_PRINTER
+  printer.setup();
+  if (printer.hasPaper()) {
+    Serial.println("printer has paper");
+  }
+#endif
 
-  #ifdef ENABLE_BUZZER
+#ifdef ENABLE_BUZZER
   buzzer.setup();
-  #endif
+#endif
 
-  #ifdef ENABLE_SD
+#ifdef ENABLE_SD
   sd.setup();
-  #endif
+#endif
 }
 
 /************************************* (main program) ********* *****************************/
 
+boolean printed = false;
 
 void loop () {
-  #ifdef ENABLE_KEYPAD
+#ifdef ENABLE_KEYPAD
   keypad.loop();
-  #endif
-  
-  #ifdef ENABLE_SENSOR
-//  Serial.print(digitalRead(SENSOR_DIGITAL_INPUT));
-  if(digitalRead(SENSOR_DIGITAL_INPUT)) {
-    digitalWrite(LED_BUILTIN, LOW);     // turn off led
-  } else {
-    digitalWrite(LED_BUILTIN, HIGH);    // flash the led
-    beep();
-  }
-  #endif
-  
-  #ifdef ENABLE_GPS
-  gps.loop();
-  #endif
+#endif
 
-  #ifdef ENABLE_RTC
+#ifdef ENABLE_SENSOR
+  //  Serial.print(digitalRead(SENSOR_DIGITAL_INPUT));
+  if (digitalRead(SENSOR_DIGITAL_INPUT)) {
+    digitalWrite(LED_BUILTIN, LOW);     // turn off led
+    //    Serial.println("TRIP");
+    if (!printed) {
+      beep();
+      printed = true;
+      int minute, second;
+      gps.getDateTime(&minute, &second);
+      display.show((minute * 100) + second, DEC);
+      printer.print("---------- TIME ");
+    }
+  } else {
+
+    digitalWrite(LED_BUILTIN, HIGH);    // flash the led
+    printed = false;
+  }
+#endif
+
+#ifdef ENABLE_GPS
+  gps.loop();
+  gps.printPeriodically();
+#endif
+
+#ifdef ENABLE_RTC
   rtc.loop();
-  #endif
-  
-  
+  //rtc.printPeriodically();
+#endif
+
+#if defined(ENABLE_KEYPAD)
+  //keypad.printKeypress();
+
+  char key = keypad.readChar();
+  if (key != NO_KEY) {
+#ifdef ENABLE_DISPLAY
+    display.show(keypad.intFromChar(key), DEC);
+    if (keypad.intFromChar(key) == 243) { // #
+       #ifdef ENABLE_PRINTER
+         printer.print("Hello World");
+       #endif
+    }
+#endif
+
+#ifdef ENABLE_RTC
+    if (keypad.intFromChar(key) == 250) { // *
+      DateTime now = rtc.getDateTime();
+      display.show((now.minute() * 100) + now.second(), DEC);
+    }
+#endif
+
+#ifdef ENABLE_GPS
+    if (keypad.intFromChar(key) == 243) { // #
+      int minute, second;
+      gps.getDateTime(&minute, &second);
+      display.show((minute * 100) + second, DEC);
+    }
+#endif
+    beep();
+    // #ifdef ENABLE_BUZZER
+    // tone(BUZZER_DIGITAL_OUTPUT, 1000, 100);
+    // #endif
+  }
+#endif
 }
 
 /* ********************** Helper Methods ************** */
 void beep() {
   Serial.println("Beep");
-  #ifdef ENABLE_BUZZER
+#ifdef ENABLE_BUZZER
   buzzer.beep();
-  #endif
+#endif
 }

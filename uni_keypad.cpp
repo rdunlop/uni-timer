@@ -35,8 +35,10 @@ void UniKeypad::setup() {
   _keypad = new Keypad(makeKeymap (keyLayout), linePins, columnPins, 4, 4); 
 }
 
-void UniKeypad::loop() {
-  char read_key = _keypad->getKey ();
+void UniKeypad::loop() { }
+
+void UniKeypad::printKeypress() {
+  char read_key = _keypad->getKey();
 
   if (read_key != NO_KEY) {
     Serial.println ("read");
@@ -44,16 +46,14 @@ void UniKeypad::loop() {
     if (isDigit(read_key)) {
       Serial.print("value: ");
       Serial.println(intFromChar(read_key));
-      #ifdef ENABLE_DISPLAY
-//      display.update(intFromChar(read_key), DEC);
-      #endif
-      #ifdef ENABLE_BUZZER
-      tone(BUZZER_DIGITAL_OUTPUT, 1000, 100);
-      #endif
     } else {
 //      beep();
     }
   }
+}
+
+char UniKeypad::readChar() {
+  return _keypad->getKey();
 }
 
 boolean UniKeypad::isDigit(char c) {

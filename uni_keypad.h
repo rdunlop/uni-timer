@@ -8,13 +8,15 @@ class UniKeypad
     UniKeypad(byte,byte,byte,byte, byte,byte,byte,byte);
     void setup();
     void loop();
+    void printKeypress();
+    char readChar();
+    uint8_t intFromChar(char);
+    boolean isDigit(char);
   private:
     byte linePins[4];
     byte columnPins[4];
     char keyLayout [4][4];
     Keypad *_keypad;
-    boolean isDigit(char);
-    uint8_t intFromChar(char);
 };
 
 #endif

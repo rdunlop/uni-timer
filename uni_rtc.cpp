@@ -25,6 +25,7 @@ void UniRtc::handle_interrupt() {
 }
 
 void UniRtc::setup() {
+  Serial.println("RTC Initializing");
   rtc_interrupt_flag = false;
   rtc_start_ms = micros();
   last_rtc_print_time = millis();
@@ -42,17 +43,23 @@ void UniRtc::setup() {
   // enable the 1 Hz output
   //rtc.writeSqwPinMode (DS3231_SquareWave1Hz);
 
+  instance0_ = this;
   pinMode(_sqw_signal_input, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(_sqw_signal_input), sqw_interrupt, RISING);
+  Serial.println("Done RTC Initialization");
 }
 
 void UniRtc::loop() {
-  if (rtc_interrupt_flag) {
-    digitalWrite(LED_BUILTIN, HIGH);    // flash the led
-    delay(100);                         // wait a little bit
-    digitalWrite(LED_BUILTIN, LOW);     // turn off led
-    rtc_interrupt_flag =  false;                      // clear the flag until timer sets it again
-  }
+// we can NOT call delay here.
+//  if (rtc_interrupt_flag) {
+//    digitalWrite(LED_BUILTIN, HIGH);    // flash the led
+////    delay(100);                         // wait a little bit
+//    digitalWrite(LED_BUILTIN, LOW);     // turn off led
+//    rtc_interrupt_flag =  false;                      // clear the flag until timer sets it again
+//  }
+}
+
+void UniRtc::printPeriodically() {
 
   // if millis() or timer wraps around, we'll just reset it
   if (last_rtc_print_time > millis())  last_rtc_print_time = millis();
@@ -62,6 +69,15 @@ void UniRtc::loop() {
     print();
   }
 }
+
+void UniRtc::setDateTime(int year, int month, int day, int hour, int minute, int second) {
+  rtc.adjust(DateTime(year, month, day, hour, minute, second));
+}
+
+DateTime UniRtc::getDateTime() {
+  return rtc.now();
+}
+      
 
 char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 void UniRtc::print() {
