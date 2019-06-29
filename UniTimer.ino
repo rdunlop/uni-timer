@@ -264,6 +264,13 @@ void loop() {
       mode3_loop();
       break;
      case 4:
+      mode4_loop();
+      break;
+     case 5:
+      mode5_loop();
+      break;
+     case 6:
+      mode6_loop();
       break;
   }
 }
@@ -293,9 +300,9 @@ void mode1_loop() {
       if (keynum == 20) display.show(1, DEC); // D
       if (keynum == 243) { } // #
       buzzer.beep();
-      last_key = key;
     }
   }
+  last_key = key;
 
   bool sensor = sensor_blocked();
   if (last_sensor != sensor) {
@@ -335,9 +342,9 @@ void mode2_loop() {
           display.bad();
         }
       }
-      last_key = key;
     }
   }   
+  last_key = key;
 }
 
 
@@ -350,6 +357,82 @@ void mode3_loop() {
   }
 }
 
+//### Mode 4 - Race Setup
+//
+//- If you press A, toggle between 5/F on digit 1
+//- If you press B, toggle between b/A/E on digit 2
+//- If you press C, toggle between U/d on digit 3
+//- If you press D, toggle between 1..9 on digit 4.
+//
+bool start = true;
+uint8_t difficulty = 0; // 0-B, 1-A, 2-E
+bool up = true;
+uint8_t number = 1;
+void mode4_loop() {
+  char key = keypad.readChar();
+  if (key != NO_KEY) {
+    if (key != last_key) {
+      // New Keypress
+      int keynum = keypad.intFromChar(key);
+      
+      switch(keynum) {
+      case 17: // A
+        start = !start;
+        break;
+      case 18: // B
+        difficulty = (difficulty + 1) % 3;
+        break;
+      case 19: // C
+        up = !up;
+        break;
+      case 20: // D
+        number = (number + 1) % 10;
+        break;
+      }
+    }
+  }
+  last_key = key;
+  display.showConfiguration(start, difficulty, up, number);
+}
+
+
+//### Mode 5 - Race Run (Start Line)
+//
+//- If you enter a number on the keypad, display that number, and allow up to 3 numbers to be entered.
+//- If you enter a 4th number, beep and clear the display.
+//- If you press A, it "Accepts" the number, and makes success music, and continues to show the number on the display.
+//- Once Accepted, blink the number on the display every second
+//- If you press D, it clears the number and leaves "Accepted" mode
+//- When in Accepted state:
+//  - If the sensor is crossed
+//    - write the current time to the SD and the printer
+//    - display 5En5 on the display for 2 seconds and beep for 2 seconds.
+//- When NOT in Accepted State:
+//  - If the sensor is crossed
+//    - display Err and beep
+//- Press C+* If you need to cancel the previosu rider's start time.
+//  - This will print and record the cancellation of the previous start time
+//
+void mode5_loop() {
+  
+}
+
+//### Mode 6 - Race Run (Finish Line)
+//
+//- When a sensor is triggered, display E1 to indicate that you need to enter 1 racer number.
+//  - It will beep periodically to indicate this
+//  - If you have 2 times recorded, it will beep twice periodically, etc.
+//- when you press number keys, display the numbers on the display.
+//- If you enter more than 3 digits, it will beep and clear
+//- If you press "A", it will accept the input, and display the time and the racer number to printer/SD
+//- If you press "C", it will clear the display
+//- If you press "B", it will duplicate the last time, and create E2
+//- If you press D+* it will clear the last entry
+void mode6_loop() {
+  
+}
+
+// ------------------------------------------
 bool sensor_blocked() {
   return digitalRead(SENSOR_DIGITAL_INPUT);
 }
