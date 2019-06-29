@@ -69,11 +69,12 @@ void UniGps::printPeriodically() {
   }
 }
 
-int UniGps::getDateTime(int *minute, int *second) {
+int UniGps::getHourMinuteSecond(int *hour, int *minute, int *second) {
   int year;
-  byte month, day, hour, new_minute, new_second, hundredths;
+  byte month, day, new_hour, new_minute, new_second, hundredths;
   unsigned long age;
-  gps.crack_datetime(&year, &month, &day, &hour, &new_minute, &new_second, &hundredths, &age);
+  gps.crack_datetime(&year, &month, &day, &new_hour, &new_minute, &new_second, &hundredths, &age);
+  *hour = new_hour;
   *minute = new_minute;
   *second = new_second;
   

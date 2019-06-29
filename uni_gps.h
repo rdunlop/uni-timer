@@ -12,7 +12,7 @@ class UniGps
     void setup();
     void loop();
     void printPeriodically();
-    int getDateTime(int *, int *);
+    int getHourMinuteSecond(int *, int *, int *);
   private:
     volatile unsigned long pps_start_ms;
     bool newData;

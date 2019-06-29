@@ -41,7 +41,7 @@
 /* ************************* Capabilities flags ******************************************* */
 /* Set these flags to enable certain combinations of components */
 #define ENABLE_GPS
-#define ENABLE_RTC
+//#define ENABLE_RTC
 #define ENABLE_DISPLAY
 #define ENABLE_KEYPAD
 #define ENABLE_PRINTER
@@ -93,15 +93,6 @@
 // - DISPLAY
 #define DISPLAY_I2CADDR 0x70
 // - KEYPAD
-//#define KEYPAD_COLUMN_WIRE_1 14
-//#define KEYPAD_COLUMN_WIRE_2 15
-//#define KEYPAD_COLUMN_WIRE_3 16
-//#define KEYPAD_COLUMN_WIRE_4 17
-//#define KEYPAD_ROW_WIRE_1 20
-//#define KEYPAD_ROW_WIRE_2 21
-//#define KEYPAD_ROW_WIRE_3 22
-//#define KEYPAD_ROW_WIRE_4 23
-
 #define KEYPAD_COLUMN_WIRE_1 23
 #define KEYPAD_COLUMN_WIRE_2 22
 #define KEYPAD_COLUMN_WIRE_3 21
@@ -206,6 +197,7 @@ void setup () {
   // RTC
 #ifdef ENABLE_RTC
   rtc.setup();
+  rtc.setDateTime(2019,6,20,10,54,2);
 #endif
 
   // PRINTER
@@ -228,7 +220,7 @@ void setup () {
 /************************************* (main program) ********* *****************************/
 
 boolean printed = false;
-
+char *time_string = (char *) malloc(25);
 void loop () {
 #ifdef ENABLE_KEYPAD
   keypad.loop();
@@ -242,10 +234,13 @@ void loop () {
     if (!printed) {
       beep();
       printed = true;
-      int minute, second;
-      gps.getDateTime(&minute, &second);
-      display.show((minute * 100) + second, DEC);
-      printer.print("---------- TIME ");
+      int hour, minute, second;
+      #ifdef ENABLE_GPS
+      gps.getHourMinuteSecond(&hour, &minute, &second);
+      display.show((hour * 1000) + (minute * 100) + second, DEC);
+      #endif
+      sprintf(time_string, "TIME %d:%d:%d", hour, minute, second);
+      printer.print(time_string);
     }
   } else {
 
@@ -261,7 +256,7 @@ void loop () {
 
 #ifdef ENABLE_RTC
   rtc.loop();
-  //rtc.printPeriodically();
+  rtc.printPeriodically();
 #endif
 
 #if defined(ENABLE_KEYPAD)
@@ -281,14 +276,16 @@ void loop () {
 #ifdef ENABLE_RTC
     if (keypad.intFromChar(key) == 250) { // *
       DateTime now = rtc.getDateTime();
+      Serial.println(now.minute());
+      Serial.println(now.second());
       display.show((now.minute() * 100) + now.second(), DEC);
     }
 #endif
 
 #ifdef ENABLE_GPS
     if (keypad.intFromChar(key) == 243) { // #
-      int minute, second;
-      gps.getDateTime(&minute, &second);
+      int hour, minute, second;
+      gps.getHourMinuteSecond(&hour, &minute, &second);
       display.show((minute * 100) + second, DEC);
     }
 #endif
