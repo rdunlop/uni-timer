@@ -14,6 +14,7 @@ void UniDisplay::setup() {
   _display.begin(_i2c_addr);
   _display.print(0x8888, HEX);
   _display.writeDisplay();
+  _display.setBrightness(255);
 }
 
 void UniDisplay::countdown() {
