@@ -14,6 +14,7 @@ void UniPrinter::setup() {
   printer_serial->begin(19200); // this printer has a 19200 baud
   printer->begin();
   printer->inverseOff();
+  Serial.println("Printer Done init");
 }
 
 void UniPrinter::loop() { }

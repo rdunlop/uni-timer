@@ -8,7 +8,6 @@ UniBuzzer::UniBuzzer(int output)
 
 void UniBuzzer::setup() {
   pinMode(_output, OUTPUT);
-  beep();
 }
 
 void UniBuzzer::beep() {

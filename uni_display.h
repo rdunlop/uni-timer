@@ -7,7 +7,9 @@ class UniDisplay
   public:
     UniDisplay(int i2c_addr);
     void setup();
-    void countdown();
+    void all();
+    void good();
+    void bad();
     void show(int, int);
   private:
     int _i2c_addr;

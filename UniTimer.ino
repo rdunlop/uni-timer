@@ -180,10 +180,6 @@ void setup () {
   delay(2000); // wait for serial to connect before starting
   Serial.println("Starting");
 
-#ifdef ENABLE_DISPLAY
-  display.countdown();
-#endif
-
   // KEYPAD
 #ifdef ENABLE_KEYPAD
   keypad.setup();
@@ -203,9 +199,6 @@ void setup () {
   // PRINTER
 #ifdef ENABLE_PRINTER
   printer.setup();
-  if (printer.hasPaper()) {
-    Serial.println("printer has paper");
-  }
 #endif
 
 #ifdef ENABLE_BUZZER
@@ -215,6 +208,43 @@ void setup () {
 #ifdef ENABLE_SD
   sd.setup();
 #endif
+
+  mode0();
+}
+
+void mode0() {
+  bool success = true;
+
+  // Show 88:88
+  display.all();
+  
+  if (printer.hasPaper()) {
+    Serial.println("printer has paper");
+  } else {
+    Serial.println("printer has no paper");
+    success = false;
+  }
+
+  if (!sd.status()) {
+    Serial.println("SD Card OK");
+  } else {
+    Serial.println("SD Card Error");
+    success = false;
+  }
+
+  // TODO: Check GPS
+
+
+  // Wait 2 seconds
+  delay(2000);
+
+  if (success) {
+    display.good();
+  } else {
+    display.bad();
+  }
+  // wait 1 second
+  delay(1000);
 }
 
 /************************************* (main program) ********* *****************************/

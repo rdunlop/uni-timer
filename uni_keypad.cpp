@@ -33,6 +33,7 @@ void UniKeypad::setup() {
   // Are declared in some form of long-term storage (like global static variables, etc).
   // Using 'locals' will NOT work.
   _keypad = new Keypad(makeKeymap (keyLayout), linePins, columnPins, 4, 4); 
+  Serial.println("Keypad Done init");
 }
 
 void UniKeypad::loop() { }

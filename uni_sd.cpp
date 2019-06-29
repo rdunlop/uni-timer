@@ -10,20 +10,20 @@ UniSd::UniSd(int cs, int mosi, int miso, int clk)
 }
 
 void UniSd::setup() {
-  Serial.print("Initializing SD card...");
 
-  if (!SD.begin(_cs)) {
-    Serial.println("initialization failed!");
+  _status = SD.begin(_cs);
+  if (!_status) {
+    Serial.println("SD initialization failed!");
     return;
   }
-  Serial.println("initialization done.");
-  test();
+  Serial.println("SD initialization done.");
 }
 
-void UniSd::test() {
-  writeFile("testfile.txt", "hEllo Robin");
-  writeFile("testfile.txt", "Goodbye Robin");
-  readFile("testfile.txt");
+bool UniSd::status() {
+  return _status;
+//  writeFile("testfile.txt", "hEllo Robin");
+//  writeFile("testfile.txt", "Goodbye Robin");
+//  readFile("testfile.txt");
 }
 
 void UniSd::writeFile(char *filename, char *text) {
