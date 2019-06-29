@@ -10,6 +10,7 @@ class UniDisplay
     void all();
     void good();
     void bad();
+    void sens();
     void show(int, int);
   private:
     int _i2c_addr;

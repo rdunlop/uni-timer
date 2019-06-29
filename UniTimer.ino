@@ -212,6 +212,7 @@ void setup () {
   mode0();
 }
 
+// Check systems, and display Good or Bad on the display
 void mode0() {
   bool success = true;
 
@@ -239,8 +240,10 @@ void mode0() {
   delay(2000);
 
   if (success) {
+    Serial.println("All systems Good");
     display.good();
   } else {
+    Serial.println("*************** Init Problem");
     display.bad();
   }
   // wait 1 second
@@ -248,10 +251,112 @@ void mode0() {
 }
 
 /************************************* (main program) ********* *****************************/
+int _mode = 1;
+void loop() {
+  switch(_mode) {
+    case 1:
+      mode1_loop();
+      break;
+    case 2:
+      mode2_loop();
+      break;
+    case 3:
+      mode3_loop();
+      break;
+     case 4:
+      break;
+  }
+}
+
+//### Mode 1 - Keypad/Sensor Input Test
+//
+//- If you press a Key, it will Beep for 100ms, and display the number on the display.
+//- If you press A, it will display A
+//- If you press B, it will display b
+//- If you press C, it will display C
+//- If you press D, it will display d
+//- If you block the Sensor, or un-block the sensor, it will display 5En5 and beep for 100ms
+char last_key = NO_KEY;
+bool last_sensor = false;
+void mode1_loop() {
+  //keypad.printKeypress();
+
+  char key = keypad.readChar();
+  if (key != NO_KEY) {
+    if (key != last_key) {
+      // New Keypress
+      int keynum = keypad.intFromChar(key);
+      if (keynum >= 0 && keynum <= 9) display.show(keynum, DEC); // 0-9
+      if (keynum == 17) display.show(1, DEC); // A
+      if (keynum == 18) display.show(1, DEC); // B
+      if (keynum == 19) display.show(1, DEC); // C
+      if (keynum == 20) display.show(1, DEC); // D
+      if (keynum == 243) { } // #
+      buzzer.beep();
+      last_key = key;
+    }
+  }
+
+  bool sensor = sensor_blocked();
+  if (last_sensor != sensor) {
+    display.sens();
+    buzzer.beep();
+    last_sensor = sensor;
+  }
+}
+
+//### Mode 2 - GPS/Printer/SD Test
+//
+//- If you press A, it will show the GPS time, and beep positively.
+//- If you press B, it will show print a test line on the printer.
+//- If you press C, it will test writing/reading from the SD card, and display either 6ood or bAd
+void mode2_loop() {
+  char key = keypad.readChar();
+  if (key != NO_KEY) {
+    if (key != last_key) {
+      // New Keypress
+      int keynum = keypad.intFromChar(key);
+      if (keynum == 17) {
+        // A
+        int hour, minute, second;
+        gps.getHourMinuteSecond(&hour, &minute, &second);
+        display.show((hour * 1000) + (minute * 100) + second, DEC);  
+      }
+      if (keynum == 18) {
+        // B
+        char test_string[] = "PRINTER TEST STRING";
+        printer.print(test_string);
+      }
+      if (keynum == 19) {
+        // C
+        if (sd.status()) {
+          display.good();
+        } else {
+          display.bad();
+        }
+      }
+      last_key = key;
+    }
+  }   
+}
+
+
+//### Mode 3 - Sensor Tuning
+//
+//- When the Sensor beam is crossed, no noise. When the sensor is not-crossed, beep continuously.
+void mode3_loop() {
+  if (!sensor_blocked()) {
+    buzzer.beep();
+  }
+}
+
+bool sensor_blocked() {
+  return digitalRead(SENSOR_DIGITAL_INPUT);
+}
 
 boolean printed = false;
 char *time_string = (char *) malloc(25);
-void loop () {
+void oldloop () {
 #ifdef ENABLE_KEYPAD
   keypad.loop();
 #endif

@@ -35,6 +35,13 @@ void UniDisplay::bad() {
   _display.writeDisplay();
 }
 
+void UniDisplay::sens() {
+  _display.writeDigitNum(0, 5);
+  _display.writeDigitNum(1, 3);
+  _display.writeDigitNum(3, 4);
+  _display.writeDigitNum(4, 5);
+  _display.writeDisplay();
+}
 void UniDisplay::show(int x, int y = DEC) {
   _display.print(x, y);
   _display.writeDisplay();
