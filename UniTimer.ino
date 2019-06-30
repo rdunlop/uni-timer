@@ -299,7 +299,11 @@ void mode1_loop() {
       if (keynum == 19) display.show(1, DEC); // C
       if (keynum == 20) display.show(1, DEC); // D
       if (keynum == 243) { } // #
-      buzzer.beep();
+      if (keynum == 250) { } // *
+//      buzzer.beep();
+      display.show(key);
+      Serial.println("Number");
+      Serial.println(keynum);
     }
   }
   last_key = key;
@@ -414,7 +418,32 @@ void mode4_loop() {
 //  - This will print and record the cancellation of the previous start time
 //
 void mode5_loop() {
-  
+  // States:
+  // INITIAL
+  // ONE_DIGIT_ENTERED
+  // TWO_DIGITS_ENTERED
+  // THREE_DIGITS_ENTERED
+  // READY_FOR_SENSOR
+
+  // Transitions
+  // INITIAL:
+  // - 0-9 -> ONE_DIGIT_ENTERED
+  // - C+* -> (Cancel Previous Data AND) INITIAL (Can you register both C + * at the same time?)
+  // ONE_DIGIT_ENTERED:
+  // - 0-9 -> TWO_DIGITS_ENTERED
+  // - A -> READY_FOR_SENSOR
+  // - D -> INITIAL
+  // TWO_DIGITS_ENTERED:
+  // - 0-9 -> THREE_DIGITS_ENTERED
+  // - A -> READY_FOR_SENSOR
+  // - D -> INITIAL
+  // THREE_DIGITS_ENTERED:
+  // - 0-9 -> (ERR) INITIAL
+  // - A -> READY_FOR_SENSOR
+  // - D -> INITIAL
+  // READY_FOR_SENSOR:
+  // - SENSOR -> (BEEP, DISPLAY AND RECORD AND) INITIAL
+  // - A -> READY
 }
 
 //### Mode 6 - Race Run (Finish Line)

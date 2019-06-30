@@ -32,23 +32,28 @@ void UniDisplay::setup() {
   Serial.println("Display Done init");
 }
 
+void UniDisplay::setBlink(bool blink) {
+  _display.blinkRate(blink ? 2 : 0);
+}
+
 void UniDisplay::all() {
   _display.print(0x8888, HEX);
   _display.writeDisplay();
 }
 
 void UniDisplay::good() {
-  _display.writeDigitNum(1, 0x6);
-  _display.writeDigitRaw(2, LETTER_O);
+  _display.writeDigitNum(0, 0x6);
+  _display.writeDigitRaw(1, LETTER_O);
   _display.writeDigitRaw(3, LETTER_O);
   _display.writeDigitNum(4, 0xd);
   _display.writeDisplay();
 }
 
 void UniDisplay::bad() {
+  _display.writeDigitRaw(0, 0x0);
   _display.writeDigitNum(1, 0xb);
-  _display.writeDigitNum(2, 0xa);
-  _display.writeDigitNum(3, 0xd);
+  _display.writeDigitNum(3, 0xa);
+  _display.writeDigitNum(4, 0xd);
   _display.writeDisplay();
 }
 
@@ -67,6 +72,38 @@ void UniDisplay::sens() {
   _display.writeDigitRaw(4, 5);
   _display.writeDisplay();
 }
+
+boolean isDigit(char c) {
+  return (c >= '0') && (c <= '9');
+}
+
+boolean isLetter(char c) {
+  return (c >= 'A') && (c <= 'F');
+}
+
+
+// Print a character in the first position
+void UniDisplay::show(char x) {
+  if (isDigit(x)) {
+    _display.print(x - '0', DEC);
+  } else if (isLetter(x)) {
+    _display.writeDigitNum(4, (x - 'A') + 0xA);
+  } else {
+    // is special
+    switch(x) {
+      case '*':
+        _display.writeDigitRaw(4, LETTER_E);
+        break;
+      case '#':
+        _display.writeDigitRaw(4, LETTER_N);
+        break;
+    }  
+  }
+  _display.writeDisplay();
+
+}
+
+
 void UniDisplay::show(int x, int y = DEC) {
   _display.print(x, y);
   _display.writeDisplay();

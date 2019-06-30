@@ -12,15 +12,16 @@ UniSd::UniSd(int cs, int mosi, int miso, int clk)
 void UniSd::setup() {
 
   _status = SD.begin(_cs);
-  if (!_status) {
+  if (status()) {
     Serial.println("SD initialization failed!");
     return;
   }
-  Serial.println("SD initialization done.");
+  Serial.println("SD initialization OK.");
 }
 
+// Return true on success
 bool UniSd::status() {
-  return _status;
+  return !_status;
 //  writeFile("testfile.txt", "hEllo Robin");
 //  writeFile("testfile.txt", "Goodbye Robin");
 //  readFile("testfile.txt");

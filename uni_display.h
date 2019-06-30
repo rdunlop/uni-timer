@@ -11,7 +11,9 @@ class UniDisplay
     void good();
     void bad();
     void sens();
+    void setBlink(bool blink);
     void showConfiguration(bool start, uint8_t difficulty, bool up, uint8_t number);
+    void show(char);
     void show(int, int);
   private:
     int _i2c_addr;
