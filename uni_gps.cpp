@@ -44,7 +44,28 @@ void UniGps::handle_interrupt() {
   printGPSDate();
 }
 
-void UniGps::loop() {
+// return true on success
+// return false on error
+// return the current hour/minute in GPS time, including milliseconds from
+// the PPS pulse
+bool UniGps::current_time(int *hour, int *minute, int *second, int *millisecond) {
+  unsigned long now = micros();
+  int year;
+  byte month, day, new_hour, new_minute, new_second, hundredths;
+  unsigned long age;
+  gps.crack_datetime(&year, &month, &day, &new_hour, &new_minute, &new_second, &hundredths, &age);
+  if (age == TinyGPS::GPS_INVALID_AGE) {
+    return false;
+  }
+  *hour = new_hour;
+  *minute = new_minute;
+  *second = new_second;
+  *millisecond = (now - pps_start_ms) / 1000;
+  
+  return true;
+}
+
+void UniGps::readData() {
   while (Serial2.available())
   {
     char c = Serial2.read();

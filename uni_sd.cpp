@@ -10,18 +10,20 @@ UniSd::UniSd(int cs, int mosi, int miso, int clk)
 }
 
 void UniSd::setup() {
-
+  // returns 1 on success
+  // returns 0 on failure
   _status = SD.begin(_cs);
   if (status()) {
-    Serial.println("SD initialization failed!");
+    Serial.println("SD initialization OK.");  
     return;
   }
-  Serial.println("SD initialization OK.");
+  Serial.println("SD initialization failed!");
+  
 }
 
 // Return true on success
 bool UniSd::status() {
-  return !_status;
+  return _status;
 //  writeFile("testfile.txt", "hEllo Robin");
 //  writeFile("testfile.txt", "Goodbye Robin");
 //  readFile("testfile.txt");

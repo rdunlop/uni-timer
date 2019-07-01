@@ -10,9 +10,10 @@ class UniGps
   public:
     UniGps(int pps_signal_input);
     void setup();
-    void loop();
+    void readData();
     void printPeriodically();
     int getHourMinuteSecond(int *, int *, int *);
+    bool current_time(int *hour, int *minute, int *second, int *millisecond);
   private:
     volatile unsigned long pps_start_ms;
     bool newData;

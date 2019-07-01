@@ -226,7 +226,7 @@ void mode0() {
     success = false;
   }
 
-  if (!sd.status()) {
+  if (sd.status()) {
     Serial.println("SD Card OK");
   } else {
     Serial.println("SD Card Error");
@@ -251,7 +251,7 @@ void mode0() {
 }
 
 /************************************* (main program) ********* *****************************/
-int _mode = 1;
+int _mode = 2;
 void loop() {
   switch(_mode) {
     case 1:
@@ -273,6 +273,8 @@ void loop() {
       mode6_loop();
       break;
   }
+  gps.readData();
+//  checkForModeSelection();
 }
 
 //### Mode 1 - Keypad/Sensor Input Test
@@ -292,18 +294,18 @@ void mode1_loop() {
   if (key != NO_KEY) {
     if (key != last_key) {
       // New Keypress
-      int keynum = keypad.intFromChar(key);
-      if (keynum >= 0 && keynum <= 9) display.show(keynum, DEC); // 0-9
-      if (keynum == 17) display.show(1, DEC); // A
-      if (keynum == 18) display.show(1, DEC); // B
-      if (keynum == 19) display.show(1, DEC); // C
-      if (keynum == 20) display.show(1, DEC); // D
-      if (keynum == 243) { } // #
-      if (keynum == 250) { } // *
+//      int keynum = keypad.intFromChar(key);
+//      if (keynum >= 0 && keynum <= 9) display.show(keynum, DEC); // 0-9
+//      if (keynum == 17) display.show(1, DEC); // A
+//      if (keynum == 18) display.show(1, DEC); // B
+//      if (keynum == 19) display.show(1, DEC); // C
+//      if (keynum == 20) display.show(1, DEC); // D
+//      if (keynum == 243) { } // #
+//      if (keynum == 250) { } // *
 //      buzzer.beep();
       display.show(key);
-      Serial.println("Number");
-      Serial.println(keynum);
+//      Serial.println("Number");
+//      Serial.println(keynum);
     }
   }
   last_key = key;
@@ -330,8 +332,9 @@ void mode2_loop() {
       if (keynum == 17) {
         // A
         int hour, minute, second;
+        gps.printPeriodically();
         gps.getHourMinuteSecond(&hour, &minute, &second);
-        display.show((hour * 1000) + (minute * 100) + second, DEC);  
+        display.show((minute * 100) + second, DEC);  
       }
       if (keynum == 18) {
         // B
@@ -345,6 +348,15 @@ void mode2_loop() {
         } else {
           display.bad();
         }
+      }
+      if (keynum == 20) {
+        int hour, minute, second, millisecond;
+        bool res = gps.current_time(&hour, &minute, &second, &millisecond);
+        Serial.print("Res: ");
+        Serial.println(res);
+        char data[20];
+        sprintf(data, "%02d:%02d:%02d:%03d", hour, minute, second, millisecond);
+        Serial.println(data);
       }
     }
   }   
@@ -497,7 +509,7 @@ void oldloop () {
 #endif
 
 #ifdef ENABLE_GPS
-  gps.loop();
+//  gps.readData();
   gps.printPeriodically();
 #endif
 
