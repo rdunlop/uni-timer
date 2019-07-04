@@ -15,10 +15,13 @@
 // 0x2 - LEFT-top
 // 0x4 - CENTER dash
 // 0x8 - dot
+#define LETTER_D 0x5E
 #define LETTER_E 0x79
 #define LETTER_N 0x54
 #define LETTER_O 0x5C
 #define LETTER_U 0x3E
+
+uint8_t difficulty_to_letter_code(uint8_t difficulty);
 
 UniDisplay::UniDisplay(int i2c_addr)
 {
@@ -58,18 +61,26 @@ void UniDisplay::bad() {
 }
 
 void UniDisplay::showConfiguration(bool start, uint8_t difficulty, bool up, uint8_t number) {
-  _display.writeDigitRaw(0, start ? 0x5 : 0xf);
-//  _display.writeDigitRaw(1, difficulty_to_letter_code(difficulty));
-//  _display.writeDigitRaw(2, up ? LETTER_U : 0xd);
-//  _dispaly.writeDigitRaw(3, number);
+  Serial.print("Start: ");
+  Serial.println(start);
+  Serial.print("Dfificulty: ");
+  Serial.println(difficulty_to_letter_code(difficulty));
+  Serial.print("Up: ");
+  Serial.println(up);
+  Serial.print("Number: ");
+  Serial.println(number);
+  _display.writeDigitNum(0, start ? 0x5 : 0xf); // S or F
+  _display.writeDigitNum(1, difficulty_to_letter_code(difficulty));
+  _display.writeDigitRaw(3, up ? LETTER_U : LETTER_D);
+  _display.writeDigitNum(4, number);
   _display.writeDisplay();
 }
 
 void UniDisplay::sens() {
-  _display.writeDigitRaw(0, 5);
+  _display.writeDigitNum(0, 5);
   _display.writeDigitRaw(1, LETTER_E);
   _display.writeDigitRaw(3, LETTER_N);
-  _display.writeDigitRaw(4, 5);
+  _display.writeDigitNum(4, 5);
   _display.writeDisplay();
 }
 

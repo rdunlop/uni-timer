@@ -13,3 +13,6 @@ void UniBuzzer::setup() {
 void UniBuzzer::beep() {
   tone(_output, 1000, 100);
 }
+void UniBuzzer::success() {
+  tone(_output, 1000, 100); // should be SUCCESS music
+}

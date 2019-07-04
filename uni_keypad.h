@@ -10,6 +10,7 @@ class UniKeypad
     void loop();
     void printKeypress();
     bool newKeyPressed();
+    bool keyPressed(char key);
     char readChar();
     uint8_t intFromChar(char);
     boolean isDigit(char);

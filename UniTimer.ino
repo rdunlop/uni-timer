@@ -79,7 +79,6 @@
 #endif
 // - BUTTON
 
-
 /* *************************** (Defining Global Variables) ************************** */
 // - SENSOR
 #define SENSOR_DIGITAL_INPUT 5
@@ -120,6 +119,16 @@
 // KEYPAD --------------------------------------------
 #ifdef ENABLE_KEYPAD
 UniKeypad keypad(
+  KEYPAD_ROW_WIRE_1,
+  KEYPAD_ROW_WIRE_2,
+  KEYPAD_ROW_WIRE_3,
+  KEYPAD_ROW_WIRE_4,
+  KEYPAD_COLUMN_WIRE_1,
+  KEYPAD_COLUMN_WIRE_2,
+  KEYPAD_COLUMN_WIRE_3,
+  KEYPAD_COLUMN_WIRE_4
+);
+UniKeypad modeKeypad(
   KEYPAD_ROW_WIRE_1,
   KEYPAD_ROW_WIRE_2,
   KEYPAD_ROW_WIRE_3,
@@ -183,6 +192,7 @@ void setup () {
   // KEYPAD
 #ifdef ENABLE_KEYPAD
   keypad.setup();
+  modeKeypad.setup();
 #endif
 
   // GPS
@@ -211,6 +221,8 @@ void setup () {
 
   mode0();
 }
+// Variables
+int _mode = 1;
 
 // Check systems, and display Good or Bad on the display
 void mode0() {
@@ -251,7 +263,36 @@ void mode0() {
 }
 
 /************************************* (main program) ********* *****************************/
-int _mode = 2;
+
+bool sensor_blocked() {
+  return digitalRead(SENSOR_DIGITAL_INPUT);
+}
+
+// Check to see if a new mode is selected
+void checkForModeSelection() {
+  int old_mode = _mode;
+  if (modeKeypad.newKeyPressed()) {
+    Serial.println("NEW KEY");
+    if (modeKeypad.keyPressed('*')) {
+      Serial.println("* is pressed");
+      if (modeKeypad.keyPressed('1')) _mode = 1;
+      if (modeKeypad.keyPressed('2')) _mode = 2;
+      if (modeKeypad.keyPressed('3')) _mode = 3;
+      if (modeKeypad.keyPressed('4')) _mode = 4;
+      if (modeKeypad.keyPressed('5')) _mode = 5;
+      if (modeKeypad.keyPressed('6')) _mode = 6;
+    }
+    Serial.print("mode: ");
+    Serial.println(_mode);
+  }
+  if (_mode != old_mode) {
+    Serial.print("MODE: ");
+    Serial.println(_mode);
+    display.show(_mode);
+  }
+}
+
+
 void loop() {
   switch(_mode) {
     case 1:
@@ -274,7 +315,7 @@ void loop() {
       break;
   }
   gps.readData();
-//  checkForModeSelection();
+  checkForModeSelection();
 }
 
 //### Mode 1 - Keypad/Sensor Input Test
@@ -411,7 +452,7 @@ void mode4_loop() {
   display.showConfiguration(start, difficulty, up, number);
 }
 
-
+/*********************************************************************************** */
 //### Mode 5 - Race Run (Start Line)
 //
 //- If you enter a number on the keypad, display that number, and allow up to 3 numbers to be entered.
@@ -426,10 +467,119 @@ void mode4_loop() {
 //- When NOT in Accepted State:
 //  - If the sensor is crossed
 //    - display Err and beep
-//- Press C+* If you need to cancel the previosu rider's start time.
+//- Press C+* If you need to cancel the previous rider's start time.
 //  - This will print and record the cancellation of the previous start time
 //
+
+#include <Fsm.h>
+
+// Data
+int racer_number = 0;
+
+// Methods
+void clear_racer_number() {
+  racer_number = 0;
+}
+
+// Add a new digit to the current racer number
+void store_number() {
+  racer_number = (racer_number *10) + keypad.intFromChar(keypad.readChar());
+}
+
+void good_music() {
+  buzzer.success();
+}
+
+void initial_check();
+void digit_check();
+void sensor_check();
+void sensor_entry();
+void sensor_exit();
+
+State initial(NULL, &initial_check, NULL);
+State one_digit_entered(NULL, &digit_check, NULL);
+State two_digits_entered(NULL, &digit_check, NULL);
+State three_digits_entered(NULL, &digit_check, NULL);
+State ready_for_sensor(&sensor_entry, &sensor_check, &sensor_exit);
+
+Fsm fsm(&initial);
+#define NUMBER_PRESSED 1
+#define DELETE 2
+#define ACCEPT 3
+#define CANCEL 4
+#define SENSOR 5
+
+void initial_check() {
+  if (keypad.isDigit(keypad.readChar())) {
+    fsm.trigger(NUMBER_PRESSED);
+  } else if(sensor_blocked()) {
+    buzzer.beep();
+    display.sens();
+  } else if (false) { // C+*
+    clear_racer_number();
+  }
+}
+
+void digit_check() {
+  // - 0-9 -> TWO_DIGITS_ENTERED or THREE_DIGITS_ENTERED
+  // - A -> ACCEPTING
+  // - D -> INITIAL
+  if (keypad.isDigit(keypad.readChar())) {
+    fsm.trigger(NUMBER_PRESSED);
+  } else if (keypad.readChar() == 'A') {
+    fsm.trigger(ACCEPT);
+  } else if (keypad.readChar() == 'D') {
+    fsm.trigger(DELETE);
+  } else if (sensor_blocked()) {
+    buzzer.beep();
+    display.sens();
+  }
+}
+
+void sensor_check() {
+  if (keypad.isDigit(keypad.readChar())) {
+    fsm.trigger(NUMBER_PRESSED);
+  } else if (keypad.readChar() == 'A') {
+    fsm.trigger(ACCEPT);
+  } else if (keypad.readChar() == 'D') {
+    fsm.trigger(DELETE);
+  } else if (sensor_blocked()) {
+    buzzer.beep();
+    display.sens();
+  }
+}
+
+void sensor_entry() {
+  display.setBlink(true);
+}
+
+void sensor_exit() {
+  display.setBlink(false);
+}
+
+/*
+ * Possible Actions:
+ * Sensor
+ * Number
+ * C*
+ * A
+ * D
+ * 
+ * Possible States:
+ * INITIAL
+ * ONE
+ * TWO
+ * THREE
+ * READY
+ */
 void mode5_loop() {
+  fsm.add_transition(&initial, &one_digit_entered, NUMBER_PRESSED, NULL);
+  
+  fsm.add_transition(&one_digit_entered, &initial, DELETE, NULL);
+  fsm.add_transition(&one_digit_entered, &two_digits_entered, NUMBER_PRESSED, NULL);
+  
+  fsm.add_transition(&two_digits_entered, &three_digits_entered, NUMBER_PRESSED, NULL);
+  
   // States:
   // INITIAL
   // ONE_DIGIT_ENTERED
@@ -440,22 +590,49 @@ void mode5_loop() {
   // Transitions
   // INITIAL:
   // - 0-9 -> ONE_DIGIT_ENTERED
-  // - C+* -> (Cancel Previous Data AND) INITIAL (Can you register both C + * at the same time?)
+  // - C+* -> (Cancel Previous Data AND) INITIAL
+  // - SENSOR -> Beep
+//   CANCELLING:
+//   - <NONE>
   // ONE_DIGIT_ENTERED:
   // - 0-9 -> TWO_DIGITS_ENTERED
-  // - A -> READY_FOR_SENSOR
+  // - A -> ACCEPTING
   // - D -> INITIAL
   // TWO_DIGITS_ENTERED:
   // - 0-9 -> THREE_DIGITS_ENTERED
-  // - A -> READY_FOR_SENSOR
+  // - A -> ACCEPTING
   // - D -> INITIAL
   // THREE_DIGITS_ENTERED:
-  // - 0-9 -> (ERR) INITIAL
-  // - A -> READY_FOR_SENSOR
+  // - 0-9 -> ERROR
+  // - A -> ACCEPTING
   // - D -> INITIAL
+//   ACCEPTING:
+//   - ACCEPTED -> READY_FOR_SENSOR
   // READY_FOR_SENSOR:
-  // - SENSOR -> (BEEP, DISPLAY AND RECORD AND) INITIAL
-  // - A -> READY
+  // - SENSOR -> RECORD
+  // - D -> ERROR
+//   RECORD:
+  
+
+  // Entry/Exit
+  // INITIAL:
+  // - Clear the racer number
+//   CANCELLING:
+//   - On Entry -> Cancel previous, trigger CANCELED
+  // ONE_DIGIT_ENTERED
+  // - On Entry -> Store current keypress
+  // TWO_DIGITS_ENTERED
+  // - On Entry -> Store current keypress
+  // THREE_DIGITS_ENTERED
+  // - On Entry -> Store current keypress
+//   ACCEPTING
+//   - On Entry -> Store the current racer number, trigger ACCEPTED
+  // READY_FOR_SENSOR
+  // - On Entry -> Success Music
+//   ERROR
+//   - ON Entry -> Display Error, Beep, trigger START
+//   RECORD:
+//   - ON entry -> BEEP, DISPLAY AND RECORD trigger START
 }
 
 //### Mode 6 - Race Run (Finish Line)
@@ -474,92 +651,3 @@ void mode6_loop() {
 }
 
 // ------------------------------------------
-bool sensor_blocked() {
-  return digitalRead(SENSOR_DIGITAL_INPUT);
-}
-
-boolean printed = false;
-char *time_string = (char *) malloc(25);
-void oldloop () {
-#ifdef ENABLE_KEYPAD
-  keypad.loop();
-#endif
-
-#ifdef ENABLE_SENSOR
-  //  Serial.print(digitalRead(SENSOR_DIGITAL_INPUT));
-  if (digitalRead(SENSOR_DIGITAL_INPUT)) {
-    digitalWrite(LED_BUILTIN, LOW);     // turn off led
-    //    Serial.println("TRIP");
-    if (!printed) {
-      beep();
-      printed = true;
-      int hour, minute, second;
-      #ifdef ENABLE_GPS
-      gps.getHourMinuteSecond(&hour, &minute, &second);
-      display.show((hour * 1000) + (minute * 100) + second, DEC);
-      #endif
-      sprintf(time_string, "TIME %d:%d:%d", hour, minute, second);
-      printer.print(time_string);
-    }
-  } else {
-
-    digitalWrite(LED_BUILTIN, HIGH);    // flash the led
-    printed = false;
-  }
-#endif
-
-#ifdef ENABLE_GPS
-//  gps.readData();
-  gps.printPeriodically();
-#endif
-
-#ifdef ENABLE_RTC
-  rtc.loop();
-  rtc.printPeriodically();
-#endif
-
-#if defined(ENABLE_KEYPAD)
-  //keypad.printKeypress();
-
-  char key = keypad.readChar();
-  if (key != NO_KEY) {
-#ifdef ENABLE_DISPLAY
-    display.show(keypad.intFromChar(key), DEC);
-    if (keypad.intFromChar(key) == 243) { // #
-       #ifdef ENABLE_PRINTER
-         printer.print("Hello World");
-       #endif
-    }
-#endif
-
-#ifdef ENABLE_RTC
-    if (keypad.intFromChar(key) == 250) { // *
-      DateTime now = rtc.getDateTime();
-      Serial.println(now.minute());
-      Serial.println(now.second());
-      display.show((now.minute() * 100) + now.second(), DEC);
-    }
-#endif
-
-#ifdef ENABLE_GPS
-    if (keypad.intFromChar(key) == 243) { // #
-      int hour, minute, second;
-      gps.getHourMinuteSecond(&hour, &minute, &second);
-      display.show((minute * 100) + second, DEC);
-    }
-#endif
-    beep();
-    // #ifdef ENABLE_BUZZER
-    // tone(BUZZER_DIGITAL_OUTPUT, 1000, 100);
-    // #endif
-  }
-#endif
-}
-
-/* ********************** Helper Methods ************** */
-void beep() {
-  Serial.println("Beep");
-#ifdef ENABLE_BUZZER
-  buzzer.beep();
-#endif
-}

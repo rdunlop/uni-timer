@@ -9,6 +9,7 @@ class UniBuzzer
     void setup();
     void loop();
     void beep();
+    void success();
   private:
     int _output;
 };

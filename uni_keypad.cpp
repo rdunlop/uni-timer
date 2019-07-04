@@ -38,10 +38,26 @@ void UniKeypad::setup() {
 
 void UniKeypad::loop() { }
 
+// How to make this work when there are multiple consumers of this data (the main loop, as well as the currently-selected loop)
 bool UniKeypad::newKeyPressed() {
   // Fills kpd.key[ ] array with up-to 10 active keys.
   // Returns true if there are ANY active keys.
   return _keypad->getKeys();
+//  for (int i=0; i<LIST_MAX; i++)   // Scan the whole key list.
+//  {
+//    if (_keypad->key[i].kstate == PRESSED) return true;
+//  }
+//
+//  return false;
+}
+
+// return true if the given key is currently pressed
+bool UniKeypad::keyPressed(char key) {
+  // Because the keypad library marks a key as "HOLD"
+  // After 500ms, we don't use isPressed
+  //  return _keypad->isPressed(key);
+  // Instead, we assume that if it's in the list, it's pressed
+  return _keypad->findInList(key) != -1;
 }
 
 // Reading multi-key presses
