@@ -268,6 +268,15 @@ bool sensor_blocked() {
   return digitalRead(SENSOR_DIGITAL_INPUT);
 }
 
+bool currentTime(char *output) {
+  int hour, minute, second, millisecond;
+  bool res = gps.current_time(&hour, &minute, &second, &millisecond);
+  Serial.print("Res: ");
+  Serial.println(res);
+  sprintf(output, "%02d:%02d:%02d:%03d", hour, minute, second, millisecond);
+  return true;
+}
+
 // Check to see if a new mode is selected
 void checkForModeSelection() {
   int old_mode = _mode;
@@ -530,7 +539,9 @@ void initial_check() {
     // TODO: SHOULD CLEAR Previous Racer's time
     Serial.println("TO CLEAR");
   }
-//  Serial.print("Initial Check ");
+#ifdef FSM_DEBUG
+  Serial.println("Initial Check ");
+#endif
 }
 
 void digit_check() {
@@ -548,8 +559,9 @@ void digit_check() {
     buzzer.beep();
     display.sens();
   }
-//  Serial.print("Digit Check");
-//  Serial.println(racer_number);
+#ifdef FSM_DEBUG
+  Serial.println("Digit Check");
+#endif
 }
 
 void sensor_check() {
@@ -557,11 +569,26 @@ void sensor_check() {
     Serial.println("D PRessed");
     fsm.trigger(DELETE);
   } else if (sensor_blocked()) {
-    // TODO: Replace this with an interrupt handler?
-    buzzer.beep();
-    display.sens();
+    fsm.trigger(SENSOR);
   }
+#ifdef FSM_DEBUG
   Serial.println("Sensor Check");
+#endif
+}
+
+void sensor_triggered() {
+  // TODO: Replace this with an interrupt handler?
+  buzzer.beep();
+  display.sens();
+  char racer_string[25];
+  char data_string[25];
+  currentTime(data_string);
+  sprintf(racer_string, "RACER: %d", racer_number);
+  Serial.println(racer_string);
+  Serial.println(data_string);
+  printer.print(racer_string);
+  printer.print(data_string);
+  clear_racer_number();
 }
 
 void sensor_entry() {
@@ -602,7 +629,7 @@ void mode5_setup() {
   fsm.add_transition(&three_digits_entered, &initial, NUMBER_PRESSED, &clear_racer_number); // TODO: add better error transition?
   fsm.add_transition(&three_digits_entered, &ready_for_sensor, ACCEPT, NULL);
 
-  fsm.add_transition(&ready_for_sensor, &initial, SENSOR, NULL);
+  fsm.add_transition(&ready_for_sensor, &initial, SENSOR, &sensor_triggered);
   fsm.add_transition(&ready_for_sensor, &initial, DELETE, NULL);
   
   // States:

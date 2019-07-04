@@ -95,7 +95,6 @@ boolean isLetter(char c) {
 
 // Print a character in the first position
 void UniDisplay::show(char x) {
-  Serial.println("YYYYYYYYY");
   if (isDigit(x)) {
     _display.print(x - '0', DEC);
   } else if (isLetter(x)) {
