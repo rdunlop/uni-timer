@@ -14,7 +14,8 @@ class UniDisplay
     void setBlink(bool blink);
     void showConfiguration(bool start, uint8_t difficulty, bool up, uint8_t number);
     void show(char);
-    void show(int, int);
+    void showNumber(int);
+    void showNumber(int, int);
   private:
     int _i2c_addr;
     Adafruit_7segment _display;

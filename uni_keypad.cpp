@@ -57,32 +57,17 @@ bool UniKeypad::keyPressed(char key) {
   // After 500ms, we don't use isPressed
   //  return _keypad->isPressed(key);
   // Instead, we assume that if it's in the list, it's pressed
+  _keypad->getKeys();
   return _keypad->findInList(key) != -1;
 }
 
-// Reading multi-key presses
-//      for (int i=0; i<LIST_MAX; i++)   // Scan the whole key list.
-//        {
-//            if ( kpd.key[i].stateChanged )   // Only find keys that have changed state.
-//            {
-//                switch (kpd.key[i].kstate) {  // Report active key state : IDLE, PRESSED, HOLD, or RELEASED
-//                    case PRESSED:
-//                    msg = " PRESSED.";
-//                break;
-//                    case HOLD:
-//                    msg = " HOLD.";
-//                break;
-//                    case RELEASED:
-//                    msg = " RELEASED.";
-//                break;
-//                    case IDLE:
-//                    msg = " IDLE.";
-//                }
-//                Serial.print("Key ");
-//                Serial.print(kpd.key[i].kchar);
-//                Serial.println(msg);
-//            }
-//        }
+bool UniKeypad::digitPressed() {
+  _keypad->getKeys();
+  for (int i = 0; i < 10; i++) {
+    if (keyPressed('0' + i)) return true;
+  }
+  return false;
+}
 
 void UniKeypad::printKeypress() {
   char read_key = _keypad->getKey();
@@ -101,6 +86,16 @@ void UniKeypad::printKeypress() {
 
 char UniKeypad::readChar() {
   return _keypad->getKey();
+}
+
+// Return a digit if it is pressed
+// return -1 if no digit is pressed
+uint8_t UniKeypad::readDigit() {
+  _keypad->getKeys();
+  for (int i = 0; i < 10; i++) {
+    if (keyPressed('0' + i)) return i;
+  }
+  return -1;
 }
 
 boolean UniKeypad::isDigit(char c) {

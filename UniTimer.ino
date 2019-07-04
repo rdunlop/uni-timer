@@ -274,12 +274,14 @@ void checkForModeSelection() {
   if (modeKeypad.newKeyPressed()) {
     Serial.println("NEW KEY");
     if (modeKeypad.keyPressed('*')) {
-      Serial.println("* is pressed");
       if (modeKeypad.keyPressed('1')) _mode = 1;
       if (modeKeypad.keyPressed('2')) _mode = 2;
       if (modeKeypad.keyPressed('3')) _mode = 3;
       if (modeKeypad.keyPressed('4')) _mode = 4;
-      if (modeKeypad.keyPressed('5')) _mode = 5;
+      if (modeKeypad.keyPressed('5')) {
+        mode5_setup();
+        _mode = 5;
+      }
       if (modeKeypad.keyPressed('6')) _mode = 6;
     }
     Serial.print("mode: ");
@@ -288,7 +290,8 @@ void checkForModeSelection() {
   if (_mode != old_mode) {
     Serial.print("MODE: ");
     Serial.println(_mode);
-    display.show(_mode);
+    display.showNumber(_mode);
+    old_mode = _mode;
   }
 }
 
@@ -375,7 +378,7 @@ void mode2_loop() {
         int hour, minute, second;
         gps.printPeriodically();
         gps.getHourMinuteSecond(&hour, &minute, &second);
-        display.show((minute * 100) + second, DEC);  
+        display.showNumber((minute * 100) + second, DEC);  
       }
       if (keynum == 18) {
         // B
@@ -475,15 +478,21 @@ void mode4_loop() {
 
 // Data
 int racer_number = 0;
+char last_key_pressed = NO_KEY;
 
 // Methods
 void clear_racer_number() {
   racer_number = 0;
+  display.showNumber(racer_number);
 }
 
 // Add a new digit to the current racer number
-void store_number() {
-  racer_number = (racer_number *10) + keypad.intFromChar(keypad.readChar());
+void store_racer_number() {
+  Serial.println("Storing Racer number");
+  racer_number = (racer_number * 10) + keypad.intFromChar(last_key_pressed);
+  Serial.print("Racer #: ");
+  Serial.println(racer_number);
+  display.showNumber(racer_number);
 }
 
 void good_music() {
@@ -510,43 +519,49 @@ Fsm fsm(&initial);
 #define SENSOR 5
 
 void initial_check() {
-  if (keypad.isDigit(keypad.readChar())) {
+  last_key_pressed = keypad.readChar();
+  if (keypad.isDigit(last_key_pressed)) {
     fsm.trigger(NUMBER_PRESSED);
   } else if(sensor_blocked()) {
     buzzer.beep();
     display.sens();
-  } else if (false) { // C+*
-    clear_racer_number();
+    delay(100);
+  } else if (keypad.keyPressed('C') && keypad.keyPressed('*')) { // C+*
+    // TODO: SHOULD CLEAR Previous Racer's time
+    Serial.println("TO CLEAR");
   }
+//  Serial.print("Initial Check ");
 }
 
 void digit_check() {
   // - 0-9 -> TWO_DIGITS_ENTERED or THREE_DIGITS_ENTERED
   // - A -> ACCEPTING
   // - D -> INITIAL
-  if (keypad.isDigit(keypad.readChar())) {
+  last_key_pressed = keypad.readChar();
+  if (keypad.isDigit(last_key_pressed)) {
     fsm.trigger(NUMBER_PRESSED);
-  } else if (keypad.readChar() == 'A') {
+  } else if (keypad.keyPressed('A')) {
     fsm.trigger(ACCEPT);
-  } else if (keypad.readChar() == 'D') {
+  } else if (keypad.keyPressed('D')) {
     fsm.trigger(DELETE);
   } else if (sensor_blocked()) {
     buzzer.beep();
     display.sens();
   }
+//  Serial.print("Digit Check");
+//  Serial.println(racer_number);
 }
 
 void sensor_check() {
-  if (keypad.isDigit(keypad.readChar())) {
-    fsm.trigger(NUMBER_PRESSED);
-  } else if (keypad.readChar() == 'A') {
-    fsm.trigger(ACCEPT);
-  } else if (keypad.readChar() == 'D') {
+  if (keypad.keyPressed('D')) {
+    Serial.println("D PRessed");
     fsm.trigger(DELETE);
   } else if (sensor_blocked()) {
+    // TODO: Replace this with an interrupt handler?
     buzzer.beep();
     display.sens();
   }
+  Serial.println("Sensor Check");
 }
 
 void sensor_entry() {
@@ -572,13 +587,23 @@ void sensor_exit() {
  * THREE
  * READY
  */
-void mode5_loop() {
-  fsm.add_transition(&initial, &one_digit_entered, NUMBER_PRESSED, NULL);
+void mode5_setup() {
+  fsm.add_transition(&initial, &one_digit_entered, NUMBER_PRESSED, &store_racer_number);
   
-  fsm.add_transition(&one_digit_entered, &initial, DELETE, NULL);
-  fsm.add_transition(&one_digit_entered, &two_digits_entered, NUMBER_PRESSED, NULL);
-  
-  fsm.add_transition(&two_digits_entered, &three_digits_entered, NUMBER_PRESSED, NULL);
+  fsm.add_transition(&one_digit_entered, &initial, DELETE, &clear_racer_number);
+  fsm.add_transition(&one_digit_entered, &two_digits_entered, NUMBER_PRESSED, &store_racer_number);
+  fsm.add_transition(&one_digit_entered, &ready_for_sensor, ACCEPT, NULL);
+
+  fsm.add_transition(&two_digits_entered, &initial, DELETE, &clear_racer_number);
+  fsm.add_transition(&two_digits_entered, &three_digits_entered, NUMBER_PRESSED, &store_racer_number);
+  fsm.add_transition(&two_digits_entered, &ready_for_sensor, ACCEPT, NULL);
+
+  fsm.add_transition(&three_digits_entered, &initial, DELETE, &clear_racer_number);
+  fsm.add_transition(&three_digits_entered, &initial, NUMBER_PRESSED, &clear_racer_number); // TODO: add better error transition?
+  fsm.add_transition(&three_digits_entered, &ready_for_sensor, ACCEPT, NULL);
+
+  fsm.add_transition(&ready_for_sensor, &initial, SENSOR, NULL);
+  fsm.add_transition(&ready_for_sensor, &initial, DELETE, NULL);
   
   // States:
   // INITIAL
@@ -633,6 +658,9 @@ void mode5_loop() {
 //   - ON Entry -> Display Error, Beep, trigger START
 //   RECORD:
 //   - ON entry -> BEEP, DISPLAY AND RECORD trigger START
+}
+void mode5_loop() {
+  fsm.run_machine();
 }
 
 //### Mode 6 - Race Run (Finish Line)
