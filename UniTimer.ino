@@ -223,6 +223,7 @@ void setup () {
 }
 // Variables
 int _mode = 1;
+int _new_mode = 1;
 
 // Check systems, and display Good or Bad on the display
 void mode0() {
@@ -277,33 +278,35 @@ bool currentTime(char *output) {
   return true;
 }
 
+void change_mode(int new_mode) {
+  _mode = _new_mode;
+  if (_mode == 5) {
+    mode5_setup();
+  }
+}
 // Check to see if a new mode is selected
 void checkForModeSelection() {
-  int old_mode = _mode;
+  // Only switch to the new mode after all keys are pressed
+  if (_new_mode != _mode && modeKeypad.readChar() == NO_KEY) {
+    change_mode(_new_mode);
+  }
+  
   if (modeKeypad.newKeyPressed()) {
     Serial.println("NEW KEY");
     if (modeKeypad.keyPressed('*')) {
-      if (modeKeypad.keyPressed('1')) _mode = 1;
-      if (modeKeypad.keyPressed('2')) _mode = 2;
-      if (modeKeypad.keyPressed('3')) _mode = 3;
-      if (modeKeypad.keyPressed('4')) _mode = 4;
-      if (modeKeypad.keyPressed('5')) {
-        mode5_setup();
-        _mode = 5;
-      }
-      if (modeKeypad.keyPressed('6')) _mode = 6;
+      if (modeKeypad.keyPressed('1')) _new_mode = 1;
+      if (modeKeypad.keyPressed('2')) _new_mode = 2;
+      if (modeKeypad.keyPressed('3')) _new_mode = 3;
+      if (modeKeypad.keyPressed('4')) _new_mode = 4;
+      if (modeKeypad.keyPressed('5')) _new_mode = 5;
+      if (modeKeypad.keyPressed('6')) _new_mode = 6;
     }
-    Serial.print("mode: ");
-    Serial.println(_mode);
   }
-  if (_mode != old_mode) {
-    Serial.print("MODE: ");
-    Serial.println(_mode);
-    display.showNumber(_mode);
-    old_mode = _mode;
+  if (_new_mode != _mode) {
+    Serial.print("new mode: ");
+    Serial.println(_new_mode);
   }
 }
-
 
 void loop() {
   switch(_mode) {
@@ -347,18 +350,9 @@ void mode1_loop() {
   if (key != NO_KEY) {
     if (key != last_key) {
       // New Keypress
-//      int keynum = keypad.intFromChar(key);
-//      if (keynum >= 0 && keynum <= 9) display.show(keynum, DEC); // 0-9
-//      if (keynum == 17) display.show(1, DEC); // A
-//      if (keynum == 18) display.show(1, DEC); // B
-//      if (keynum == 19) display.show(1, DEC); // C
-//      if (keynum == 20) display.show(1, DEC); // D
-//      if (keynum == 243) { } // #
-//      if (keynum == 250) { } // *
-//      buzzer.beep();
       display.show(key);
-//      Serial.println("Number");
-//      Serial.println(keynum);
+      Serial.println("Number");
+      Serial.println(key);
     }
   }
   last_key = key;
