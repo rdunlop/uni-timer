@@ -20,7 +20,7 @@ void UniPrinter::setup() {
 void UniPrinter::loop() { }
 
 boolean UniPrinter::hasPaper() {
-  printer->hasPaper();
+  return printer->hasPaper();
 }
 
 void UniPrinter::hello() { 
