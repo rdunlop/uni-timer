@@ -7,7 +7,6 @@
 // Expected Hardware Components
 // - SENSOR - Sensor
 // - GPS - GPS Sensor, for setting accurate time signal
-// - RTC - Real Time Clock
 // - DISPLAY - 7 Segment display
 // - KEYPAD_EXPANSION - I2C expansion board, with keypad connected to it
 // - BUZZER - Piezo buzzer
@@ -18,8 +17,7 @@
 // - Download and provide https://github.com/adafruit/SD in the SD folder. (this replaces the SD library included by the GPS library
 //
 // NOTES:
-// [1] The GPS is used to know the absolute time. The RTC clock is used to keep things accurate
-//     if we lose GPS lock.
+// [1] The GPS is used to know the absolute time.
 //     Based on https://wyolum.com/syncing-arduino-with-gps-time/.
 //     Whenever we have GPS lock, we keep track of the offset from micros() for the GPS time
 //     and we use that offset whenever we are printing the time.
@@ -41,7 +39,6 @@
 /* ************************* Capabilities flags ******************************************* */
 /* Set these flags to enable certain combinations of components */
 #define ENABLE_GPS
-//#define ENABLE_RTC
 #define ENABLE_DISPLAY
 #define ENABLE_KEYPAD
 #define ENABLE_PRINTER
@@ -57,9 +54,6 @@
 #endif
 #ifdef ENABLE_GPS
 #include "uni_gps.h"
-#endif
-#ifdef ENABLE_RTC
-#include "uni_rtc.h"
 #endif
 // - KEYPAD
 #ifdef ENABLE_KEYPAD
@@ -86,9 +80,6 @@
 #define GPS_PPS_DIGITAL_INPUT 2
 #define GPS_DIGITAL_OUTPUT 9 // hardware serial #2
 #define GPS_DIGITAL_INPUT 10 // hardware serial #2
-// - RTC
-#define RTC_SQW_DIGITAL_INPUT 2
-#define RTC_I2CADDR 0x68
 // - DISPLAY
 #define DISPLAY_I2CADDR 0x70
 // - KEYPAD
@@ -162,10 +153,6 @@ UniDisplay display(DISPLAY_I2CADDR);
 UniGps gps(GPS_PPS_DIGITAL_INPUT);
 #endif
 
-#ifdef ENABLE_RTC
-UniRtc rtc(RTC_SQW_DIGITAL_INPUT);
-#endif
-
 #ifdef ENABLE_BUZZER
 UniBuzzer buzzer(BUZZER_DIGITAL_OUTPUT);
 #endif
@@ -198,12 +185,6 @@ void setup () {
   // GPS
 #ifdef ENABLE_GPS
   gps.setup();
-#endif
-
-  // RTC
-#ifdef ENABLE_RTC
-  rtc.setup();
-  rtc.setDateTime(2019,6,20,10,54,2);
 #endif
 
   // PRINTER
