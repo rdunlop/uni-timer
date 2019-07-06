@@ -61,6 +61,7 @@ void UniDisplay::bad() {
 }
 
 void UniDisplay::showConfiguration(bool start, uint8_t difficulty, bool up, uint8_t number) {
+#if 0
   Serial.print("Start: ");
   Serial.println(start);
   Serial.print("Dfificulty: ");
@@ -69,6 +70,7 @@ void UniDisplay::showConfiguration(bool start, uint8_t difficulty, bool up, uint
   Serial.println(up);
   Serial.print("Number: ");
   Serial.println(number);
+#endif
   _display.writeDigitNum(0, start ? 0x5 : 0xf); // S or F
   _display.writeDigitNum(1, difficulty_to_letter_code(difficulty));
   _display.writeDigitRaw(3, up ? LETTER_U : LETTER_D);

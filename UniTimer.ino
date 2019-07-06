@@ -260,7 +260,7 @@ bool currentTime(char *output) {
 }
 
 void change_mode(int new_mode) {
-  _mode = _new_mode;
+  _mode = new_mode;
   if (_mode == 5) {
     mode5_setup();
   }
@@ -268,7 +268,9 @@ void change_mode(int new_mode) {
 // Check to see if a new mode is selected
 void checkForModeSelection() {
   // Only switch to the new mode after all keys are pressed
-  if (_new_mode != _mode && modeKeypad.readChar() == NO_KEY) {
+  if (_new_mode != _mode && !modeKeypad.anyKeyPressed()) {
+    Serial.print("new mode: ");
+    Serial.println(_new_mode);
     change_mode(_new_mode);
   }
   
@@ -282,10 +284,6 @@ void checkForModeSelection() {
       if (modeKeypad.keyPressed('5')) _new_mode = 5;
       if (modeKeypad.keyPressed('6')) _new_mode = 6;
     }
-  }
-  if (_new_mode != _mode) {
-    Serial.print("new mode: ");
-    Serial.println(_new_mode);
   }
 }
 

@@ -11,6 +11,7 @@ class UniKeypad
     void printKeypress();
     bool newKeyPressed();
     bool keyPressed(char key);
+    bool anyKeyPressed();
     bool digitPressed();
     char readChar();
     uint8_t readDigit();

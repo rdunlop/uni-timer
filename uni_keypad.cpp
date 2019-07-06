@@ -53,10 +53,8 @@ bool UniKeypad::newKeyPressed() {
 
 // return true if the given key is currently pressed or held
 bool UniKeypad::keyPressed(char key) {
-  // Because the keypad library marks a key as "HOLD"
-  // After 500ms, we don't use isPressed
-  //  return _keypad->isPressed(key);
-  // Instead, we check all of the keys in the list.
+  // Because the keypad library doesn't consider a button "isPressed" if it is held down and
+  // another is pressed, we have to search the list ourselves
   
   // Scan the whole key list.
   for (int i=0; i<LIST_MAX; i++) {
@@ -78,6 +76,16 @@ bool UniKeypad::digitPressed() {
   return false;
 }
 
+bool UniKeypad::anyKeyPressed() {
+  // Scan the whole key list.
+  for (int i=0; i<LIST_MAX; i++) {
+    if ((_keypad->key[i].kstate == PRESSED) || (_keypad->key[i].kstate == HOLD)) {
+      return true;
+    }
+  }
+
+  return false;
+}
 void UniKeypad::printKeypress() {
   char read_key = _keypad->getKey();
 
