@@ -200,14 +200,14 @@ void setup () {
   sd.setup();
 #endif
 
-  mode0();
+  setup_fsm();
 }
 // Variables
 int _mode = 1;
-int _new_mode = 1;
+int _new_mode = -1;
 
 // Check systems, and display Good or Bad on the display
-void mode0() {
+void mode0_run() {
   bool success = true;
 
   // Show 88:88
@@ -257,59 +257,6 @@ bool currentTime(unsigned long current_micros, char *output) {
   Serial.println(res);
   sprintf(output, "%02d:%02d:%02d:%03d", hour, minute, second, millisecond);
   return true;
-}
-
-void change_mode(int new_mode) {
-  _mode = new_mode;
-  if (_mode == 5) {
-    mode5_setup();
-  }
-}
-// Check to see if a new mode is selected
-void checkForModeSelection() {
-  // Only switch to the new mode after all keys are pressed
-  if (_new_mode != _mode && !modeKeypad.anyKeyPressed()) {
-    Serial.print("new mode: ");
-    Serial.println(_new_mode);
-    change_mode(_new_mode);
-  }
-  
-  if (modeKeypad.newKeyPressed()) {
-    Serial.println("NEW KEY");
-    if (modeKeypad.keyPressed('*')) {
-      if (modeKeypad.keyPressed('1')) _new_mode = 1;
-      if (modeKeypad.keyPressed('2')) _new_mode = 2;
-      if (modeKeypad.keyPressed('3')) _new_mode = 3;
-      if (modeKeypad.keyPressed('4')) _new_mode = 4;
-      if (modeKeypad.keyPressed('5')) _new_mode = 5;
-      if (modeKeypad.keyPressed('6')) _new_mode = 6;
-    }
-  }
-}
-
-void loop() {
-  switch(_mode) {
-    case 1:
-      mode1_loop();
-      break;
-    case 2:
-      mode2_loop();
-      break;
-    case 3:
-      mode3_loop();
-      break;
-     case 4:
-      mode4_loop();
-      break;
-     case 5:
-      mode5_loop();
-      break;
-     case 6:
-      mode6_loop();
-      break;
-  }
-  gps.readData();
-  checkForModeSelection();
 }
 
 //### Mode 1 - Keypad/Sensor Input Test
@@ -457,6 +404,53 @@ void mode4_loop() {
 //
 
 #include <Fsm.h>
+
+// *****************************************************
+State mode0(&mode0_run, NULL, NULL);
+State mode1(NULL, &mode1_loop, NULL);
+State mode2(NULL, &mode2_loop, NULL);
+State mode3(NULL, &mode3_loop, NULL);
+State mode4(NULL, &mode4_loop, NULL);
+State mode5(&mode5_setup, &mode5_loop, &mode5_teardown);
+State mode6(NULL, &mode6_loop, NULL);
+
+Fsm mode_fsm(&mode0);
+
+#define MODE_OFFSET 100
+#define MODE_1 101
+#define MODE_2 102
+#define MODE_3 103
+#define MODE_4 104
+#define MODE_5 105
+#define MODE_6 106
+
+// MODE Selection FSM
+void loop() {
+  mode_fsm.run_machine();
+  
+  gps.readData();
+  checkForModeSelection();
+}
+void setup_fsm() {
+  mode_fsm.add_timed_transition(&mode0, &mode1, 1000, NULL); // Go to Mode 1 after 1 second
+
+  // Set up transitions between each possible state and each other state, based on MODE_1, MODE_2, etc triggers.
+  State *mode_states[] = { &mode1, &mode2, &mode3, &mode4, &mode5, &mode6};
+  for (int i = 0; i < 6; i++) {
+    for (int j = 0; j < 6; j++) {
+      if (j == i) continue;
+      Serial.print("Setting ");
+      Serial.print(i + 1);
+      Serial.print(" TO ");
+      Serial.println(j + 1);
+      mode_fsm.add_transition(mode_states[i], mode_states[j], MODE_OFFSET + j + 1, NULL);
+    }
+  }
+}
+
+  
+// *****************************************************
+// Mode 5 FSM
 
 // Data
 int racer_number = 0;
@@ -684,6 +678,10 @@ void mode5_loop() {
   fsm.run_machine();
 }
 
+void mode5_teardown() {
+  detachInterrupt(digitalPinToInterrupt(SENSOR_DIGITAL_INPUT));
+}
+
 //### Mode 6 - Race Run (Finish Line)
 //
 //- When a sensor is triggered, display E1 to indicate that you need to enter 1 racer number.
@@ -700,3 +698,27 @@ void mode6_loop() {
 }
 
 // ------------------------------------------
+
+// Check to see if a new mode is selected
+void checkForModeSelection() {
+  // Only switch to the new mode after all keys are pressed
+  if (_new_mode != _mode && !modeKeypad.anyKeyPressed()) {
+    Serial.print("new mode: ");
+    Serial.println(_new_mode);
+    mode_fsm.trigger(MODE_OFFSET + _new_mode); // trigger MODE_1, MODE_2, etc
+    _mode = _new_mode;
+  }
+  
+  if (modeKeypad.newKeyPressed()) {
+    Serial.println("NEW KEY");
+    if (modeKeypad.keyPressed('*')) {
+      Serial.println("* is pressed");
+      if (modeKeypad.keyPressed('1')) _new_mode = 1;
+      if (modeKeypad.keyPressed('2')) _new_mode = 2;
+      if (modeKeypad.keyPressed('3')) _new_mode = 3;
+      if (modeKeypad.keyPressed('4')) _new_mode = 4;
+      if (modeKeypad.keyPressed('5')) _new_mode = 5;
+      if (modeKeypad.keyPressed('6')) _new_mode = 6;
+    }
+  }
+}
