@@ -520,9 +520,11 @@ void digit_check() {
   last_key_pressed = keypad.readChar();
   if (keypad.isDigit(last_key_pressed)) {
     fsm.trigger(NUMBER_PRESSED);
-  } else if (keypad.keyPressed('A')) {
+  } else if (last_key_pressed == 'A') {
     fsm.trigger(ACCEPT);
-  } else if (keypad.keyPressed('D')) {
+  } else if (last_key_pressed == 'B') {
+    sd.readFile("TEST");
+  } else if (last_key_pressed == 'D') {
     fsm.trigger(DELETE);
   } else if (sensor_blocked()) {
     buzzer.beep();
@@ -561,6 +563,8 @@ void sensor_triggered() {
   Serial.println(data_string);
   printer.print(racer_string);
   printer.print(data_string);
+  sd.writeFile("TEST", racer_string);
+  sd.writeFile("TEST", data_string);
   clear_racer_number();
   _sensor_micros = 0;
 }
