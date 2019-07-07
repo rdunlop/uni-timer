@@ -403,14 +403,17 @@ void mode4_loop() {
 //  - This will print and record the cancellation of the previous start time
 //
 
+void clear_display() { 
+  display.all();
+}
 #include <Fsm.h>
 
 // *****************************************************
 State mode0(&mode0_run, NULL, NULL);
-State mode1(NULL, &mode1_loop, NULL);
-State mode2(NULL, &mode2_loop, NULL);
-State mode3(NULL, &mode3_loop, NULL);
-State mode4(NULL, &mode4_loop, NULL);
+State mode1(&clear_display, &mode1_loop, NULL);
+State mode2(&clear_display, &mode2_loop, NULL);
+State mode3(&clear_display, &mode3_loop, NULL);
+State mode4(&clear_display, &mode4_loop, NULL);
 State mode5(&mode5_setup, &mode5_loop, &mode5_teardown);
 State mode6(NULL, &mode6_loop, NULL);
 
@@ -438,11 +441,7 @@ void setup_fsm() {
   State *mode_states[] = { &mode1, &mode2, &mode3, &mode4, &mode5, &mode6};
   for (int i = 0; i < 6; i++) {
     for (int j = 0; j < 6; j++) {
-      if (j == i) continue;
-      Serial.print("Setting ");
-      Serial.print(i + 1);
-      Serial.print(" TO ");
-      Serial.println(j + 1);
+      if (j == i) continue; // Don't need to transition from state to same state.
       mode_fsm.add_transition(mode_states[i], mode_states[j], MODE_OFFSET + j + 1, NULL);
     }
   }
