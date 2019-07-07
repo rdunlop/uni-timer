@@ -34,6 +34,7 @@ void UniKeypad::setup() {
   // Using 'locals' will NOT work.
   _keypad = new Keypad(makeKeymap (keyLayout), linePins, columnPins, 4, 4); 
   Serial.println("Keypad Done init");
+  _keypad->setHoldTime(20000);
 }
 
 void UniKeypad::loop() { }
