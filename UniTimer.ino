@@ -250,9 +250,9 @@ bool sensor_blocked() {
   return digitalRead(SENSOR_DIGITAL_INPUT);
 }
 
-bool currentTime(char *output) {
+bool currentTime(unsigned long current_micros, char *output) {
   int hour, minute, second, millisecond;
-  bool res = gps.current_time(&hour, &minute, &second, &millisecond);
+  bool res = gps.current_time(current_micros, &hour, &minute, &second, &millisecond);
   Serial.print("Res: ");
   Serial.println(res);
   sprintf(output, "%02d:%02d:%02d:%03d", hour, minute, second, millisecond);
@@ -377,7 +377,7 @@ void mode2_loop() {
       }
       if (keynum == 20) {
         int hour, minute, second, millisecond;
-        bool res = gps.current_time(&hour, &minute, &second, &millisecond);
+        bool res = gps.current_time(micros(), &hour, &minute, &second, &millisecond);
         Serial.print("Res: ");
         Serial.println(res);
         char data[20];
@@ -494,6 +494,9 @@ State three_digits_entered(NULL, &digit_check, NULL);
 State ready_for_sensor(&sensor_entry, &sensor_check, &sensor_exit);
 
 Fsm fsm(&initial);
+
+unsigned long _sensor_micros = 0;
+
 #define NUMBER_PRESSED 1
 #define DELETE 2
 #define ACCEPT 3
@@ -538,10 +541,10 @@ void digit_check() {
 }
 
 void sensor_check() {
-  if (keypad.keyPressed('D')) {
+  if (keypad.newKeyPressed() && keypad.keyPressed('D')) {
     Serial.println("D PRessed");
     fsm.trigger(DELETE);
-  } else if (sensor_blocked()) {
+  } else if (sensor_blocked_via_interrupt()) {
     fsm.trigger(SENSOR);
   }
 #ifdef FSM_DEBUG
@@ -549,28 +552,45 @@ void sensor_check() {
 #endif
 }
 
+// This is the FSM action which occurs after
+// we notice that the sensor interrupt has fired.
 void sensor_triggered() {
-  // TODO: Replace this with an interrupt handler?
+  Serial.println("SENSOR TRIGGERED");
+  Serial.println(_sensor_micros);
+  
   buzzer.beep();
   display.sens();
   char racer_string[25];
   char data_string[25];
-  currentTime(data_string);
+  currentTime(_sensor_micros, data_string);
   sprintf(racer_string, "RACER: %d", racer_number);
   Serial.println(racer_string);
   Serial.println(data_string);
   printer.print(racer_string);
   printer.print(data_string);
   clear_racer_number();
+  _sensor_micros = 0;
 }
 
 void sensor_entry() {
+  _sensor_micros = 0;
   display.setBlink(true);
 }
 
 void sensor_exit() {
   display.setBlink(false);
 }
+
+void sensor_interrupt() {
+  _sensor_micros = micros();
+  Serial.println("INTERRUPTED");
+  Serial.println(_sensor_micros);
+}
+
+bool sensor_blocked_via_interrupt() {
+  return _sensor_micros != 0;
+}
+
 
 /*
  * Possible Actions:
@@ -604,7 +624,8 @@ void mode5_setup() {
 
   fsm.add_transition(&ready_for_sensor, &initial, SENSOR, &sensor_triggered);
   fsm.add_transition(&ready_for_sensor, &initial, DELETE, NULL);
-  
+
+  attachInterrupt(digitalPinToInterrupt(SENSOR_DIGITAL_INPUT), sensor_interrupt, RISING);
   // States:
   // INITIAL
   // ONE_DIGIT_ENTERED

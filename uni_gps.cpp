@@ -38,18 +38,17 @@ void UniGps::pps_interrupt(){
 
 void UniGps::handle_interrupt() {
   unsigned long now = micros();
-  Serial.print("GPS PPS: ");
-  Serial.println(now - pps_start_ms);
+//  Serial.print("GPS PPS: ");
+//  Serial.println(now - pps_start_ms);
   pps_start_ms = now;
-  printGPSDate();
+//  printGPSDate();
 }
 
 // return true on success
 // return false on error
 // return the current hour/minute in GPS time, including milliseconds from
 // the PPS pulse
-bool UniGps::current_time(int *hour, int *minute, int *second, int *millisecond) {
-  unsigned long now = micros();
+bool UniGps::current_time(unsigned long current_micros, int *hour, int *minute, int *second, int *millisecond) {
   int year;
   byte month, day, new_hour, new_minute, new_second, hundredths;
   unsigned long age;
@@ -60,7 +59,7 @@ bool UniGps::current_time(int *hour, int *minute, int *second, int *millisecond)
   *hour = new_hour;
   *minute = new_minute;
   *second = new_second;
-  *millisecond = (now - pps_start_ms) / 1000;
+  *millisecond = (current_micros - pps_start_ms) / 1000;
   
   return true;
 }

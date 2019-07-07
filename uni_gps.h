@@ -13,7 +13,7 @@ class UniGps
     void readData();
     void printPeriodically();
     int getHourMinuteSecond(int *, int *, int *);
-    bool current_time(int *hour, int *minute, int *second, int *millisecond);
+    bool current_time(unsigned long current_micros, int *hour, int *minute, int *second, int *millisecond);
   private:
     volatile unsigned long pps_start_ms;
     bool newData;
