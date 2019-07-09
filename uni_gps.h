@@ -14,6 +14,7 @@ class UniGps
     void printPeriodically();
     int getHourMinuteSecond(int *, int *, int *);
     bool current_time(unsigned long current_micros, int *hour, int *minute, int *second, int *millisecond);
+    void printGPSDate();
   private:
     volatile unsigned long pps_start_ms;
     bool newData;
@@ -23,7 +24,7 @@ class UniGps
     
     void handle_interrupt();
     void printGPS();
-    void printGPSDate();
+    
 };
 
 #endif

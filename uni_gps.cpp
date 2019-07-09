@@ -38,8 +38,8 @@ void UniGps::pps_interrupt(){
 
 void UniGps::handle_interrupt() {
   unsigned long now = micros();
-//  Serial.print("GPS PPS: ");
-//  Serial.println(now - pps_start_ms);
+  Serial.print("GPS PPS: ");
+  Serial.println(now - pps_start_ms);
   pps_start_ms = now;
 //  printGPSDate();
 }
@@ -145,8 +145,8 @@ void UniGps::printGPSDate() {
   else
   {
     char sz[32];
-    sprintf(sz, "%02d/%02d/%02d %02d:%02d:%02d ",
-        month, day, year, hour, minute, second);
+    sprintf(sz, "%02d/%02d/%02d %02d:%02d:%02d.%03d",
+        month, day, year, hour, minute, second, hundredths);
     Serial.println(sz);
   }
 }
