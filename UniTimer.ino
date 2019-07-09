@@ -417,7 +417,7 @@ void build_race_filename(char *filename) {
 //
 
 void clear_display() { 
-  display.all();
+  display.clear();
 }
 #include <Fsm.h>
 
@@ -428,7 +428,7 @@ State mode2(&clear_display, &mode2_loop, NULL);
 State mode3(&clear_display, &mode3_loop, NULL);
 State mode4(&clear_display, &mode4_loop, NULL);
 State mode5(&mode5_setup, &mode5_loop, &mode5_teardown);
-State mode6(NULL, &mode6_loop, NULL);
+State mode6(&mode6_setup, &mode6_loop, &mode6_teardown);
 
 Fsm mode_fsm(&mode0);
 
@@ -471,7 +471,13 @@ char last_key_pressed = NO_KEY;
 // Methods
 void clear_racer_number() {
   racer_number = 0;
-  display.showNumber(racer_number);
+  display.clear();
+}
+
+// Is the racer number already 3 digits long?
+// if so, another digit will be "too long"
+bool three_digits_racer_number() {
+  return racer_number > 99;
 }
 
 // Add a new digit to the current racer number
@@ -723,16 +729,64 @@ State mode6_initial(&mode6_initial_entry, &mode6_initial_check, &mode6_initial_e
 State mode6_digits_entered(NULL, &mode6_digit_check, NULL);
 
 Fsm mode6_fsm(&mode6_initial);
-char results_to_record[10][20];
+#define MAX_RESULTS 10
+char results_to_record[MAX_RESULTS][20];
+int results_count = 0;
 
+void store_data_result(char *data) {
+  if (results_count < MAX_RESULTS) {
+    sprintf(results_to_record[results_count], data);
+    results_count ++;
+    Serial.println("stored new result");
+  } else {
+    Serial.println("Results cache is full");
+  }
+}
+
+// Are there any results in the buffer, if so,
+// return the oldest one
+bool retrieve_data_string(char *str) {
+  // TODO: Pause interrupts during this function?
+  if (results_count > 0) {
+    strcpy(str, results_to_record[0]);
+
+    // Copy the remaining results up 1 slot
+    for (int i = 0; i < (results_count - 1); i++) {
+      strcpy(results_to_record[i], results_to_record[i + 1]);
+    }
+    results_count--;
+    
+    return true;
+  }
+  return false;
+}
+
+void store_timing_data() {
+  Serial.println("SENSOR TRIGGERED");
+  Serial.println(sensor.interrupt_micros());
+  
+  buzzer.beep();
+//  display.sens();
+  char data_string[25];
+  currentTime(sensor.interrupt_micros(), data_string);
+  store_data_result(data_string);
+  Serial.println(data_string);
+  
+  sensor.clear_interrupt_micros();
+  delay(500);
+  // DELAY 500 ms before able to read interrupt again
+}
+
+// While waiting for a new datapoint
+// Watch for sensor, etc
 void mode6_initial_check() {
+  if (sensor.blocked_via_interrupt()) {
+    mode6_fsm.trigger(SENSOR);
+  }
+  
   last_key_pressed = keypad.readChar();
   if (keypad.isDigit(last_key_pressed)) {
     mode6_fsm.trigger(NUMBER_PRESSED);
-  } else if(sensor.blocked()) {
-    buzzer.beep();
-    display.sens();
-    delay(100);
   } else if (keypad.keyPressed('C') && keypad.keyPressed('*')) { // C+*
     // TODO: SHOULD CLEAR Previous Racer's time
     Serial.println("TO CLEAR");
@@ -743,11 +797,10 @@ void mode6_initial_check() {
 }
 
 void mode6_initial_entry() {
-  display.setBlink(true);
+  display.showEntriesRemaining(results_count);
 }
 
 void mode6_initial_exit() {
-  display.setBlink(false);
 }
 
 void mode6_loop() {
@@ -756,6 +809,7 @@ void mode6_loop() {
 
 void mode6_setup() {
   mode6_fsm.add_transition(&mode6_initial, &mode6_digits_entered, NUMBER_PRESSED, &store_racer_number);
+  mode6_fsm.add_transition(&mode6_initial, &mode6_initial, SENSOR, &store_timing_data);
   
   mode6_fsm.add_transition(&mode6_digits_entered, &mode6_initial, DELETE, &clear_racer_number);
   mode6_fsm.add_transition(&mode6_digits_entered, &mode6_digits_entered, NUMBER_PRESSED, &store_racer_number);
@@ -772,7 +826,11 @@ void mode6_teardown() {
 void mode6_digit_check() {
   last_key_pressed = keypad.readChar();
   if (keypad.isDigit(last_key_pressed)) {
-    mode6_fsm.trigger(NUMBER_PRESSED);
+    if (three_digits_racer_number()) {
+      mode6_fsm.trigger(DELETE);
+    } else {
+      mode6_fsm.trigger(NUMBER_PRESSED);
+    }
   } else if (keypad.keyPressed('D')) {
     mode6_fsm.trigger(DELETE);
   } else if (keypad.keyPressed('A')) {
@@ -785,7 +843,21 @@ void mode6_digit_check() {
 
 // Store the racer number and time together in a file
 void mode6_store_result() {
+  Serial.println("STORE RESULT");
   
+  buzzer.beep();
+  char full_string[25];
+  char data_string[25];
+  if (retrieve_data_string(data_string)) {
+    // There is data to be stored
+    char filename[20];
+    build_race_filename(filename);
+    sprintf(full_string, "RACER %d - %s", racer_number, data_string);
+    Serial.println(full_string);
+    printer.print(full_string);
+    sd.writeFile(filename, full_string);
+    clear_racer_number();  
+  }
 }
 // ------------------------------------------
 

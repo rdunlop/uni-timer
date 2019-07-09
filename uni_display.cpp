@@ -124,6 +124,17 @@ void UniDisplay::showNumber(int x, int y = DEC) {
   _display.writeDisplay();
 }
 
+void UniDisplay::showEntriesRemaining(int x) {
+  _display.clear();
+  _display.writeDigitRaw(0, LETTER_E);
+  _display.writeDigitNum(1, x);
+  _display.writeDisplay();
+}
+void UniDisplay::clear() {
+  _display.clear();
+  _display.writeDisplay();
+}
+
 uint8_t difficulty_to_letter_code(uint8_t difficulty) {
   switch(difficulty) {
     case 0: // Beginner

@@ -16,6 +16,8 @@ class UniDisplay
     void show(char);
     void showNumber(int);
     void showNumber(int, int);
+    void showEntriesRemaining(int);
+    void clear();
   private:
     int _i2c_addr;
     Adafruit_7segment _display;
