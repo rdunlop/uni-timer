@@ -76,6 +76,8 @@
 #endif
 // - BUTTON
 
+#include "modes.h"
+
 /* *************************** (Defining Global Variables) ************************** */
 // - SENSOR
 #define SENSOR_DIGITAL_INPUT 5
@@ -263,44 +265,14 @@ bool currentTime(unsigned long current_micros, char *output) {
 }
 
 
-//### Mode 1 - Keypad/Sensor Input Test
-//
-//- If you press a Key, it will Beep for 100ms, and display the number on the display.
-//- If you press A, it will display A
-//- If you press B, it will display b
-//- If you press C, it will display C
-//- If you press D, it will display d
-//- If you block the Sensor, or un-block the sensor, it will display 5En5 and beep for 100ms
-char last_key = NO_KEY;
-bool last_sensor = false;
-void mode1_loop() {
-  //keypad.printKeypress();
-
-  char key = keypad.readChar();
-  if (key != NO_KEY) {
-    if (key != last_key) {
-      // New Keypress
-      display.show(key);
-      Serial.println("Number");
-      Serial.println(key);
-    }
-  }
-  last_key = key;
-
-  bool sensor_value = sensor.blocked();
-  if (last_sensor != sensor_value) {
-    display.sens();
-    buzzer.beep();
-    last_sensor = sensor_value;
-  }
-}
-
 //### Mode 2 - GPS/Printer/SD Test
 //
 //- If you press A, it will show the GPS time, and beep positively.
 //- If you press B, it will show print a test line on the printer.
 //- If you press C, it will test writing/reading from the SD card, and display either 6ood or bAd
 unsigned long gps_millis = 0;
+char last_key2 = NO_KEY;
+char last_key4 = NO_KEY;
 void mode2_loop() {
   if (gps_millis == 0 || (millis() - gps_millis > 100)) {
     gps_millis = millis();
@@ -308,7 +280,7 @@ void mode2_loop() {
   }
   char key = keypad.readChar();
   if (key != NO_KEY) {
-    if (key != last_key) {
+    if (key != last_key2) {
       // New Keypress
       int keynum = keypad.intFromChar(key);
       if (keynum == 17) {
@@ -342,7 +314,7 @@ void mode2_loop() {
       }
     }
   }   
-  last_key = key;
+  last_key2 = key;
 }
 
 
@@ -369,7 +341,7 @@ uint8_t number = 1;
 void mode4_loop() {
   char key = keypad.readChar();
   if (key != NO_KEY) {
-    if (key != last_key) {
+    if (key != last_key4) {
       // New Keypress
       int keynum = keypad.intFromChar(key);
       
@@ -389,7 +361,7 @@ void mode4_loop() {
       }
     }
   }
-  last_key = key;
+  last_key4 = key;
   display.showConfiguration(start, difficulty, up, number);
 }
 
