@@ -49,8 +49,10 @@ void mode2_loop() {
         }
       }
       if (keynum == 20) {
-        int hour, minute, second, millisecond;
-        bool res = gps.current_time(micros(), &hour, &minute, &second, &millisecond);
+        byte hour, minute, second;
+        int millisecond = 0;
+    
+        bool res = gps.current_time(&hour, &minute, &second);
         Serial.print("Res: ");
         Serial.println(res);
         char data[20];

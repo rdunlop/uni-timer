@@ -7,6 +7,7 @@
 extern UniKeypad keypad;
 extern UniDisplay display;
 
+void displayConfig();
 //### Mode 4 - Race Setup
 //
 //- If you press A, toggle between 5/F on digit 1
@@ -15,6 +16,10 @@ extern UniDisplay display;
 //- If you press D, toggle between 1..9 on digit 4.
 //
 char last_key4 = NO_KEY;
+
+void mode4_setup() {
+  displayConfig();
+}
 void mode4_loop() {
   char key = keypad.readChar();
   if (key != NO_KEY) {
@@ -38,8 +43,13 @@ void mode4_loop() {
         break;
       }
       last_key4 = key;
-      display.showConfiguration(config->start, config->difficulty, config->up, config->number);
+      displayConfig();
     }
   }
   
+}
+
+void displayConfig() {
+  Config *config = getConfig();
+  display.showConfiguration(config->start, config->difficulty, config->up, config->number);
 }

@@ -9,46 +9,25 @@ UniGps::UniGps(int pps_signal_input)
   _pps_signal_input = pps_signal_input;
 }
 
-// Because interrupt handlers run outside of all object-like constructs
-// we have a static pointer to a GPS instance, so that we can bounce into
-// the interrupt_handler on that object
-UniGps * UniGps::instance0_;
-
 // Setup function, for initializin Per-second-interrupt singal, and monitoring for GPS data
 // over serial2
-void UniGps::setup() {
-  pps_start_ms = micros();  
+void UniGps::setup(void (*interrupt_handler)()) {
   newData = false;
   last_gps_print_time = millis();
   
   Serial.println("GPS Initializing");
   pinMode(_pps_signal_input, INPUT);
-  attachInterrupt(digitalPinToInterrupt(_pps_signal_input), pps_interrupt, RISING);
-  instance0_ = this;
+  attachInterrupt(digitalPinToInterrupt(_pps_signal_input), interrupt_handler, RISING);
   
   Serial2.begin(9600);
   Serial.println("GPS Done init");
-}
-
-
-// NOTE: The GPS PPS signal will ONLY fire when there is GPS lock.
-void UniGps::pps_interrupt(){
-  instance0_->handle_interrupt();
-}
-
-void UniGps::handle_interrupt() {
-  unsigned long now = micros();
-  Serial.print("GPS PPS: ");
-  Serial.println(now - pps_start_ms);
-  pps_start_ms = now;
-//  printGPSDate();
 }
 
 // return true on success
 // return false on error
 // return the current hour/minute in GPS time, including milliseconds from
 // the PPS pulse
-bool UniGps::current_time(unsigned long current_micros, int *hour, int *minute, int *second, int *millisecond) {
+bool UniGps::current_time(byte *hour, byte *minute, byte *second) {
   int year;
   byte month, day, new_hour, new_minute, new_second, hundredths;
   unsigned long age;
@@ -59,7 +38,6 @@ bool UniGps::current_time(unsigned long current_micros, int *hour, int *minute, 
   *hour = new_hour;
   *minute = new_minute;
   *second = new_second;
-  *millisecond = (current_micros - pps_start_ms) / 1000;
   
   return true;
 }

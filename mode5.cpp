@@ -7,6 +7,7 @@
 #include "uni_sensor.h"
 #include "modes.h"
 #include "recording.h"
+#include "accurate_timing.h"
 
 extern UniKeypad keypad;
 extern UniGps gps;
@@ -60,8 +61,6 @@ State ready_for_sensor(&sensor_entry, &sensor_check, &sensor_exit);
 
 Fsm mode5_fsm(&initial);
 
-unsigned long _sensor_micros = 0;
-
 #define NUMBER_PRESSED 1
 #define DELETE 2
 #define ACCEPT 3
@@ -113,7 +112,7 @@ void sensor_check() {
   if (keypad.newKeyPressed() && keypad.keyPressed('D')) {
     Serial.println("D PRessed");
     mode5_fsm.trigger(DELETE);
-  } else if (sensor.blocked_via_interrupt()) {
+  } else if (sensor_has_triggered()) {
     mode5_fsm.trigger(SENSOR);
   }
 #ifdef FSM_DEBUG
@@ -125,7 +124,7 @@ void sensor_check() {
 // we notice that the sensor interrupt has fired.
 void sensor_triggered() {
   Serial.println("SENSOR TRIGGERED");
-  Serial.println(sensor.interrupt_micros());
+  Serial.println(sensor_interrupt_micros());
   
   buzzer.beep();
   display.sens();
@@ -133,30 +132,23 @@ void sensor_triggered() {
   char data_string[25];
   char filename[20];
   build_race_filename(filename);
-  currentTime(sensor.interrupt_micros(), data_string);
+  currentTime(data_string);
   sprintf(full_string, "RACER %d - %s", racer_number(), data_string);
   Serial.println(full_string);
   printer.print(full_string);
   sd.writeFile(filename, full_string);
   clear_racer_number();
-  sensor.clear_interrupt_micros();
+  clear_sensor_interrupt_micros();
 }
 
 void sensor_entry() {
-  _sensor_micros = 0;
+  clear_sensor_interrupt_micros();
   display.setBlink(true);
 }
 
 void sensor_exit() {
   display.setBlink(false);
 }
-
-void sensor_interrupt() {
-  _sensor_micros = micros();
-  Serial.println("INTERRUPTED");
-  Serial.println(_sensor_micros);
-}
-
 
 /*
  * Possible Actions:

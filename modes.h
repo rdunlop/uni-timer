@@ -6,6 +6,7 @@ void mode2_loop();
 
 void mode3_loop();
 
+void mode4_setup();
 void mode4_loop();
 
 void mode5_fsm_setup();

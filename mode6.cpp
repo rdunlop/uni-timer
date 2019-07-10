@@ -7,6 +7,7 @@
 #include "uni_sensor.h"
 #include "modes.h"
 #include "recording.h"
+#include "accurate_timing.h"
 
 extern UniKeypad keypad;
 extern UniGps gps;
@@ -81,16 +82,16 @@ bool retrieve_data_string(char *str) {
 
 void store_timing_data() {
   Serial.println("SENSOR TRIGGERED");
-  Serial.println(sensor.interrupt_micros());
+  Serial.println(sensor_interrupt_micros());
   
   buzzer.beep();
 //  display.sens();
   char data_string[25];
-  currentTime(sensor.interrupt_micros(), data_string);
+  currentTime(data_string);
   store_data_result(data_string);
   Serial.println(data_string);
   
-  sensor.clear_interrupt_micros();
+  clear_sensor_interrupt_micros();
   delay(500);
   // DELAY 500 ms before able to read interrupt again
 }
@@ -98,7 +99,7 @@ void store_timing_data() {
 // While waiting for a new datapoint
 // Watch for sensor, etc
 void mode6_initial_check() {
-  if (sensor.blocked_via_interrupt()) {
+  if (sensor_has_triggered()) {
     mode6_fsm.trigger(SENSOR);
   }
   
@@ -145,7 +146,7 @@ void mode6_teardown() {
 
 // When a digit has been entered, monitor for A, D, #
 void mode6_digit_check() {
-  if (sensor.blocked_via_interrupt()) {
+  if (sensor_has_triggered()) {
     mode6_fsm.trigger(SENSOR);
   }
   

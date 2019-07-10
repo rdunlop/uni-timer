@@ -46,16 +46,3 @@ Config *getConfig() {
 void build_race_filename(char *filename) {
   sprintf(filename, "%s_%s_%s_%d", _config.difficulty == 0 ? "Beginner" : _config.difficulty == 1 ? "Advanced" : "Expert", _config.up ? "Up" : "Down", _config.start ? "Start" : "Finish", _config.number);
 }
-
-// ****************************
-#include "uni_gps.h"
-extern UniGps gps;
-
-bool currentTime(unsigned long current_micros, char *output) {
-  int hour, minute, second, millisecond;
-  bool res = gps.current_time(current_micros, &hour, &minute, &second, &millisecond);
-  Serial.print("Res: ");
-  Serial.println(res);
-  sprintf(output, "%02d:%02d:%02d.%03d", hour, minute, second, millisecond);
-  return true;
-}

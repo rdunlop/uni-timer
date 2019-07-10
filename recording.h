@@ -22,4 +22,3 @@ typedef struct {
 Config *getConfig();
 
 // ****************
-bool currentTime(unsigned long current_micros, char *output);

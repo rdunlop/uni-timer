@@ -78,6 +78,7 @@
 
 #include "modes.h"
 #include "recording.h"
+#include "accurate_timing.h"
 
 /* *************************** (Defining Global Variables) ************************** */
 // - SENSOR
@@ -174,10 +175,9 @@ UniBuzzer buzzer(BUZZER_DIGITAL_OUTPUT);
 UniSensor sensor(SENSOR_DIGITAL_INPUT);
 #endif
 
-
-
 // NEW HEADER FILE
 void clear_display();
+void date_callback(byte *hour, byte *minute, byte *second);
 
 // ****************** MODE FSM ***************************
 #include <Fsm.h>
@@ -187,7 +187,7 @@ State mode0(&mode0_run, NULL, NULL);
 State mode1(&clear_display, &mode1_loop, NULL);
 State mode2(&clear_display, &mode2_loop, NULL);
 State mode3(&clear_display, &mode3_loop, NULL);
-State mode4(&clear_display, &mode4_loop, NULL);
+State mode4(&mode4_setup, &mode4_loop, NULL);
 State mode5(&mode5_setup, &mode5_loop, &mode5_teardown);
 State mode6(&mode6_setup, &mode6_loop, &mode6_teardown);
 
@@ -202,7 +202,7 @@ void setup () {
 
   // SENSOR
 #ifdef ENABLE_SENSOR
-  sensor.setup();
+  sensor.setup(&sensor_interrupt);
 #endif
 
   // DISPLAY
@@ -221,7 +221,7 @@ void setup () {
 
   // GPS
 #ifdef ENABLE_GPS
-  gps.setup();
+  gps.setup(&pps_interrupt);
 #endif
 
   // PRINTER
@@ -237,9 +237,18 @@ void setup () {
   sd.setup();
 #endif
 
+  register_date_callback(date_callback);
   setup_fsm();
   mode5_fsm_setup();
   mode6_fsm_setup();
+}
+
+void date_callback(byte *hour, byte *minute, byte *second) {
+  if (gps.current_time(hour, minute, second)) {
+    Serial.println("OK");
+  } else {
+    Serial.println("Not OK");
+  }
 }
 
 

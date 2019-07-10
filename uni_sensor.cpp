@@ -7,40 +7,17 @@ UniSensor::UniSensor(int input)
   _input = input;
 }
 
-UniSensor * UniSensor::instance0_;
-
-void UniSensor::setup() {
+void UniSensor::setup(void (*interrupt_handler)()) {
   pinMode(_input, INPUT);
-  instance0_ = this;
+  _interrupt_handler = interrupt_handler;
 }
 
 bool UniSensor::blocked() {
   return digitalRead(_input);
 }
 
-bool UniSensor::blocked_via_interrupt() {
-  return _interrupt_micros != 0;
-}
-
-void UniSensor::sensor_interrupt() {
-  instance0_->handle_interrupt();
-}
-void UniSensor::handle_interrupt() {
-  _interrupt_micros = micros();
-  Serial.println("INTERRUPTED");
-  Serial.println(_interrupt_micros);
-}
-
-unsigned long UniSensor::interrupt_micros() {
-  return _interrupt_micros;
-}
-
-void UniSensor::clear_interrupt_micros() {
-  _interrupt_micros = 0;
-}
-
 void UniSensor::attach_interrupt() {
-  attachInterrupt(digitalPinToInterrupt(_input), sensor_interrupt, RISING);
+  attachInterrupt(digitalPinToInterrupt(_input), _interrupt_handler, RISING);
 }
 
 void UniSensor::detach_interrupt() {

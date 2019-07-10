@@ -4,25 +4,19 @@
 
 class UniGps
 {
-  static void pps_interrupt(); // registered interrupt handler with the system
-  static UniGps * instance0_; // for use by interrupt handler
-  
   public:
     UniGps(int pps_signal_input);
-    void setup();
+    void setup(void (*interrupt_handler)());
     void readData();
     void printPeriodically();
     int getHourMinuteSecond(int *, int *, int *);
-    bool current_time(unsigned long current_micros, int *hour, int *minute, int *second, int *millisecond);
+    bool current_time(byte *hour, byte *minute, byte *second);
     void printGPSDate();
   private:
-    volatile unsigned long pps_start_ms;
     bool newData;
     uint32_t last_gps_print_time;
     int _pps_signal_input;
     TinyGPS gps;
-    
-    void handle_interrupt();
     void printGPS();
     
 };
