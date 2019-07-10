@@ -77,6 +77,7 @@
 // - BUTTON
 
 #include "modes.h"
+#include "recording.h"
 
 /* *************************** (Defining Global Variables) ************************** */
 // - SENSOR
@@ -109,6 +110,13 @@
 // - BUTTON
 #define BUTTON_DIGITAL_INPUT 25 // unused
 
+#define MODE_OFFSET 100
+#define MODE_1 101
+#define MODE_2 102
+#define MODE_3 103
+#define MODE_4 104
+#define MODE_5 105
+#define MODE_6 106
 
 /* ************************** Initialization ******************* */
 
@@ -166,6 +174,26 @@ UniBuzzer buzzer(BUZZER_DIGITAL_OUTPUT);
 UniSensor sensor(SENSOR_DIGITAL_INPUT);
 #endif
 
+
+
+// NEW HEADER FILE
+void clear_display();
+
+// ****************** MODE FSM ***************************
+#include <Fsm.h>
+
+// *****************************************************
+State mode0(&mode0_run, NULL, NULL);
+State mode1(&clear_display, &mode1_loop, NULL);
+State mode2(&clear_display, &mode2_loop, NULL);
+State mode3(&clear_display, &mode3_loop, NULL);
+State mode4(&clear_display, &mode4_loop, NULL);
+State mode5(&mode5_setup, &mode5_loop, &mode5_teardown);
+State mode6(&mode6_setup, &mode6_loop, &mode6_teardown);
+
+Fsm mode_fsm(&mode0);
+// *******************************************************************
+
 /******** ***********************************(set up)*** *************** **********************/
 void setup () {
   // Common
@@ -211,6 +239,35 @@ void setup () {
 
   setup_fsm();
 }
+
+
+// MODE Selection FSM
+void loop() {
+  mode_fsm.run_machine();
+  
+  gps.readData();
+  checkForModeSelection();
+}
+
+
+void setup_fsm() {
+  mode_fsm.add_timed_transition(&mode0, &mode1, 1000, NULL); // Go to Mode 1 after 1 second
+
+  // Set up transitions between each possible state and each other state, based on MODE_1, MODE_2, etc triggers.
+  State *mode_states[] = { &mode1, &mode2, &mode3, &mode4, &mode5, &mode6};
+  for (int i = 0; i < 6; i++) {
+    for (int j = 0; j < 6; j++) {
+      if (j == i) continue; // Don't need to transition from state to same state.
+      mode_fsm.add_transition(mode_states[i], mode_states[j], MODE_OFFSET + j + 1, NULL);
+    }
+  }
+}
+
+void clear_display() { 
+  display.clear();
+}
+
+
 // Variables
 int _mode = 1;
 int _new_mode = -1;
@@ -255,68 +312,6 @@ void mode0_run() {
 
 /************************************* (main program) ********* *****************************/
 
-bool currentTime(unsigned long current_micros, char *output) {
-  int hour, minute, second, millisecond;
-  bool res = gps.current_time(current_micros, &hour, &minute, &second, &millisecond);
-  Serial.print("Res: ");
-  Serial.println(res);
-  sprintf(output, "%02d:%02d:%02d.%03d", hour, minute, second, millisecond);
-  return true;
-}
-
-
-//### Mode 2 - GPS/Printer/SD Test
-//
-//- If you press A, it will show the GPS time, and beep positively.
-//- If you press B, it will show print a test line on the printer.
-//- If you press C, it will test writing/reading from the SD card, and display either 6ood or bAd
-unsigned long gps_millis = 0;
-char last_key2 = NO_KEY;
-char last_key4 = NO_KEY;
-void mode2_loop() {
-  if (gps_millis == 0 || (millis() - gps_millis > 100)) {
-    gps_millis = millis();
-    gps.printGPSDate();
-  }
-  char key = keypad.readChar();
-  if (key != NO_KEY) {
-    if (key != last_key2) {
-      // New Keypress
-      int keynum = keypad.intFromChar(key);
-      if (keynum == 17) {
-        // A
-        int hour, minute, second;
-        gps.printPeriodically();
-        gps.getHourMinuteSecond(&hour, &minute, &second);
-        display.showNumber((minute * 100) + second, DEC);  
-      }
-      if (keynum == 18) {
-        // B
-        char test_string[] = "PRINTER TEST STRING";
-        printer.print(test_string);
-      }
-      if (keynum == 19) {
-        // C
-        if (sd.status()) {
-          display.good();
-        } else {
-          display.bad();
-        }
-      }
-      if (keynum == 20) {
-        int hour, minute, second, millisecond;
-        bool res = gps.current_time(micros(), &hour, &minute, &second, &millisecond);
-        Serial.print("Res: ");
-        Serial.println(res);
-        char data[20];
-        sprintf(data, "%02d:%02d:%02d:%03d", hour, minute, second, millisecond);
-        Serial.println(data);
-      }
-    }
-  }   
-  last_key2 = key;
-}
-
 
 //### Mode 3 - Sensor Tuning
 //
@@ -334,39 +329,34 @@ void mode3_loop() {
 //- If you press C, toggle between U/d on digit 3
 //- If you press D, toggle between 1..9 on digit 4.
 //
-bool start = true;
-uint8_t difficulty = 0; // 0-B, 1-A, 2-E
-bool up = true;
-uint8_t number = 1;
+char last_key4 = NO_KEY;
 void mode4_loop() {
   char key = keypad.readChar();
   if (key != NO_KEY) {
     if (key != last_key4) {
       // New Keypress
       int keynum = keypad.intFromChar(key);
+      Config *config = getConfig();
       
       switch(keynum) {
       case 17: // A
-        start = !start;
+        config->start = !config->start;
         break;
       case 18: // B
-        difficulty = (difficulty + 1) % 3;
+        config->difficulty = (config->difficulty + 1) % 3;
         break;
       case 19: // C
-        up = !up;
+        config->up = !config->up;
         break;
       case 20: // D
-        number = (number + 1) % 10;
+        config->number = (config->number + 1) % 10;
         break;
       }
+      last_key4 = key;
+      display.showConfiguration(config->start, config->difficulty, config->up, config->number);
     }
   }
-  last_key4 = key;
-  display.showConfiguration(start, difficulty, up, number);
-}
-
-void build_race_filename(char *filename) {
-  sprintf(filename, "%s_%s_%s_%d", difficulty == 0 ? "Beginner" : difficulty == 1 ? "Advanced" : "Expert", up ? "Up" : "Down", start ? "Start" : "Finish", number);
+  
 }
 
 /*********************************************************************************** */
@@ -388,290 +378,7 @@ void build_race_filename(char *filename) {
 //  - This will print and record the cancellation of the previous start time
 //
 
-void clear_display() { 
-  display.clear();
-}
-#include <Fsm.h>
 
-// *****************************************************
-State mode0(&mode0_run, NULL, NULL);
-State mode1(&clear_display, &mode1_loop, NULL);
-State mode2(&clear_display, &mode2_loop, NULL);
-State mode3(&clear_display, &mode3_loop, NULL);
-State mode4(&clear_display, &mode4_loop, NULL);
-State mode5(&mode5_setup, &mode5_loop, &mode5_teardown);
-State mode6(&mode6_setup, &mode6_loop, &mode6_teardown);
-
-Fsm mode_fsm(&mode0);
-
-#define MODE_OFFSET 100
-#define MODE_1 101
-#define MODE_2 102
-#define MODE_3 103
-#define MODE_4 104
-#define MODE_5 105
-#define MODE_6 106
-
-// MODE Selection FSM
-void loop() {
-  mode_fsm.run_machine();
-  
-  gps.readData();
-  checkForModeSelection();
-}
-void setup_fsm() {
-  mode_fsm.add_timed_transition(&mode0, &mode1, 1000, NULL); // Go to Mode 1 after 1 second
-
-  // Set up transitions between each possible state and each other state, based on MODE_1, MODE_2, etc triggers.
-  State *mode_states[] = { &mode1, &mode2, &mode3, &mode4, &mode5, &mode6};
-  for (int i = 0; i < 6; i++) {
-    for (int j = 0; j < 6; j++) {
-      if (j == i) continue; // Don't need to transition from state to same state.
-      mode_fsm.add_transition(mode_states[i], mode_states[j], MODE_OFFSET + j + 1, NULL);
-    }
-  }
-}
-
-  
-// *****************************************************
-// Mode 5 FSM
-
-// Data
-int racer_number = 0;
-char last_key_pressed = NO_KEY;
-
-// Methods
-void clear_racer_number() {
-  racer_number = 0;
-  display.clear();
-}
-
-// Is the racer number already 3 digits long?
-// if so, another digit will be "too long"
-bool three_digits_racer_number() {
-  return racer_number > 99;
-}
-
-// Add a new digit to the current racer number
-void store_racer_number() {
-  Serial.println("Storing Racer number");
-  racer_number = (racer_number * 10) + keypad.intFromChar(last_key_pressed);
-  Serial.print("Racer #: ");
-  Serial.println(racer_number);
-  display.showNumber(racer_number);
-}
-
-void good_music() {
-  buzzer.success();
-}
-
-void initial_check();
-void digit_check();
-void sensor_check();
-void sensor_entry();
-void sensor_exit();
-
-State initial(NULL, &initial_check, NULL);
-State one_digit_entered(NULL, &digit_check, NULL);
-State two_digits_entered(NULL, &digit_check, NULL);
-State three_digits_entered(NULL, &digit_check, NULL);
-State ready_for_sensor(&sensor_entry, &sensor_check, &sensor_exit);
-
-Fsm mode5_fsm(&initial);
-
-unsigned long _sensor_micros = 0;
-
-#define NUMBER_PRESSED 1
-#define DELETE 2
-#define ACCEPT 3
-#define CANCEL 4
-#define SENSOR 5
-
-void initial_check() {
-  last_key_pressed = keypad.readChar();
-  if (keypad.isDigit(last_key_pressed)) {
-    mode5_fsm.trigger(NUMBER_PRESSED);
-  } else if(sensor.blocked()) {
-    buzzer.beep();
-    display.sens();
-    delay(100);
-  } else if (keypad.keyPressed('C') && keypad.keyPressed('*')) { // C+*
-    // TODO: SHOULD CLEAR Previous Racer's time
-    Serial.println("TO CLEAR");
-  }
-#ifdef FSM_DEBUG
-  Serial.println("Initial Check ");
-#endif
-}
-
-void digit_check() {
-  // - 0-9 -> TWO_DIGITS_ENTERED or THREE_DIGITS_ENTERED
-  // - A -> ACCEPTING
-  // - D -> INITIAL
-  char filename[20];
-  build_race_filename(filename);
-  last_key_pressed = keypad.readChar();
-  if (keypad.isDigit(last_key_pressed)) {
-    mode5_fsm.trigger(NUMBER_PRESSED);
-  } else if (last_key_pressed == 'A') {
-    mode5_fsm.trigger(ACCEPT);
-  } else if (last_key_pressed == 'B') {
-    sd.readFile(filename);
-  } else if (last_key_pressed == 'D') {
-    mode5_fsm.trigger(DELETE);
-  } else if (sensor.blocked()) {
-    buzzer.beep();
-    display.sens();
-  }
-#ifdef FSM_DEBUG
-  Serial.println("Digit Check");
-#endif
-}
-
-void sensor_check() {
-  if (keypad.newKeyPressed() && keypad.keyPressed('D')) {
-    Serial.println("D PRessed");
-    mode5_fsm.trigger(DELETE);
-  } else if (sensor.blocked_via_interrupt()) {
-    mode5_fsm.trigger(SENSOR);
-  }
-#ifdef FSM_DEBUG
-  Serial.println("Sensor Check");
-#endif
-}
-
-// This is the FSM action which occurs after
-// we notice that the sensor interrupt has fired.
-void sensor_triggered() {
-  Serial.println("SENSOR TRIGGERED");
-  Serial.println(sensor.interrupt_micros());
-  
-  buzzer.beep();
-  display.sens();
-  char full_string[25];
-  char data_string[25];
-  char filename[20];
-  build_race_filename(filename);
-  currentTime(sensor.interrupt_micros(), data_string);
-  sprintf(full_string, "RACER %d - %s", racer_number, data_string);
-  Serial.println(full_string);
-  printer.print(full_string);
-  sd.writeFile(filename, full_string);
-  clear_racer_number();
-  sensor.clear_interrupt_micros();
-}
-
-void sensor_entry() {
-  _sensor_micros = 0;
-  display.setBlink(true);
-}
-
-void sensor_exit() {
-  display.setBlink(false);
-}
-
-void sensor_interrupt() {
-  _sensor_micros = micros();
-  Serial.println("INTERRUPTED");
-  Serial.println(_sensor_micros);
-}
-
-
-/*
- * Possible Actions:
- * Sensor
- * Number
- * C*
- * A
- * D
- * 
- * Possible States:
- * INITIAL
- * ONE
- * TWO
- * THREE
- * READY
- */
-void mode5_setup() {
-  mode5_fsm.add_transition(&initial, &one_digit_entered, NUMBER_PRESSED, &store_racer_number);
-  
-  mode5_fsm.add_transition(&one_digit_entered, &initial, DELETE, &clear_racer_number);
-  mode5_fsm.add_transition(&one_digit_entered, &two_digits_entered, NUMBER_PRESSED, &store_racer_number);
-  mode5_fsm.add_transition(&one_digit_entered, &ready_for_sensor, ACCEPT, NULL);
-
-  mode5_fsm.add_transition(&two_digits_entered, &initial, DELETE, &clear_racer_number);
-  mode5_fsm.add_transition(&two_digits_entered, &three_digits_entered, NUMBER_PRESSED, &store_racer_number);
-  mode5_fsm.add_transition(&two_digits_entered, &ready_for_sensor, ACCEPT, NULL);
-
-  mode5_fsm.add_transition(&three_digits_entered, &initial, DELETE, &clear_racer_number);
-  mode5_fsm.add_transition(&three_digits_entered, &initial, NUMBER_PRESSED, &clear_racer_number); // TODO: add better error transition?
-  mode5_fsm.add_transition(&three_digits_entered, &ready_for_sensor, ACCEPT, NULL);
-
-  mode5_fsm.add_transition(&ready_for_sensor, &initial, SENSOR, &sensor_triggered);
-  mode5_fsm.add_transition(&ready_for_sensor, &initial, DELETE, NULL);
-
-  sensor.attach_interrupt();
-  // States:
-  // INITIAL
-  // ONE_DIGIT_ENTERED
-  // TWO_DIGITS_ENTERED
-  // THREE_DIGITS_ENTERED
-  // READY_FOR_SENSOR
-
-  // Transitions
-  // INITIAL:
-  // - 0-9 -> ONE_DIGIT_ENTERED
-  // - C+* -> (Cancel Previous Data AND) INITIAL
-  // - SENSOR -> Beep
-//   CANCELLING:
-//   - <NONE>
-  // ONE_DIGIT_ENTERED:
-  // - 0-9 -> TWO_DIGITS_ENTERED
-  // - A -> ACCEPTING
-  // - D -> INITIAL
-  // TWO_DIGITS_ENTERED:
-  // - 0-9 -> THREE_DIGITS_ENTERED
-  // - A -> ACCEPTING
-  // - D -> INITIAL
-  // THREE_DIGITS_ENTERED:
-  // - 0-9 -> ERROR
-  // - A -> ACCEPTING
-  // - D -> INITIAL
-//   ACCEPTING:
-//   - ACCEPTED -> READY_FOR_SENSOR
-  // READY_FOR_SENSOR:
-  // - SENSOR -> RECORD
-  // - D -> ERROR
-//   RECORD:
-  
-
-  // Entry/Exit
-  // INITIAL:
-  // - Clear the racer number
-//   CANCELLING:
-//   - On Entry -> Cancel previous, trigger CANCELED
-  // ONE_DIGIT_ENTERED
-  // - On Entry -> Store current keypress
-  // TWO_DIGITS_ENTERED
-  // - On Entry -> Store current keypress
-  // THREE_DIGITS_ENTERED
-  // - On Entry -> Store current keypress
-//   ACCEPTING
-//   - On Entry -> Store the current racer number, trigger ACCEPTED
-  // READY_FOR_SENSOR
-  // - On Entry -> Success Music
-//   ERROR
-//   - ON Entry -> Display Error, Beep, trigger START
-//   RECORD:
-//   - ON entry -> BEEP, DISPLAY AND RECORD trigger START
-}
-void mode5_loop() {
-  mode5_fsm.run_machine();
-}
-
-void mode5_teardown() {
-  sensor.detach_interrupt();
-}
 
 // ***************************************************** MODE 6 ***************************************
 //### Mode 6 - Race Run (Finish Line)
@@ -756,7 +463,7 @@ void mode6_initial_check() {
     mode6_fsm.trigger(SENSOR);
   }
   
-  last_key_pressed = keypad.readChar();
+  char last_key_pressed = keypad.readChar();
   if (keypad.isDigit(last_key_pressed)) {
     mode6_fsm.trigger(NUMBER_PRESSED);
   } else if (keypad.keyPressed('C') && keypad.keyPressed('*')) { // C+*
@@ -786,7 +493,8 @@ void mode6_setup() {
   mode6_fsm.add_transition(&mode6_digits_entered, &mode6_initial, DELETE, &clear_racer_number);
   mode6_fsm.add_transition(&mode6_digits_entered, &mode6_digits_entered, NUMBER_PRESSED, &store_racer_number);
   mode6_fsm.add_transition(&mode6_digits_entered, &mode6_initial, ACCEPT, &mode6_store_result);
- 
+  mode6_fsm.add_transition(&mode6_digits_entered, &mode6_digits_entered, SENSOR, &store_timing_data);
+  
   sensor.attach_interrupt(); 
 }
 
@@ -794,9 +502,20 @@ void mode6_teardown() {
   sensor.detach_interrupt();
 }
 
+// Is the racer number already 3 digits long?
+// if so, another digit will be "too long"
+bool three_digits_racer_number() {
+  return racer_number() > 99;
+}
+
+
 // When a digit has been entered, monitor for A, D, #
 void mode6_digit_check() {
-  last_key_pressed = keypad.readChar();
+  if (sensor.blocked_via_interrupt()) {
+    mode6_fsm.trigger(SENSOR);
+  }
+  
+  char last_key_pressed = keypad.readChar();
   if (keypad.isDigit(last_key_pressed)) {
     if (three_digits_racer_number()) {
       mode6_fsm.trigger(DELETE);
@@ -824,7 +543,7 @@ void mode6_store_result() {
     // There is data to be stored
     char filename[20];
     build_race_filename(filename);
-    sprintf(full_string, "RACER %d - %s", racer_number, data_string);
+    sprintf(full_string, "RACER %d - %s", racer_number(), data_string);
     Serial.println(full_string);
     printer.print(full_string);
     sd.writeFile(filename, full_string);
