@@ -10,6 +10,7 @@ class UniPrinter
     void setup();
     void loop();
     void print(char *);
+    void feed();
     void hello();
     boolean hasPaper();
   private:

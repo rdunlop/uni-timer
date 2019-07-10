@@ -13,6 +13,7 @@ void UniPrinter::setup() {
 
   printer_serial->begin(19200); // this printer has a 19200 baud
   printer->begin();
+//  printer->doubleHeightOn();
   printer->inverseOff();
   Serial.println("Printer Done init");
 }
@@ -33,4 +34,8 @@ void UniPrinter::print(char *str) {
   printer->wake();
   printer->println(str);
   printer->sleep();
+}
+
+void UniPrinter::feed() {
+  printer->feed(2);
 }

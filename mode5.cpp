@@ -83,7 +83,7 @@ void initial_check() {
 void digit_check() {
   // - 0-9 -> TWO_DIGITS_ENTERED or THREE_DIGITS_ENTERED
   // - A -> ACCEPTING
-  // - D -> INITIAL
+  // - C -> INITIAL
   char filename[20];
   build_race_filename(filename);
   char last_key_pressed = keypad.readChar();
@@ -107,8 +107,7 @@ void digit_check() {
 }
 
 void sensor_check() {
-  if (keypad.newKeyPressed() && keypad.keyPressed('D')) {
-    Serial.println("D PRessed");
+  if (keypad.newKeyPressed() && keypad.keyPressed('C')) {
     mode5_fsm.trigger(DELETE);
   } else if (sensor_has_triggered()) {
     mode5_fsm.trigger(SENSOR);
@@ -171,7 +170,8 @@ void mode5_fsm_setup() {
 }
 
 void mode5_setup() {
-
+  print_filename();
+  
   display.clear();
   sensor.attach_interrupt();
   // States:

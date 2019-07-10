@@ -11,6 +11,7 @@ void build_race_filename(char *filename);
 void print_racer_data_to_printer(int racer_number, TimeResult data);
 void print_racer_data_to_sd(int racer_number, TimeResult data);
 void clear_previous_entry();
+void print_filename();
 
 typedef struct {
   bool start;

@@ -115,7 +115,7 @@ void mode6_initial_check() {
     mode6_fsm.trigger(NUMBER_PRESSED);
   } else if (last_key_pressed == 'B') {
     duplicate_entry();
-  } else if (keypad.keyPressed('D') && keypad.keyPressed('*')) { // D+*
+  } else if (keypad.keyPressed('D') && keypad.keyPressed('#')) { // D+#
     clear_previous_entry();
   }
 #ifdef FSM_DEBUG
@@ -145,6 +145,7 @@ void mode6_fsm_setup() {
 }
 
 void mode6_setup() { 
+  print_filename();
   display.clear(); 
   sensor.attach_interrupt(); 
 }
