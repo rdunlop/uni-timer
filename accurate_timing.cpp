@@ -1,7 +1,8 @@
 #include "accurate_timing.h"
 
 unsigned long _pps_start_micros;
-unsigned long _interrupt_micros;
+unsigned long _interrupt_micros; // this value is cleared once the sensor trip is handled.
+unsigned long _last_interrupt_micros; // this value is not cleared after the sensor trip is handled
 
 // CURRENT GPS Date/Time (based on PPS)
 TimeResult current_gps_time;
@@ -36,11 +37,12 @@ void pps_interrupt() {
 void sensor_interrupt() {
   unsigned long now = micros();
   // Don't trigger 2x in 0.5 seconds
-  if (now - _interrupt_micros < 500000) {
+  if (now - _last_interrupt_micros < 500000) {
     Serial.println("Ignoring");
     return;
   }
   _interrupt_micros = now;
+  _last_interrupt_micros = now;
   Serial.println("INTERRUPTED");
   Serial.println(_interrupt_micros);
   last_sensor_time.hour = current_gps_time.hour;

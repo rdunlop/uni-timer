@@ -90,6 +90,14 @@ void duplicate_entry() {
   }
 }
 
+// If we want to remove an entry, for example: incorrectly counted 2 crossings.
+void drop_last_entry() {
+  if (results_count > 0) {
+    results_count -= 1;
+    display.showEntriesRemaining(results_count);
+  }
+}
+
 void store_timing_data() {
   Serial.println("SENSOR TRIGGERED");
   Serial.println(sensor_interrupt_micros());
@@ -116,7 +124,7 @@ void mode6_initial_check() {
   } else if (last_key_pressed == 'B') {
     duplicate_entry();
   } else if (keypad.keyPressed('D') && keypad.keyPressed('#')) { // D+#
-    clear_previous_entry();
+    drop_last_entry();
   }
 #ifdef FSM_DEBUG
   Serial.println("Initial Check ");
