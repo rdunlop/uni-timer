@@ -36,7 +36,9 @@ void UniSd::writeFile(char *filename, char *text) {
 
   // if the file opened okay, write to it:
   if (myFile) {
-    Serial.print("Writing to ");
+    Serial.print("Writing: ");
+    Serial.println(text);
+    Serial.print(" to ");
     Serial.println(filename);
     myFile.println(text);
     // close the file:

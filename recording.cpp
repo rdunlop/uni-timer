@@ -58,6 +58,7 @@ void print_racer_data_to_printer(int racer_number, TimeResult data) {
   sprintf(full_string, "RACER %d - %s", racer_number, data_string);
   Serial.println(full_string);
   printer.print(full_string);
+  Serial.println("Done Printing");
 }
 
 void print_racer_data_to_sd(int racer_number, TimeResult data) {
@@ -73,3 +74,15 @@ void print_racer_data_to_sd(int racer_number, TimeResult data) {
   printer.print(full_string);
   Serial.println(full_string);
 }
+
+void clear_previous_entry() {
+  char filename[20];
+  char message[20];
+  build_race_filename(filename);
+
+  sprintf(message, "CLEAR_PREVIOUS");
+  Serial.println("Clear previous entry");
+  printer.print(message);
+  sd.writeFile(filename, message);
+}
+  

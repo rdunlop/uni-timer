@@ -80,6 +80,16 @@ bool retrieve_data(TimeResult *data) {
   return false;
 }
 
+// Create a second entry of the most recently-recorded data
+void duplicate_entry() {
+  if (results_count > 0 && (results_count < MAX_RESULTS)) {
+    results_to_record[results_count - 1] = results_to_record[results_count];
+    results_count += 1;
+    buzzer.beep();
+    display.showEntriesRemaining(results_count);
+  }
+}
+
 void store_timing_data() {
   Serial.println("SENSOR TRIGGERED");
   Serial.println(sensor_interrupt_micros());
@@ -103,9 +113,10 @@ void mode6_initial_check() {
   char last_key_pressed = keypad.readChar();
   if (keypad.isDigit(last_key_pressed)) {
     mode6_fsm.trigger(NUMBER_PRESSED);
-  } else if (keypad.keyPressed('C') && keypad.keyPressed('*')) { // C+*
-    // TODO: SHOULD CLEAR Previous Racer's time
-    Serial.println("TO CLEAR");
+  } else if (last_key_pressed == 'B') {
+    duplicate_entry();
+  } else if (keypad.keyPressed('D') && keypad.keyPressed('*')) { // D+*
+    clear_previous_entry();
   }
 #ifdef FSM_DEBUG
   Serial.println("Initial Check ");
@@ -133,7 +144,8 @@ void mode6_fsm_setup() {
   mode6_fsm.add_transition(&mode6_digits_entered, &mode6_digits_entered, SENSOR, &store_timing_data);
 }
 
-void mode6_setup() {  
+void mode6_setup() { 
+  display.clear(); 
   sensor.attach_interrupt(); 
 }
 
@@ -141,7 +153,7 @@ void mode6_teardown() {
   sensor.detach_interrupt();
 }
 
-// When a digit has been entered, monitor for A, D, #
+// When a digit has been entered, monitor for A, C, #
 void mode6_digit_check() {
   if (sensor_has_triggered()) {
     mode6_fsm.trigger(SENSOR);
@@ -154,7 +166,7 @@ void mode6_digit_check() {
     } else {
       mode6_fsm.trigger(NUMBER_PRESSED);
     }
-  } else if (keypad.keyPressed('D')) {
+  } else if (keypad.keyPressed('C')) {
     mode6_fsm.trigger(DELETE);
   } else if (keypad.keyPressed('A')) {
     mode6_fsm.trigger(ACCEPT);

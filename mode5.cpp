@@ -54,9 +54,7 @@ void sensor_entry();
 void sensor_exit();
 
 State initial(NULL, &initial_check, NULL);
-State one_digit_entered(NULL, &digit_check, NULL);
-State two_digits_entered(NULL, &digit_check, NULL);
-State three_digits_entered(NULL, &digit_check, NULL);
+State digits_entered(NULL, &digit_check, NULL);
 State ready_for_sensor(&sensor_entry, &sensor_check, &sensor_exit);
 
 Fsm mode5_fsm(&initial);
@@ -74,9 +72,8 @@ void initial_check() {
   } else if(sensor.blocked()) {
     buzzer.beep();
     display.sens();
-  } else if (keypad.keyPressed('C') && keypad.keyPressed('*')) { // C+*
-    // TODO: SHOULD CLEAR Previous Racer's time
-    Serial.println("TO CLEAR");
+  } else if (keypad.keyPressed('D') && keypad.keyPressed('*')) { // D+*
+    clear_previous_entry();
   }
 #ifdef FSM_DEBUG
   Serial.println("Initial Check ");
@@ -91,12 +88,14 @@ void digit_check() {
   build_race_filename(filename);
   char last_key_pressed = keypad.readChar();
   if (keypad.isDigit(last_key_pressed)) {
-    mode5_fsm.trigger(NUMBER_PRESSED);
+    if (three_digits_racer_number()) {
+      mode5_fsm.trigger(DELETE);
+    } else {
+      mode5_fsm.trigger(NUMBER_PRESSED);
+    }
   } else if (last_key_pressed == 'A') {
     mode5_fsm.trigger(ACCEPT);
-  } else if (last_key_pressed == 'B') {
-    sd.readFile(filename);
-  } else if (last_key_pressed == 'D') {
+  } else if (last_key_pressed == 'C') {
     mode5_fsm.trigger(DELETE);
   } else if (sensor.blocked()) {
     buzzer.beep();
@@ -150,32 +149,22 @@ void sensor_exit() {
  * Possible Actions:
  * Sensor
  * Number
- * C*
+ * C
  * A
- * D
+ * D*
  * 
  * Possible States:
  * INITIAL
- * ONE
- * TWO
- * THREE
+ * DIGITS
  * READY
  */
 
 void mode5_fsm_setup() {
-   mode5_fsm.add_transition(&initial, &one_digit_entered, NUMBER_PRESSED, &store_racer_number);
+   mode5_fsm.add_transition(&initial, &digits_entered, NUMBER_PRESSED, &store_racer_number);
   
-  mode5_fsm.add_transition(&one_digit_entered, &initial, DELETE, &clear_racer_number);
-  mode5_fsm.add_transition(&one_digit_entered, &two_digits_entered, NUMBER_PRESSED, &store_racer_number);
-  mode5_fsm.add_transition(&one_digit_entered, &ready_for_sensor, ACCEPT, NULL);
-
-  mode5_fsm.add_transition(&two_digits_entered, &initial, DELETE, &clear_racer_number);
-  mode5_fsm.add_transition(&two_digits_entered, &three_digits_entered, NUMBER_PRESSED, &store_racer_number);
-  mode5_fsm.add_transition(&two_digits_entered, &ready_for_sensor, ACCEPT, NULL);
-
-  mode5_fsm.add_transition(&three_digits_entered, &initial, DELETE, &clear_racer_number);
-  mode5_fsm.add_transition(&three_digits_entered, &initial, NUMBER_PRESSED, &clear_racer_number); // TODO: add better error transition?
-  mode5_fsm.add_transition(&three_digits_entered, &ready_for_sensor, ACCEPT, NULL);
+  mode5_fsm.add_transition(&digits_entered, &initial, DELETE, &clear_racer_number);
+  mode5_fsm.add_transition(&digits_entered, &digits_entered, NUMBER_PRESSED, &store_racer_number);
+  mode5_fsm.add_transition(&digits_entered, &ready_for_sensor, ACCEPT, NULL);
 
   mode5_fsm.add_transition(&ready_for_sensor, &initial, SENSOR, &sensor_triggered);
   mode5_fsm.add_transition(&ready_for_sensor, &initial, DELETE, NULL);
@@ -183,61 +172,35 @@ void mode5_fsm_setup() {
 
 void mode5_setup() {
 
-
+  display.clear();
   sensor.attach_interrupt();
   // States:
   // INITIAL
-  // ONE_DIGIT_ENTERED
-  // TWO_DIGITS_ENTERED
-  // THREE_DIGITS_ENTERED
+  // DIGITS_ENTERED
   // READY_FOR_SENSOR
 
   // Transitions
   // INITIAL:
-  // - 0-9 -> ONE_DIGIT_ENTERED
-  // - C+* -> (Cancel Previous Data AND) INITIAL
+  // - 0-9 -> DIGITS_ENTERED
+  // - C   -> (Cancel Previous Data AND) INITIAL
+  // - D+* -> Delete last entry
   // - SENSOR -> Beep
-//   CANCELLING:
-//   - <NONE>
-  // ONE_DIGIT_ENTERED:
-  // - 0-9 -> TWO_DIGITS_ENTERED
+  // DIGITS_ENTERED:
+  // - 0-9 -> DIGITS_ENTERED
   // - A -> ACCEPTING
   // - D -> INITIAL
-  // TWO_DIGITS_ENTERED:
-  // - 0-9 -> THREE_DIGITS_ENTERED
-  // - A -> ACCEPTING
-  // - D -> INITIAL
-  // THREE_DIGITS_ENTERED:
-  // - 0-9 -> ERROR
-  // - A -> ACCEPTING
-  // - D -> INITIAL
-//   ACCEPTING:
-//   - ACCEPTED -> READY_FOR_SENSOR
   // READY_FOR_SENSOR:
   // - SENSOR -> RECORD
-  // - D -> ERROR
-//   RECORD:
+  // - D -> Clear
   
 
   // Entry/Exit
   // INITIAL:
   // - Clear the racer number
-//   CANCELLING:
-//   - On Entry -> Cancel previous, trigger CANCELED
-  // ONE_DIGIT_ENTERED
-  // - On Entry -> Store current keypress
-  // TWO_DIGITS_ENTERED
-  // - On Entry -> Store current keypress
-  // THREE_DIGITS_ENTERED
-  // - On Entry -> Store current keypress
-//   ACCEPTING
-//   - On Entry -> Store the current racer number, trigger ACCEPTED
+  // DIGITS_ENTERED
+  // - On Transition -> Store current keypress
   // READY_FOR_SENSOR
   // - On Entry -> Success Music
-//   ERROR
-//   - ON Entry -> Display Error, Beep, trigger START
-//   RECORD:
-//   - ON entry -> BEEP, DISPLAY AND RECORD trigger START
 }
 void mode5_loop() {
   mode5_fsm.run_machine();

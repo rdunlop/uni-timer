@@ -25,27 +25,26 @@ void mode4_loop() {
   if (key != NO_KEY) {
     if (key != last_key4) {
       // New Keypress
-      int keynum = keypad.intFromChar(key);
       Config *config = getConfig();
       
-      switch(keynum) {
-      case 17: // A
+      switch(key) {
+      case '1':
         config->start = !config->start;
         break;
-      case 18: // B
+      case '2':
         config->difficulty = (config->difficulty + 1) % 3;
         break;
-      case 19: // C
+      case '3':
         config->up = !config->up;
         break;
-      case 20: // D
+      case '4':
         config->number = (config->number + 1) % 10;
         break;
       }
-      last_key4 = key;
       displayConfig();
     }
   }
+  last_key4 = key;
   
 }
 
