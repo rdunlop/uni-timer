@@ -27,6 +27,13 @@ int racer_number() {
   return _racer_number;
 }
 
+// Is the racer number already 3 digits long?
+// if so, another digit will be "too long"
+bool three_digits_racer_number() {
+  return racer_number() > 99;
+}
+
+
 
 // **((((((((( NEW FILE ))))))))))))))))) 
 

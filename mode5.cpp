@@ -18,7 +18,25 @@ extern UniBuzzer buzzer;
 
 #include <Fsm.h>
 
-  
+/*********************************************************************************** */
+//### Mode 5 - Race Run (Start Line)
+//
+//- If you enter a number on the keypad, display that number, and allow up to 3 numbers to be entered.
+//- If you enter a 4th number, beep and clear the display.
+//- If you press A, it "Accepts" the number, and makes success music, and continues to show the number on the display.
+//- Once Accepted, blink the number on the display every second
+//- If you press D, it clears the number and leaves "Accepted" mode
+//- When in Accepted state:
+//  - If the sensor is crossed
+//    - write the current time to the SD and the printer
+//    - display 5En5 on the display for 2 seconds and beep for 2 seconds.
+//- When NOT in Accepted State:
+//  - If the sensor is crossed
+//    - display Err and beep
+//- Press C+* If you need to cancel the previous rider's start time.
+//  - This will print and record the cancellation of the previous start time
+//
+
 // *****************************************************
 // Mode 5 FSM
 

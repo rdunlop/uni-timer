@@ -3,6 +3,9 @@
 void store_racer_number();
 void clear_racer_number();
 int racer_number();
+bool three_digits_racer_number();
+
+// ****************
 void build_race_filename(char *filename);
 
 typedef struct {
@@ -18,4 +21,5 @@ typedef struct {
 
 Config *getConfig();
 
+// ****************
 bool currentTime(unsigned long current_micros, char *output);
