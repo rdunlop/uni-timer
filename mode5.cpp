@@ -127,15 +127,12 @@ void sensor_triggered() {
   
   buzzer.beep();
   display.sens();
-  char full_string[25];
-  char data_string[25];
-  char filename[20];
-  build_race_filename(filename);
-  currentTime(data_string);
-  sprintf(full_string, "RACER %d - %s", racer_number(), data_string);
-  Serial.println(full_string);
-  printer.print(full_string);
-  sd.writeFile(filename, full_string);
+  
+  TimeResult data;
+  currentTime(&data);
+  print_racer_data_to_printer(racer_number(), data);
+  print_racer_data_to_sd(racer_number(), data);
+  
   clear_racer_number();
   clear_sensor_interrupt_micros();
 }

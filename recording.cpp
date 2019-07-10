@@ -1,9 +1,13 @@
 #include "uni_display.h"
 #include "uni_keypad.h"
+#include "uni_printer.h"
+#include "uni_sd.h"
 #include "recording.h"
 
 extern UniDisplay display;
 extern UniKeypad keypad;
+extern UniPrinter printer;
+extern UniSd sd;
 
 int _racer_number = 0;
 
@@ -45,4 +49,27 @@ Config *getConfig() {
 
 void build_race_filename(char *filename) {
   sprintf(filename, "%s_%s_%s_%d", _config.difficulty == 0 ? "Beginner" : _config.difficulty == 1 ? "Advanced" : "Expert", _config.up ? "Up" : "Down", _config.start ? "Start" : "Finish", _config.number);
+}
+
+void print_racer_data_to_printer(int racer_number, TimeResult data) {
+  char full_string[25];
+  char data_string[25];
+  sprintf(data_string, "%02d:%02d:%02d.%03d", data.hour, data.minute, data.second, data.millisecond);
+  sprintf(full_string, "RACER %d - %s", racer_number, data_string);
+  Serial.println(full_string);
+  printer.print(full_string);
+}
+
+void print_racer_data_to_sd(int racer_number, TimeResult data) {
+  char filename[20];
+  char full_string[25];
+  char data_string[25];
+  sprintf(data_string, "%2d,%02d,%03d", (data.hour * 60) + data.minute, data.second, data.millisecond);
+  sprintf(full_string, "%d,%s", racer_number, data_string);
+  
+  build_race_filename(filename);
+  sd.writeFile(filename, full_string);  
+  // temporary
+  printer.print(full_string);
+  Serial.println(full_string);
 }

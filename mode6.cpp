@@ -49,12 +49,12 @@ State mode6_digits_entered(NULL, &mode6_digit_check, NULL);
 
 Fsm mode6_fsm(&mode6_initial);
 #define MAX_RESULTS 10
-char results_to_record[MAX_RESULTS][20];
+TimeResult results_to_record[MAX_RESULTS];
 int results_count = 0;
 
-void store_data_result(char *data) {
+void store_data_result(TimeResult *data) {
   if (results_count < MAX_RESULTS) {
-    sprintf(results_to_record[results_count], data);
+    results_to_record[results_count] = *data;
     results_count ++;
     Serial.println("stored new result");
   } else {
@@ -64,14 +64,14 @@ void store_data_result(char *data) {
 
 // Are there any results in the buffer, if so,
 // return the oldest one
-bool retrieve_data_string(char *str) {
+bool retrieve_data(TimeResult *data) {
   // TODO: Pause interrupts during this function?
   if (results_count > 0) {
-    strcpy(str, results_to_record[0]);
+    *data = results_to_record[0];
 
     // Copy the remaining results up 1 slot
     for (int i = 0; i < (results_count - 1); i++) {
-      strcpy(results_to_record[i], results_to_record[i + 1]);
+      results_to_record[i] = results_to_record[i + 1];
     }
     results_count--;
     
@@ -86,10 +86,9 @@ void store_timing_data() {
   
   buzzer.beep();
 //  display.sens();
-  char data_string[25];
-  currentTime(data_string);
-  store_data_result(data_string);
-  Serial.println(data_string);
+  TimeResult data;
+  currentTime(&data);
+  store_data_result(&data);
   
   clear_sensor_interrupt_micros();
 }
@@ -170,16 +169,10 @@ void mode6_store_result() {
   Serial.println("STORE RESULT");
   
   buzzer.beep();
-  char full_string[25];
-  char data_string[25];
-  if (retrieve_data_string(data_string)) {
-    // There is data to be stored
-    char filename[20];
-    build_race_filename(filename);
-    sprintf(full_string, "RACER %d - %s", racer_number(), data_string);
-    Serial.println(full_string);
-    printer.print(full_string);
-    sd.writeFile(filename, full_string);
+  TimeResult data;
+  if (retrieve_data(&data)) {
+    print_racer_data_to_printer(racer_number(), data);
+    print_racer_data_to_sd(racer_number(), data);
     clear_racer_number();  
   }
 }

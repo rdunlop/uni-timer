@@ -4,14 +4,11 @@ unsigned long _pps_start_micros;
 unsigned long _interrupt_micros;
 
 // CURRENT GPS Date/Time (based on PPS)
-int gps_year;
-byte gps_month, gps_day, gps_hour, gps_minute, gps_second;
+TimeResult current_gps_time;
 void (*_date_fetch_callback)(byte *, byte *, byte *);
 
 // LAST SENSOR DATE/TIME
-int year;
-byte month, day, hour, minute, second;
-int millisecond;
+TimeResult last_sensor_time;
 
 // Method which we can use in order to get the current year/date/time.
 void register_date_callback(void (*date_fetch_callback)(byte *, byte *, byte *)) {
@@ -29,7 +26,11 @@ void pps_interrupt() {
   Serial.println(now - _pps_start_micros);
   _pps_start_micros = now;
 
+  byte gps_hour, gps_minute, gps_second;
   _date_fetch_callback(&gps_hour, &gps_minute, &gps_second);
+  current_gps_time.hour = gps_hour;
+  current_gps_time.minute = gps_minute;
+  current_gps_time.second = gps_second;
 }
 
 void sensor_interrupt() {
@@ -42,10 +43,10 @@ void sensor_interrupt() {
   _interrupt_micros = now;
   Serial.println("INTERRUPTED");
   Serial.println(_interrupt_micros);
-  hour = gps_hour;
-  minute = gps_minute;
-  second = gps_second;
-  millisecond = (_interrupt_micros - _pps_start_micros) / 1000;
+  last_sensor_time.hour = current_gps_time.hour;
+  last_sensor_time.minute = current_gps_time.minute;
+  last_sensor_time.second = current_gps_time.second;
+  last_sensor_time.millisecond = (_interrupt_micros - _pps_start_micros) / 1000;
 }
 
 bool sensor_has_triggered() {
@@ -60,7 +61,10 @@ void clear_sensor_interrupt_micros() {
   _interrupt_micros = 0;
 }
 
-bool currentTime(char *output) {
-  sprintf(output, "%02d:%02d:%02d.%03d", hour, minute, second, millisecond);
+bool currentTime(TimeResult *output) {
+  output->hour = last_sensor_time.hour;
+  output->minute = last_sensor_time.minute;
+  output->second = last_sensor_time.second;
+  output->millisecond = last_sensor_time.millisecond;
   return true;
 }
