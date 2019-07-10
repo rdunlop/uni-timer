@@ -33,7 +33,13 @@ void pps_interrupt() {
 }
 
 void sensor_interrupt() {
-  _interrupt_micros = micros();
+  unsigned long now = micros();
+  // Don't trigger 2x in 0.5 seconds
+  if (now - _interrupt_micros < 500000) {
+    Serial.println("Ignoring");
+    return;
+  }
+  _interrupt_micros = now;
   Serial.println("INTERRUPTED");
   Serial.println(_interrupt_micros);
   hour = gps_hour;

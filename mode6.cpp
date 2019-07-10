@@ -92,8 +92,6 @@ void store_timing_data() {
   Serial.println(data_string);
   
   clear_sensor_interrupt_micros();
-  delay(500);
-  // DELAY 500 ms before able to read interrupt again
 }
 
 // While waiting for a new datapoint

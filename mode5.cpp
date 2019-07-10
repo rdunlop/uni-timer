@@ -74,7 +74,6 @@ void initial_check() {
   } else if(sensor.blocked()) {
     buzzer.beep();
     display.sens();
-    delay(100);
   } else if (keypad.keyPressed('C') && keypad.keyPressed('*')) { // C+*
     // TODO: SHOULD CLEAR Previous Racer's time
     Serial.println("TO CLEAR");
