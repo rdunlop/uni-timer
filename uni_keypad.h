@@ -17,11 +17,13 @@ class UniKeypad
     uint8_t readDigit();
     uint8_t intFromChar(char);
     boolean isDigit(char);
+    char lastKeyPressed();
   private:
     byte linePins[4];
     byte columnPins[4];
     char keyLayout [4][4];
     Keypad *_keypad;
+    char _last_key_pressed;
 };
 
 #endif

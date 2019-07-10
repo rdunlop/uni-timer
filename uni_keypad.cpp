@@ -25,6 +25,8 @@ UniKeypad::UniKeypad(byte r1, byte r2, byte r3, byte r4, byte c1, byte c2, byte 
       keyLayout[i][j] = layout[i][j];
     }
   }
+  
+  _last_key_pressed = NO_KEY;
 }
 
 void UniKeypad::setup() {
@@ -103,7 +105,16 @@ void UniKeypad::printKeypress() {
 }
 
 char UniKeypad::readChar() {
-  return _keypad->getKey();
+  char key_pressed = _keypad->getKey();
+  if (key_pressed != NO_KEY) {
+    _last_key_pressed = key_pressed;
+  }
+  
+  return key_pressed;
+}
+
+char UniKeypad::lastKeyPressed() {
+  return _last_key_pressed;
 }
 
 // Return a digit if it is pressed
