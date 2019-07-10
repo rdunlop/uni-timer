@@ -155,8 +155,9 @@ void sensor_interrupt() {
  * THREE
  * READY
  */
-void mode5_setup() {
-  mode5_fsm.add_transition(&initial, &one_digit_entered, NUMBER_PRESSED, &store_racer_number);
+
+void mode5_fsm_setup() {
+   mode5_fsm.add_transition(&initial, &one_digit_entered, NUMBER_PRESSED, &store_racer_number);
   
   mode5_fsm.add_transition(&one_digit_entered, &initial, DELETE, &clear_racer_number);
   mode5_fsm.add_transition(&one_digit_entered, &two_digits_entered, NUMBER_PRESSED, &store_racer_number);
@@ -172,6 +173,10 @@ void mode5_setup() {
 
   mode5_fsm.add_transition(&ready_for_sensor, &initial, SENSOR, &sensor_triggered);
   mode5_fsm.add_transition(&ready_for_sensor, &initial, DELETE, NULL);
+}
+
+void mode5_setup() {
+
 
   sensor.attach_interrupt();
   // States:

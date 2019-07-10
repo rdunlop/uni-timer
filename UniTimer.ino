@@ -238,6 +238,8 @@ void setup () {
 #endif
 
   setup_fsm();
+  mode5_fsm_setup();
+  mode6_fsm_setup();
 }
 
 
@@ -486,7 +488,7 @@ void mode6_loop() {
   mode6_fsm.run_machine();
 }
 
-void mode6_setup() {
+void mode6_fsm_setup() {
   mode6_fsm.add_transition(&mode6_initial, &mode6_digits_entered, NUMBER_PRESSED, &store_racer_number);
   mode6_fsm.add_transition(&mode6_initial, &mode6_initial, SENSOR, &store_timing_data);
   
@@ -494,7 +496,9 @@ void mode6_setup() {
   mode6_fsm.add_transition(&mode6_digits_entered, &mode6_digits_entered, NUMBER_PRESSED, &store_racer_number);
   mode6_fsm.add_transition(&mode6_digits_entered, &mode6_initial, ACCEPT, &mode6_store_result);
   mode6_fsm.add_transition(&mode6_digits_entered, &mode6_digits_entered, SENSOR, &store_timing_data);
-  
+}
+
+void mode6_setup() {  
   sensor.attach_interrupt(); 
 }
 
