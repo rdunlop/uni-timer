@@ -39,7 +39,7 @@ bool three_digits_racer_number() {
 
 
 
-// **((((((((( NEW FILE ))))))))))))))))) 
+// **((((((((( NEW FILE )))))))))))))))))
 
 Config _config = {true, 0, true, 1};
 
@@ -47,52 +47,56 @@ Config *getConfig() {
   return &_config;
 }
 
-void build_race_filename(char *filename) {
-  sprintf(filename, "%s_%s_%s_%d", _config.difficulty == 0 ? "Beginner" : _config.difficulty == 1 ? "Advanced" : "Expert", _config.up ? "Up" : "Down", _config.start ? "Start" : "Finish", _config.number);
+void build_race_filename(char *filename, const int max_length) {
+  snprintf(filename, max_length, "%s_%s_%s_%d", _config.difficulty == 0 ? "Beginner" : _config.difficulty == 1 ? "Advanced" : "Expert", _config.up ? "Up" : "Down", _config.start ? "Start" : "Finish", _config.number);
 }
 
 void print_racer_data_to_printer(int racer_number, TimeResult data) {
-  char full_string[25];
-  char data_string[25];
-  sprintf(data_string, "%02d:%02d:%02d.%03d", data.hour, data.minute, data.second, data.millisecond);
-  sprintf(full_string, "RACER %d - %s", racer_number, data_string);
+  #define MAX_RACER_DATA 35
+  char full_string[MAX_RACER_DATA];
+  char data_string[MAX_RACER_DATA];
+  snprintf(data_string, MAX_RACER_DATA, "%02d:%02d:%02d.%03d", data.hour, data.minute, data.second, data.millisecond);
+  snprintf(full_string, MAX_RACER_DATA, "RACER %d - %s", racer_number, data_string);
   Serial.println(full_string);
   printer.print(full_string);
   Serial.println("Done Printing");
 }
 
 void print_racer_data_to_sd(int racer_number, TimeResult data) {
-  char filename[20];
-  char full_string[25];
-  char data_string[25];
-  sprintf(data_string, "%2d,%02d,%03d", (data.hour * 60) + data.minute, data.second, data.millisecond);
+#define FILENAME_LENGTH 35
+  char filename[FILENAME_LENGTH];
+  char full_string[FILENAME_LENGTH];
+  char data_string[FILENAME_LENGTH];
+  snprintf(data_string, FILENAME_LENGTH, "%2d,%02d,%03d", (data.hour * 60) + data.minute, data.second, data.millisecond);
   Serial.println("data_string");
   Serial.println(data_string);
   Serial.println("racer_number");
   Serial.println(racer_number);
-  sprintf(full_string, "%d,%s", racer_number, data_string);
-  
-  build_race_filename(filename);
-  sd.writeFile(filename, full_string);  
+  snprintf(full_string, FILENAME_LENGTH, "%d,%s", racer_number, data_string);
+
+  build_race_filename(filename, FILENAME_LENGTH);
+  sd.writeFile(filename, full_string);
   // temporary
   printer.print(full_string);
   Serial.println(full_string);
 }
 
 void clear_previous_entry() {
-  char filename[20];
-  char message[20];
-  build_race_filename(filename);
+  #define MAX_FILENAME 35
+  #define MAX_MESSAGE 20
+  char filename[MAX_FILENAME];
+  char message[MAX_MESSAGE];
+  build_race_filename(filename, MAX_FILENAME);
 
-  sprintf(message, "CLEAR_PREVIOUS");
+  snprintf(message, MAX_MESSAGE, "CLEAR_PREVIOUS");
   Serial.println("Clear previous entry");
   printer.print(message);
   sd.writeFile(filename, message);
 }
 
 void print_filename() {
-  char filename[20];
-  build_race_filename(filename);
+  char filename[MAX_FILENAME];
+  build_race_filename(filename, MAX_FILENAME);
   printer.print(filename);
   printer.feed();
 }

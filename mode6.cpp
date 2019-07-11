@@ -111,6 +111,7 @@ void store_timing_data() {
   clear_sensor_interrupt_micros();
 }
 
+bool deleting = false;
 // While waiting for a new datapoint
 // Watch for sensor, etc
 void mode6_initial_check() {
@@ -123,8 +124,11 @@ void mode6_initial_check() {
     mode6_fsm.trigger(NUMBER_PRESSED);
   } else if (last_key_pressed == 'B') {
     duplicate_entry();
-  } else if (keypad.keyPressed('D') && keypad.keyPressed('#')) { // D+#
+  } else if (!deleting && keypad.keyPressed('D') && keypad.keyPressed('#')) { // D+#
     drop_last_entry();
+    deleting = true;
+  } else if (deleting && !keypad.anyKeyPressed()) {
+    deleting = false;
   }
 #ifdef FSM_DEBUG
   Serial.println("Initial Check ");

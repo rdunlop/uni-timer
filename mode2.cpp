@@ -56,7 +56,7 @@ void mode2_loop() {
         Serial.print("Res: ");
         Serial.println(res);
         char data[20];
-        sprintf(data, "%02d:%02d:%02d:%03d", hour, minute, second, millisecond);
+        snprintf(data, 20, "%02d:%02d:%02d:%03d", hour, minute, second, millisecond);
         Serial.println(data);
       }
     }

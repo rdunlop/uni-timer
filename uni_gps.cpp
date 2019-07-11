@@ -123,7 +123,7 @@ void UniGps::printGPSDate() {
   else
   {
     char sz[32];
-    sprintf(sz, "%02d/%02d/%02d %02d:%02d:%02d.%03d",
+    snprintf(sz, 32, "%02d/%02d/%02d %02d:%02d:%02d.%03d",
         month, day, year, hour, minute, second, hundredths);
     Serial.println(sz);
   }
