@@ -23,8 +23,6 @@ void register_date_callback(void (*date_fetch_callback)(byte *, byte *, byte *))
 // NOTE: The GPS PPS signal will ONLY fire when there is GPS lock.
 void pps_interrupt() {
   unsigned long now = micros();
-  Serial.print("GPS PPS: ");
-  Serial.println(now - _pps_start_micros);
   _pps_start_micros = now;
 
   byte gps_hour, gps_minute, gps_second;
@@ -43,8 +41,6 @@ void sensor_interrupt() {
   }
   _interrupt_micros = now;
   _last_interrupt_micros = now;
-  Serial.println("INTERRUPTED");
-  Serial.println(_interrupt_micros);
   last_sensor_time.hour = current_gps_time.hour;
   last_sensor_time.minute = current_gps_time.minute;
   last_sensor_time.second = current_gps_time.second;

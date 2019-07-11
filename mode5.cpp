@@ -167,7 +167,7 @@ void mode5_fsm_setup() {
   mode5_fsm.add_transition(&digits_entered, &ready_for_sensor, ACCEPT, NULL);
 
   mode5_fsm.add_transition(&ready_for_sensor, &initial, SENSOR, &sensor_triggered);
-  mode5_fsm.add_transition(&ready_for_sensor, &initial, DELETE, NULL);
+  mode5_fsm.add_transition(&ready_for_sensor, &initial, DELETE, &clear_racer_number);
 }
 
 void mode5_setup() {
