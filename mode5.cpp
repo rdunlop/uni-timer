@@ -72,7 +72,7 @@ void initial_check() {
   } else if(sensor.blocked()) {
     buzzer.beep();
     display.sens();
-  } else if (keypad.keyPressed('D') && keypad.keyPressed('*')) { // D+*
+  } else if (keypad.keyPressed('D') && keypad.keyPressed('#')) { // D+#
     clear_previous_entry();
   }
 #ifdef FSM_DEBUG
