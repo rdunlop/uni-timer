@@ -8,10 +8,9 @@ UniPrinter::UniPrinter(int rx_pin, int tx_pin)
 }
 
 void UniPrinter::setup() {
-  printer_serial = new SoftwareSerial(_rx_pin, _tx_pin); // Declare SoftwareSerial obj first
-  printer = new Adafruit_Thermal(printer_serial);     // Pass addr to printer constructor
+  Serial2.begin(19200, SERIAL_8N1, _rx_pin, _tx_pin);
+  printer = new Adafruit_Thermal(&Serial2);     // Pass addr to printer constructor
 
-  printer_serial->begin(19200); // this printer has a 19200 baud
   printer->begin();
 //  printer->doubleHeightOn();
   printer->inverseOff();
