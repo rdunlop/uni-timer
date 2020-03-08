@@ -9,10 +9,10 @@
 #include "recording.h"
 #include "accurate_timing.h"
 
-extern UniKeypad keypad;
+//extern UniKeypad keypad;
 extern UniGps gps;
-extern UniDisplay display;
-extern UniPrinter printer;
+//extern UniDisplay display;
+//extern UniPrinter printer;
 extern UniSd sd;
 extern UniSensor sensor;
 extern UniBuzzer buzzer;
@@ -66,18 +66,18 @@ Fsm mode5_fsm(&initial);
 #define SENSOR 5
 
 void initial_check() {
-  char last_key_pressed = keypad.readChar();
-  if (keypad.isDigit(last_key_pressed)) {
-    mode5_fsm.trigger(NUMBER_PRESSED);
-  } else if(sensor.blocked()) {
-    buzzer.beep();
-    display.sens();
-  } else if (keypad.keyPressed('D') && keypad.keyPressed('#')) { // D+#
-    clear_previous_entry();
-  }
-#ifdef FSM_DEBUG
-  Serial.println("Initial Check ");
-#endif
+//  char last_key_pressed = keypad.readChar();
+//  if (keypad.isDigit(last_key_pressed)) {
+//    mode5_fsm.trigger(NUMBER_PRESSED);
+//  } else if(sensor.blocked()) {
+//    buzzer.beep();
+//    display.sens();
+//  } else if (keypad.keyPressed('D') && keypad.keyPressed('#')) { // D+#
+//    clear_previous_entry();
+//  }
+//#ifdef FSM_DEBUG
+//  Serial.println("Initial Check ");
+//#endif
 }
 
 void digit_check() {
@@ -87,32 +87,32 @@ void digit_check() {
   // - C -> INITIAL
   char filename[MAX_FILENAME_LENGTH];
   build_race_filename(filename, MAX_FILENAME_LENGTH);
-  char last_key_pressed = keypad.readChar();
-  if (keypad.isDigit(last_key_pressed)) {
-    if (three_digits_racer_number()) {
-      mode5_fsm.trigger(DELETE);
-    } else {
-      mode5_fsm.trigger(NUMBER_PRESSED);
-    }
-  } else if (last_key_pressed == 'A') {
-    mode5_fsm.trigger(ACCEPT);
-  } else if (last_key_pressed == 'C') {
-    mode5_fsm.trigger(DELETE);
-  } else if (sensor.blocked()) {
-    buzzer.beep();
-    display.sens();
-  }
+//  char last_key_pressed = keypad.readChar();
+//  if (keypad.isDigit(last_key_pressed)) {
+//    if (three_digits_racer_number()) {
+//      mode5_fsm.trigger(DELETE);
+//    } else {
+//      mode5_fsm.trigger(NUMBER_PRESSED);
+//    }
+//  } else if (last_key_pressed == 'A') {
+//    mode5_fsm.trigger(ACCEPT);
+//  } else if (last_key_pressed == 'C') {
+//    mode5_fsm.trigger(DELETE);
+//  } else if (sensor.blocked()) {
+//    buzzer.beep();
+////    display.sens();
+//  }
 #ifdef FSM_DEBUG
   Serial.println("Digit Check");
 #endif
 }
 
 void sensor_check() {
-  if (keypad.newKeyPressed() && keypad.keyPressed('C')) {
-    mode5_fsm.trigger(DELETE);
-  } else if (sensor_has_triggered()) {
-    mode5_fsm.trigger(SENSOR);
-  }
+//  if (keypad.newKeyPressed() && keypad.keyPressed('C')) {
+//    mode5_fsm.trigger(DELETE);
+//  } else if (sensor_has_triggered()) {
+//    mode5_fsm.trigger(SENSOR);
+//  }
 #ifdef FSM_DEBUG
   Serial.println("Sensor Check");
 #endif
@@ -125,7 +125,7 @@ void sensor_triggered() {
   Serial.println(sensor_interrupt_micros());
   
   buzzer.beep();
-  display.sens();
+//  display.sens();
   
   TimeResult data;
   currentTime(&data);
@@ -138,11 +138,11 @@ void sensor_triggered() {
 
 void sensor_entry() {
   clear_sensor_interrupt_micros();
-  display.setBlink(true);
+//  display.setBlink(true);
 }
 
 void sensor_exit() {
-  display.setBlink(false);
+//  display.setBlink(false);
 }
 
 /*
@@ -173,7 +173,7 @@ void mode5_fsm_setup() {
 void mode5_setup() {
   print_filename();
   
-  display.clear();
+//  display.clear();
   sensor.attach_interrupt();
   // States:
   // INITIAL

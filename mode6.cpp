@@ -9,10 +9,10 @@
 #include "recording.h"
 #include "accurate_timing.h"
 
-extern UniKeypad keypad;
+//extern UniKeypad keypad;
 extern UniGps gps;
-extern UniDisplay display;
-extern UniPrinter printer;
+//extern UniDisplay display;
+//extern UniPrinter printer;
 extern UniSd sd;
 extern UniSensor sensor;
 extern UniBuzzer buzzer;
@@ -86,7 +86,7 @@ void duplicate_entry() {
     results_to_record[results_count - 1] = results_to_record[results_count];
     results_count += 1;
     buzzer.beep();
-    display.showEntriesRemaining(results_count);
+//    display.showEntriesRemaining(results_count);
   }
 }
 
@@ -94,7 +94,7 @@ void duplicate_entry() {
 void drop_last_entry() {
   if (results_count > 0) {
     results_count -= 1;
-    display.showEntriesRemaining(results_count);
+//    display.showEntriesRemaining(results_count);
   }
 }
 
@@ -119,24 +119,24 @@ void mode6_initial_check() {
     mode6_fsm.trigger(SENSOR);
   }
   
-  char last_key_pressed = keypad.readChar();
-  if (keypad.isDigit(last_key_pressed)) {
-    mode6_fsm.trigger(NUMBER_PRESSED);
-  } else if (last_key_pressed == 'B') {
-    duplicate_entry();
-  } else if (!deleting && keypad.keyPressed('D') && keypad.keyPressed('#')) { // D+#
-    drop_last_entry();
-    deleting = true;
-  } else if (deleting && !keypad.anyKeyPressed()) {
-    deleting = false;
-  }
+//  char last_key_pressed = keypad.readChar();
+//  if (keypad.isDigit(last_key_pressed)) {
+//    mode6_fsm.trigger(NUMBER_PRESSED);
+//  } else if (last_key_pressed == 'B') {
+//    duplicate_entry();
+//  } else if (!deleting && keypad.keyPressed('D') && keypad.keyPressed('#')) { // D+#
+//    drop_last_entry();
+//    deleting = true;
+//  } else if (deleting && !keypad.anyKeyPressed()) {
+//    deleting = false;
+//  }
 #ifdef FSM_DEBUG
   Serial.println("Initial Check ");
 #endif
 }
 
 void mode6_initial_entry() {
-  display.showEntriesRemaining(results_count);
+//  display.showEntriesRemaining(results_count);
 }
 
 void mode6_initial_exit() {
@@ -158,7 +158,7 @@ void mode6_fsm_setup() {
 
 void mode6_setup() { 
   print_filename();
-  display.clear(); 
+//  display.clear(); 
   sensor.attach_interrupt(); 
 }
 
@@ -172,18 +172,18 @@ void mode6_digit_check() {
     mode6_fsm.trigger(SENSOR);
   }
   
-  char last_key_pressed = keypad.readChar();
-  if (keypad.isDigit(last_key_pressed)) {
-    if (three_digits_racer_number()) {
-      mode6_fsm.trigger(DELETE);
-    } else {
-      mode6_fsm.trigger(NUMBER_PRESSED);
-    }
-  } else if (keypad.keyPressed('C')) {
-    mode6_fsm.trigger(DELETE);
-  } else if (keypad.keyPressed('A')) {
-    mode6_fsm.trigger(ACCEPT);
-  }
+//  char last_key_pressed = keypad.readChar();
+//  if (keypad.isDigit(last_key_pressed)) {
+//    if (three_digits_racer_number()) {
+//      mode6_fsm.trigger(DELETE);
+//    } else {
+//      mode6_fsm.trigger(NUMBER_PRESSED);
+//    }
+//  } else if (keypad.keyPressed('C')) {
+//    mode6_fsm.trigger(DELETE);
+//  } else if (keypad.keyPressed('A')) {
+//    mode6_fsm.trigger(ACCEPT);
+//  }
 #ifdef FSM_DEBUG
   Serial.println("Digit Check ");
 #endif

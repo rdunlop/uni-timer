@@ -203,7 +203,7 @@ void setup () {
 #ifdef ENABLE_SENSOR
   sensor.setup(&sensor_interrupt);
 #endif
-
+  
   // DISPLAY
 #ifdef ENABLE_DISPLAY
   display.setup();
@@ -238,6 +238,7 @@ void setup () {
 buzzer.beep();
 
   register_date_callback(date_callback);
+  
   setup_fsm();
   mode5_fsm_setup();
   mode6_fsm_setup();
@@ -254,8 +255,9 @@ void date_callback(byte *hour, byte *minute, byte *second) {
 
 // MODE Selection FSM
 void loop() {
+//  mode1_loop();
   mode_fsm.run_machine();
-  
+//  
   gps.readData();
   gps.printPeriodically();
   checkForModeSelection();
