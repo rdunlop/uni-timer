@@ -1,12 +1,6 @@
-#include "uni_display.h"
-#include "uni_keypad.h"
-#include "uni_printer.h"
 #include "uni_sd.h"
 #include "recording.h"
 
-extern UniDisplay display;
-extern UniKeypad keypad;
-extern UniPrinter printer;
 extern UniSd sd;
 
 int _racer_number = 0;
@@ -14,17 +8,17 @@ int _racer_number = 0;
 // Add a new digit to the current racer number
 void store_racer_number() {
   Serial.println("Storing Racer number");
-  char last_key_pressed = keypad.lastKeyPressed();
-  _racer_number = (_racer_number * 10) + keypad.intFromChar(last_key_pressed);
-  Serial.print("Racer #: ");
-  Serial.println(_racer_number);
-  display.showNumber(_racer_number);
+//  char last_key_pressed = keypad.lastKeyPressed();
+//  _racer_number = (_racer_number * 10) + keypad.intFromChar(last_key_pressed);
+//  Serial.print("Racer #: ");
+//  Serial.println(_racer_number);
+//  display.showNumber(_racer_number);
 }
 
 // Methods
 void clear_racer_number() {
   _racer_number = 0;
-  display.clear();
+//  display.clear();
 }
 
 int racer_number() {
@@ -58,7 +52,7 @@ void print_racer_data_to_printer(int racer_number, TimeResult data) {
   snprintf(data_string, MAX_RACER_DATA, "%02d:%02d:%02d.%03d", data.hour, data.minute, data.second, data.millisecond);
   snprintf(full_string, MAX_RACER_DATA, "RACER %d - %s", racer_number, data_string);
   Serial.println(full_string);
-  printer.print(full_string);
+//  printer.print(full_string);
   Serial.println("Done Printing");
 }
 
@@ -77,7 +71,7 @@ void print_racer_data_to_sd(int racer_number, TimeResult data) {
   build_race_filename(filename, FILENAME_LENGTH);
   sd.writeFile(filename, full_string);
   // temporary
-  printer.print(full_string);
+//  printer.print(full_string);
   Serial.println(full_string);
 }
 
@@ -90,13 +84,13 @@ void clear_previous_entry() {
 
   snprintf(message, MAX_MESSAGE, "CLEAR_PREVIOUS");
   Serial.println("Clear previous entry");
-  printer.print(message);
+//  printer.print(message);
   sd.writeFile(filename, message);
 }
 
 void print_filename() {
   char filename[MAX_FILENAME];
   build_race_filename(filename, MAX_FILENAME);
-  printer.print(filename);
-  printer.feed();
+//  printer.print(filename);
+//  printer.feed();
 }

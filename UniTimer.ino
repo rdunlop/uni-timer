@@ -39,9 +39,9 @@
 /* ************************* Capabilities flags ******************************************* */
 /* Set these flags to enable certain combinations of components */
 #define ENABLE_GPS
-#define ENABLE_DISPLAY
-#define ENABLE_KEYPAD
-#define ENABLE_PRINTER
+//#define ENABLE_DISPLAY
+//#define ENABLE_KEYPAD
+//#define ENABLE_PRINTER
 #define ENABLE_SD
 #define ENABLE_SENSOR
 #define ENABLE_BUZZER
@@ -82,11 +82,11 @@
 
 /* *************************** (Defining Global Variables) ************************** */
 // - SENSOR
-#define SENSOR_DIGITAL_INPUT 5
+#define SENSOR_DIGITAL_INPUT 33
 // - GPS
-#define GPS_PPS_DIGITAL_INPUT 2
-#define GPS_DIGITAL_OUTPUT 9 // hardware serial #2
-#define GPS_DIGITAL_INPUT 10 // hardware serial #2
+#define GPS_PPS_DIGITAL_INPUT 15
+#define GPS_DIGITAL_OUTPUT 16 // hardware serial #2
+#define GPS_DIGITAL_INPUT 17 // hardware serial #2
 // - DISPLAY
 #define DISPLAY_I2CADDR 0x70
 // - KEYPAD
@@ -102,14 +102,16 @@
 #define PRINTER_DIGITAL_OUTPUT 8 // Arduino transmit  YELLOW WIRE  labeled RX on printer
 #define PRINTER_DIGITAL_INPUT 7 // Arduino receive   GREEN WIRE   labeled TX on printer
 // - SD Card
-#define SD_SPI_CHIP_SELECT_OUTPUT 6
-#define SD_SPI_MOSI_INPUT 11
-#define SD_SPI_MISO_INPUT 12
-#define SD_SPI_CLK_OUTPUT 13
+#define SD_SPI_CHIP_SELECT_OUTPUT 5
+#define SD_SPI_MOSI_INPUT 23 // The SD library defaults to this set of pins on this board
+#define SD_SPI_MISO_INPUT 10 // The SD library defaults to this set of pins on this board
+#define SD_SPI_CLK_OUTPUT 9 // The SD library defaults to this set of pins on this board
 // - BUZZER
-#define BUZZER_DIGITAL_OUTPUT 4
+#define BUZZER_DIGITAL_OUTPUT 25
 // - BUTTON
 #define BUTTON_DIGITAL_INPUT 25 // unused
+
+#define LED_BUILTIN 2
 
 #define MODE_OFFSET 100
 #define MODE_1 101
@@ -153,10 +155,7 @@ UniPrinter printer(PRINTER_DIGITAL_INPUT, PRINTER_DIGITAL_OUTPUT);
 // SD
 #ifdef ENABLE_SD
 UniSd sd(
-  SD_SPI_CHIP_SELECT_OUTPUT,
-  SD_SPI_MOSI_INPUT,
-  SD_SPI_MISO_INPUT,
-  SD_SPI_CLK_OUTPUT);
+  SD_SPI_CHIP_SELECT_OUTPUT);
 #endif
 
 #ifdef ENABLE_DISPLAY
@@ -236,6 +235,7 @@ void setup () {
 #ifdef ENABLE_SD
   sd.setup();
 #endif
+buzzer.beep();
 
   register_date_callback(date_callback);
   setup_fsm();
@@ -257,7 +257,11 @@ void loop() {
   mode_fsm.run_machine();
   
   gps.readData();
+  gps.printPeriodically();
   checkForModeSelection();
+  #ifdef ENABLE_BUZZER
+  buzzer.checkBeep();
+  #endif
 }
 
 
@@ -275,7 +279,9 @@ void setup_fsm() {
 }
 
 void clear_display() { 
+#ifdef ENABLE_DISPLAY
   display.clear();
+#endif
 }
 
 
@@ -288,21 +294,27 @@ void mode0_run() {
   bool success = true;
 
   // Show 88:88
+#ifdef ENABLE_DISPLAY
   display.all();
-  
+#endif
+
+#ifdef ENABLE_PRINTER
   if (printer.hasPaper()) {
     Serial.println("printer has paper");
   } else {
     Serial.println("printer has no paper");
     success = false;
   }
+#endif
 
+#ifdef ENABLE_SD
   if (sd.status()) {
     Serial.println("SD Card OK");
   } else {
     Serial.println("SD Card Error");
     success = false;
   }
+#endif
 
   // TODO: Check GPS
 
@@ -310,6 +322,7 @@ void mode0_run() {
   // Wait 2 seconds
   delay(2000);
 
+#ifdef ENABLE_DISPLAY
   if (success) {
     Serial.println("All systems Good");
     display.good();
@@ -317,6 +330,8 @@ void mode0_run() {
     Serial.println("*************** Init Problem");
     display.bad();
   }
+#endif
+
   // wait 1 second
   delay(1000);
 }
@@ -327,6 +342,7 @@ void mode0_run() {
 
 // Check to see if a new mode is selected
 void checkForModeSelection() {
+#ifdef ENABLE_KEYPAD
   // Only switch to the new mode after all keys are pressed
   if (_new_mode != _mode && !modeKeypad.anyKeyPressed()) {
     Serial.print("new mode: ");
@@ -347,4 +363,5 @@ void checkForModeSelection() {
       if (modeKeypad.keyPressed('6')) _new_mode = 6;
     }
   }
+#endif
 }

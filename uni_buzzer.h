@@ -10,8 +10,11 @@ class UniBuzzer
     void loop();
     void beep();
     void success();
+    void checkBeep();
   private:
     int _output;
+    bool _buzzerOn;
+    unsigned long _buzzerEndTime;
 };
 
 #endif

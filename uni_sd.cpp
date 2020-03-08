@@ -1,24 +1,50 @@
 // - SD
 #include "uni_sd.h"
 
-UniSd::UniSd(int cs, int mosi, int miso, int clk)
+UniSd::UniSd(int cs)
 {
   _cs = cs;
-  _mosi = mosi;
-  _miso = miso;
-  _clk = clk;
 }
 
 void UniSd::setup() {
   // returns 1 on success
   // returns 0 on failure
-  _status = SD.begin(_cs);
+  _status = SD.begin(5);
   if (status()) {
     Serial.println("SD initialization OK.");  
-    return;
+  } else {
+    Serial.println("SD initialization failed!");
   }
-  Serial.println("SD initialization failed!");
-  
+  printCard();
+}
+
+void UniSd::printCard() {
+  File root = SD.open("/");
+  printDirectory(root, 0);
+}
+
+void UniSd::printDirectory(File dir, int numTabs) {
+  while (true) {
+
+    File entry =  dir.openNextFile();
+    if (! entry) {
+      // no more files
+      break;
+    }
+    for (uint8_t i = 0; i < numTabs; i++) {
+      Serial.print('\t');
+    }
+    Serial.print(entry.name());
+    if (entry.isDirectory()) {
+      Serial.println("/");
+      printDirectory(entry, numTabs + 1);
+    } else {
+      // files have sizes, directories do not
+      Serial.print("\t\t");
+      Serial.println(entry.size(), DEC);
+    }
+    entry.close();
+  }
 }
 
 // Return true on success
