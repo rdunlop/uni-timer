@@ -26,9 +26,9 @@ void pps_interrupt() {
   _pps_start_micros = now;
 
   byte gps_hour, gps_minute, gps_second;
-//  if (_date_fetch_callback != NULL) {
-//    _date_fetch_callback(&gps_hour, &gps_minute, &gps_second);
-//  }
+  if (_date_fetch_callback != NULL) {
+    _date_fetch_callback(&gps_hour, &gps_minute, &gps_second);
+  }
   current_gps_time.hour = gps_hour;
   current_gps_time.minute = gps_minute;
   current_gps_time.second = gps_second;

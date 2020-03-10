@@ -7,8 +7,6 @@
 // Expected Hardware Components
 // - SENSOR - Sensor
 // - GPS - GPS Sensor, for setting accurate time signal
-// - DISPLAY - 7 Segment display
-// - KEYPAD_EXPANSION - I2C expansion board, with keypad connected to it
 // - BUZZER - Piezo buzzer
 // - BUTTON - Input button
 // - SD - MicroSD Storage card
@@ -39,25 +37,19 @@
 /* ************************* Capabilities flags ******************************************* */
 /* Set these flags to enable certain combinations of components */
 #define ENABLE_GPS
-//#define ENABLE_DISPLAY
-//#define ENABLE_KEYPAD
 //#define ENABLE_PRINTER
 #define ENABLE_SD
 #define ENABLE_SENSOR
 #define ENABLE_BUZZER
-
+#include <BLEDevice.h>
+#include <BLEUtils.h>
+#include <BLEServer.h>
+#include <BLE2902.h>
+#include "event_queue.h"
 /* *********************** Includes *********************************** */
 // - SENSOR
-// - DISPLAY
-#ifdef ENABLE_DISPLAY
-#include "uni_display.h"
-#endif
 #ifdef ENABLE_GPS
 #include "uni_gps.h"
-#endif
-// - KEYPAD
-#ifdef ENABLE_KEYPAD
-#include "uni_keypad.h"
 #endif
 // - PRINTER
 #ifdef ENABLE_PRINTER
@@ -87,17 +79,6 @@
 #define GPS_PPS_DIGITAL_INPUT 15
 #define GPS_DIGITAL_OUTPUT 16 // hardware serial #2
 #define GPS_DIGITAL_INPUT 17 // hardware serial #2
-// - DISPLAY
-#define DISPLAY_I2CADDR 0x70
-// - KEYPAD
-#define KEYPAD_COLUMN_WIRE_1 23
-#define KEYPAD_COLUMN_WIRE_2 22
-#define KEYPAD_COLUMN_WIRE_3 21
-#define KEYPAD_COLUMN_WIRE_4 20
-#define KEYPAD_ROW_WIRE_1 17
-#define KEYPAD_ROW_WIRE_2 16
-#define KEYPAD_ROW_WIRE_3 15
-#define KEYPAD_ROW_WIRE_4 14
 // - PRINTER
 #define PRINTER_DIGITAL_OUTPUT 8 // Arduino transmit  YELLOW WIRE  labeled RX on printer
 #define PRINTER_DIGITAL_INPUT 7 // Arduino receive   GREEN WIRE   labeled TX on printer
@@ -123,30 +104,6 @@
 
 /* ************************** Initialization ******************* */
 
-// KEYPAD --------------------------------------------
-#ifdef ENABLE_KEYPAD
-UniKeypad keypad(
-  KEYPAD_ROW_WIRE_1,
-  KEYPAD_ROW_WIRE_2,
-  KEYPAD_ROW_WIRE_3,
-  KEYPAD_ROW_WIRE_4,
-  KEYPAD_COLUMN_WIRE_1,
-  KEYPAD_COLUMN_WIRE_2,
-  KEYPAD_COLUMN_WIRE_3,
-  KEYPAD_COLUMN_WIRE_4
-);
-UniKeypad modeKeypad(
-  KEYPAD_ROW_WIRE_1,
-  KEYPAD_ROW_WIRE_2,
-  KEYPAD_ROW_WIRE_3,
-  KEYPAD_ROW_WIRE_4,
-  KEYPAD_COLUMN_WIRE_1,
-  KEYPAD_COLUMN_WIRE_2,
-  KEYPAD_COLUMN_WIRE_3,
-  KEYPAD_COLUMN_WIRE_4
-);
-#endif
-
 // PRINTER -------------------------------------
 #ifdef ENABLE_PRINTER
 UniPrinter printer(PRINTER_DIGITAL_INPUT, PRINTER_DIGITAL_OUTPUT);
@@ -156,10 +113,6 @@ UniPrinter printer(PRINTER_DIGITAL_INPUT, PRINTER_DIGITAL_OUTPUT);
 #ifdef ENABLE_SD
 UniSd sd(
   SD_SPI_CHIP_SELECT_OUTPUT);
-#endif
-
-#ifdef ENABLE_DISPLAY
-UniDisplay display(DISPLAY_I2CADDR);
 #endif
 
 #ifdef ENABLE_GPS
@@ -194,7 +147,7 @@ Fsm mode_fsm(&mode0);
 // *******************************************************************
 
 /******** ***********************************(set up)*** *************** **********************/
-void setup () {
+void main_setup () {
   // Common
   Serial.begin(115200);
   pinMode (LED_BUILTIN, OUTPUT);
@@ -203,20 +156,9 @@ void setup () {
 #ifdef ENABLE_SENSOR
   sensor.setup(&sensor_interrupt);
 #endif
-  
-  // DISPLAY
-#ifdef ENABLE_DISPLAY
-  display.setup();
-#endif
 
   delay(2000); // wait for serial to connect before starting
   Serial.println("Starting");
-
-  // KEYPAD
-#ifdef ENABLE_KEYPAD
-  keypad.setup();
-  modeKeypad.setup();
-#endif
 
   // GPS
 #ifdef ENABLE_GPS
@@ -246,24 +188,11 @@ buzzer.beep();
 
 void date_callback(byte *hour, byte *minute, byte *second) {
   if (gps.current_time(hour, minute, second)) {
-    Serial.println("OK");
-  } else {
-    Serial.println("Not OK");
+    Serial.println("Tick");
+    char value_string[EVT_MAX_STR_LEN];
+    snprintf(value_string, EVT_MAX_STR_LEN, "%02d:%02d:%02d", *hour, *minute, *second);
+    push_event(EVT_TIME_CHANGE, value_string);
   }
-}
-
-
-// MODE Selection FSM
-void loop() {
-//  mode1_loop();
-  mode_fsm.run_machine();
-//  
-  gps.readData();
-  gps.printPeriodically();
-  checkForModeSelection();
-  #ifdef ENABLE_BUZZER
-  buzzer.checkBeep();
-  #endif
 }
 
 
@@ -338,32 +267,185 @@ void mode0_run() {
   delay(1000);
 }
 
-/************************************* (main program) ********* *****************************/
 
-// ------------------------------------------
 
-// Check to see if a new mode is selected
-void checkForModeSelection() {
-#ifdef ENABLE_KEYPAD
-  // Only switch to the new mode after all keys are pressed
-  if (_new_mode != _mode && !modeKeypad.anyKeyPressed()) {
-    Serial.print("new mode: ");
-    Serial.println(_new_mode);
-    mode_fsm.trigger(MODE_OFFSET + _new_mode); // trigger MODE_1, MODE_2, etc
-    _mode = _new_mode;
+
+
+/*
+    Based on Neil Kolban example for IDF: https://github.com/nkolban/esp32-snippets/blob/master/cpp_utils/tests/BLE%20Tests/SampleServer.cpp
+    Ported to Arduino ESP32 by Evandro Copercini
+    updates by chegewara
+*/
+
+// BLE Library Documentation: https://github.com/nkolban/esp32-snippets/blob/master/Documentation/BLE%20C%2B%2B%20Guide.pdf
+
+
+// See the following for generating UUIDs:
+// https://www.uuidgenerator.net/
+
+#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
+
+// Characteristics
+#define MODE_UUID           "beb5483e-36e1-4688-b7f5-ea07361b26a9" // R/W
+#define FILENAME_UUID       "beb5483e-36e1-4688-b7f5-ea07361b26a8" // R/W
+#define BUZZER_UUID         "beb5483e-36e1-4688-b7f5-ea07361b26a1" // R
+#define SENSOR_UUID         "beb5483e-36e1-4688-b7f5-ea07361b26a2" // R
+#define CURRENT_TIME_UUID   "beb5483e-36e1-4688-b7f5-ea07361b26a0" // R
+#define NUM_RESULTS_UUID    "beb5483e-36e1-4688-b7f5-ea07361b26a3" // R
+#define STORE_RESULT_UUID   "beb5483e-36e1-4688-b7f5-ea07361b26a4" // W
+#define DELETE_RESULT_UUID  "beb5483e-36e1-4688-b7f5-ea07361b26a5" // W
+#define DUPLICATE_RESULT_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a6" // W
+
+BLEServer* pServer = NULL;
+BLECharacteristic* pModeCharacteristic = NULL;
+BLECharacteristic* pFilenameCharacteristic = NULL;
+BLECharacteristic* pBuzzerCharacteristic = NULL;
+BLECharacteristic* pSensorCharacteristic = NULL;
+BLECharacteristic* pCurrentTimeCharacteristic = NULL;
+
+// header
+// header
+
+bool deviceConnected = true;
+bool oldDeviceConnected = false;
+
+#include <string.h>
+
+class ModeCallback: public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic *pCharacteristic) {
+    // do something because a new value was written.
+    Serial.println("Mode Written");
+    std::string os;
+    os = pCharacteristic->getValue();
+    Serial.write(os.c_str());
+    Serial.println();
+    int num = atoi(os.c_str());
+    Serial.print("New Mode: ");
+    Serial.println(num);
+    push_event(EVT_MODE_CHANGE, (char *)os.c_str());
   }
+};
+
+void setupSensor(BLEService *pService) {
+  pSensorCharacteristic = pService->createCharacteristic(
+                                         SENSOR_UUID,
+                                         BLECharacteristic::PROPERTY_READ |
+                                         BLECharacteristic::PROPERTY_NOTIFY |
+                                         BLECharacteristic::PROPERTY_INDICATE
+                                       );
+  // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
+  // Create a BLE Descriptor to allow subscribing to this characteristic (to support NOTIFY/INDICATE flagging)
+  pSensorCharacteristic->addDescriptor(new BLE2902());
+}
+
+void setupMode(BLEService *pService) {
+  pModeCharacteristic = pService->createCharacteristic(
+                                         MODE_UUID,
+                                         BLECharacteristic::PROPERTY_READ |
+                                         BLECharacteristic::PROPERTY_WRITE
+                                       );
+  pModeCharacteristic->setCallbacks(new ModeCallback());
+}
+
+void setupCurrentTime(BLEService *pService) {
+  pCurrentTimeCharacteristic = pService->createCharacteristic(
+                                        CURRENT_TIME_UUID,
+                                        BLECharacteristic::PROPERTY_READ | 
+                                        BLECharacteristic::PROPERTY_NOTIFY |
+                                        BLECharacteristic::PROPERTY_INDICATE
+                                       );
+  // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
+  // Create a BLE Descriptor to allow subscribing to this characteristic (to support NOTIFY/INDICATE flagging)
+  pCurrentTimeCharacteristic->addDescriptor(new BLE2902());
+}
+
+void setupBuzzer(BLEService *pService) {
+  pBuzzerCharacteristic = pService->createCharacteristic(
+                                         BUZZER_UUID,
+                                         BLECharacteristic::PROPERTY_READ
+                                       );
+}
+
+void setup() {
+  main_setup();
+  Serial.begin(115200);
+  Serial.println("Starting BLE work!");
+
+  BLEDevice::init("ESP32");
+  pServer = BLEDevice::createServer();
+  BLEService *pService = pServer->createService(SERVICE_UUID);
+
+  setupSensor(pService);
+  setupMode(pService);
+  setupBuzzer(pService);
+  setupCurrentTime(pService);
   
-  if (modeKeypad.newKeyPressed()) {
-    Serial.println("NEW KEY");
-    if (modeKeypad.keyPressed('*')) {
-      Serial.println("* is pressed");
-      if (modeKeypad.keyPressed('1')) _new_mode = 1;
-      if (modeKeypad.keyPressed('2')) _new_mode = 2;
-      if (modeKeypad.keyPressed('3')) _new_mode = 3;
-      if (modeKeypad.keyPressed('4')) _new_mode = 4;
-      if (modeKeypad.keyPressed('5')) _new_mode = 5;
-      if (modeKeypad.keyPressed('6')) _new_mode = 6;
+//  pBatteryCharacteristic->setValue("Hello World says Neil");
+  
+  pService->start();
+  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
+  pAdvertising->addServiceUUID(SERVICE_UUID); // necessary so that the App can identify this device without first connecting
+  pAdvertising->setScanResponse(true);
+  pAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
+  pAdvertising->setMinPreferred(0x12);
+  BLEDevice::startAdvertising();
+  Serial.println("Startup Complete!");
+}
+
+// GLOBAL STATE MANAGEMENT
+uint32_t currentMode = 0;
+
+// test info
+unsigned long last_time = 0;
+//
+void loop() {
+  // MODE Selection FSM
+  //  mode1_loop();
+  mode_fsm.run_machine();
+  //  
+  gps.readData();
+  gps.printPeriodically();
+  #ifdef ENABLE_BUZZER
+  buzzer.checkBeep();
+  #endif
+  
+  // put your main code here, to run repeatedly:
+  if (last_time == 0 || (last_time + 2000 < millis())) {
+    
+  }
+
+  uint8_t event_type;
+  char event_data[EVT_MAX_STR_LEN];
+  bool new_event = pop_event(&event_type, event_data);
+  if (new_event) {
+    switch(event_type) {
+    case EVT_BUZZER_CHANGE:
+      pBuzzerCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
+      pBuzzerCharacteristic->notify();
+    case EVT_TIME_CHANGE:
+      pCurrentTimeCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
+      pCurrentTimeCharacteristic->notify();
+    case EVT_MODE_CHANGE:
+      uint8_t _new_mode = atoi(event_data);
+      mode_fsm.trigger(MODE_OFFSET + _new_mode); // trigger MODE_1, MODE_2, etc
+      _mode = _new_mode;
+      pModeCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
+      pModeCharacteristic->notify();
+    break;
     }
   }
-#endif
+  
+  
+  // disconnecting
+  if (!deviceConnected && oldDeviceConnected) {
+      delay(500); // give the bluetooth stack the chance to get things ready
+      pServer->startAdvertising(); // restart advertising
+      Serial.println("start advertising");
+      oldDeviceConnected = deviceConnected;
+  }
+  // connecting
+  if (deviceConnected && !oldDeviceConnected) {
+      // do stuff here on connecting
+      oldDeviceConnected = deviceConnected;
+  }
 }
