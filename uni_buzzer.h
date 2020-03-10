@@ -8,7 +8,7 @@ class UniBuzzer
     UniBuzzer(int output);
     void setup();
     void loop();
-    void beep();
+    void beep(int duration = 1000);
     void success();
     void checkBeep();
   private:

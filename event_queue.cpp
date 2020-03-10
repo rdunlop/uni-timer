@@ -7,7 +7,7 @@ uint8_t next_event = 0;
 uint8_t event_type[EVENT_STACK_SIZE];
 char event_data[EVENT_STACK_SIZE][EVT_MAX_STR_LEN];
 
-void push_event(uint8_t evt, char *val) {
+void push_event(uint8_t evt, const char *val) {
   Serial.print("Pushing event ");
   Serial.print(evt);
   Serial.print(": ");

@@ -1,6 +1,7 @@
 #include "uni_buzzer.h"
 #include "uni_sensor.h"
 #include "modes.h"
+#include "event_queue.h"
 
 extern UniSensor sensor;
 extern UniBuzzer buzzer;
@@ -13,6 +14,7 @@ bool last_sensor = false;
 void mode1_loop() {
   bool sensor_value = sensor.blocked();
   if (last_sensor != sensor_value) {
+    push_event(EVT_SENSOR_CHANGE, sensor_value ? "1" : "0");
     Serial.println("blocked");
     buzzer.beep();
     last_sensor = sensor_value;

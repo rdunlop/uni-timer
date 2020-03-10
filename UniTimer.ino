@@ -46,6 +46,8 @@
 #include <BLEServer.h>
 #include <BLE2902.h>
 #include "event_queue.h"
+#include "subscribers.h"
+
 /* *********************** Includes *********************************** */
 // - SENSOR
 #ifdef ENABLE_GPS
@@ -322,7 +324,7 @@ class ModeCallback: public BLECharacteristicCallbacks {
     int num = atoi(os.c_str());
     Serial.print("New Mode: ");
     Serial.println(num);
-    push_event(EVT_MODE_CHANGE, (char *)os.c_str());
+    push_event(EVT_MODE_CHANGE, os.c_str());
   }
 };
 
@@ -366,6 +368,22 @@ void setupBuzzer(BLEService *pService) {
                                        );
 }
 
+// Callback method which listens to events, and publishes them to the BT data connection
+void bt_notify_callback(uint8_t event_type, char *event_data) {
+    switch(event_type) {
+    case EVT_BUZZER_CHANGE:
+      pBuzzerCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
+      pBuzzerCharacteristic->notify();
+    case EVT_TIME_CHANGE:
+      pCurrentTimeCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
+      pCurrentTimeCharacteristic->notify();
+    case EVT_MODE_CHANGE:
+      pModeCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
+      pModeCharacteristic->notify();
+    break;
+    }
+}
+
 void setup() {
   main_setup();
   Serial.begin(115200);
@@ -390,14 +408,13 @@ void setup() {
   pAdvertising->setMinPreferred(0x12);
   BLEDevice::startAdvertising();
   Serial.println("Startup Complete!");
+
+  register_subscriber(&bt_notify_callback);
 }
 
 // GLOBAL STATE MANAGEMENT
 uint32_t currentMode = 0;
 
-// test info
-unsigned long last_time = 0;
-//
 void loop() {
   // MODE Selection FSM
   //  mode1_loop();
@@ -409,32 +426,12 @@ void loop() {
   buzzer.checkBeep();
   #endif
   
-  // put your main code here, to run repeatedly:
-  if (last_time == 0 || (last_time + 2000 < millis())) {
-    
-  }
-
   uint8_t event_type;
   char event_data[EVT_MAX_STR_LEN];
   bool new_event = pop_event(&event_type, event_data);
   if (new_event) {
-    switch(event_type) {
-    case EVT_BUZZER_CHANGE:
-      pBuzzerCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
-      pBuzzerCharacteristic->notify();
-    case EVT_TIME_CHANGE:
-      pCurrentTimeCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
-      pCurrentTimeCharacteristic->notify();
-    case EVT_MODE_CHANGE:
-      uint8_t _new_mode = atoi(event_data);
-      mode_fsm.trigger(MODE_OFFSET + _new_mode); // trigger MODE_1, MODE_2, etc
-      _mode = _new_mode;
-      pModeCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
-      pModeCharacteristic->notify();
-    break;
-    }
-  }
-  
+    notify_subscribers(event_type, event_data);
+  }  
   
   // disconnecting
   if (!deviceConnected && oldDeviceConnected) {

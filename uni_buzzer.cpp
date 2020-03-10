@@ -1,6 +1,7 @@
 // BUZZER
 #include "uni_buzzer.h"
 #include <Arduino.h>
+#include "event_queue.h"
 
 UniBuzzer::UniBuzzer(int output)
 {
@@ -18,14 +19,13 @@ void UniBuzzer::setup() {
   _buzzerEndTime = 0;
 }
 
-// Beep for 1 second
-void UniBuzzer::beep() {
+// Beep for 1 second (or shorter)
+void UniBuzzer::beep(int duration) {
   int channel = 0; // share this globally?
   ledcWriteTone(channel,800);
   _buzzerOn = true;
-  _buzzerEndTime = millis() + 1000;
-  
-//  tone(_output, 1000, 100);
+  _buzzerEndTime = millis() + duration;
+  push_event(EVT_BUZZER_CHANGE, "1");
 }
 
 // Check to see if we should disable the buzzer
@@ -35,9 +35,9 @@ void UniBuzzer::checkBeep() {
   if (_buzzerEndTime < millis()) {
     ledcWriteTone(channel, 0);
     _buzzerOn = false;
+    push_event(EVT_BUZZER_CHANGE, "0");
   }
 }
 void UniBuzzer::success() {
   beep();
-//  tone(_output, 1000, 100); // should be SUCCESS music
 }
