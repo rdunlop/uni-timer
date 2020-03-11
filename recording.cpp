@@ -6,19 +6,14 @@ extern UniSd sd;
 int _racer_number = 0;
 
 // Add a new digit to the current racer number
-void store_racer_number() {
-  Serial.println("Storing Racer number");
-//  char last_key_pressed = keypad.lastKeyPressed();
-//  _racer_number = (_racer_number * 10) + keypad.intFromChar(last_key_pressed);
-//  Serial.print("Racer #: ");
-//  Serial.println(_racer_number);
-//  display.showNumber(_racer_number);
+void store_racer_number(int racer_number) {
+  _racer_number = racer_number;
+  Serial.print("Racer #: ");
 }
 
 // Methods
 void clear_racer_number() {
   _racer_number = 0;
-//  display.clear();
 }
 
 int racer_number() {

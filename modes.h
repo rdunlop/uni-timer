@@ -14,7 +14,6 @@ void mode5_setup();
 void mode5_loop();
 void mode5_teardown();
 
-void mode6_fsm_setup();
 void mode6_setup();
-void mode6_loop();
+void mode6_event_handler(uint8_t event_type, char *event_data);
 void mode6_teardown();

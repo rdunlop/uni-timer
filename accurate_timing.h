@@ -16,3 +16,4 @@ bool sensor_has_triggered();
 bool currentTime(TimeResult *output);
 unsigned long sensor_interrupt_micros();
 void clear_sensor_interrupt_micros();
+void format_time_result(TimeResult *data, char *output, const int max_length);

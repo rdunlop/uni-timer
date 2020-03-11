@@ -96,14 +96,6 @@
 
 #define LED_BUILTIN 2
 
-#define MODE_OFFSET 100
-#define MODE_1 101
-#define MODE_2 102
-#define MODE_3 103
-#define MODE_4 104
-#define MODE_5 105
-#define MODE_6 106
-
 /* ************************** Initialization ******************* */
 
 // PRINTER -------------------------------------
@@ -129,24 +121,12 @@ UniBuzzer buzzer(BUZZER_DIGITAL_OUTPUT);
 UniSensor sensor(SENSOR_DIGITAL_INPUT);
 #endif
 
+// GLOBAL STATE MANAGEMENT
+uint32_t currentMode = 0;
+
 // NEW HEADER FILE
 void clear_display();
 void date_callback(byte *hour, byte *minute, byte *second);
-
-// ****************** MODE FSM ***************************
-#include <Fsm.h>
-
-// *****************************************************
-State mode0(&mode0_run, NULL, NULL);
-State mode1(&clear_display, &mode1_loop, NULL);
-State mode2(&clear_display, &mode2_loop, NULL);
-State mode3(&clear_display, &mode3_loop, NULL);
-State mode4(&mode4_setup, &mode4_loop, NULL);
-State mode5(&mode5_setup, &mode5_loop, &mode5_teardown);
-State mode6(&mode6_setup, &mode6_loop, &mode6_teardown);
-
-Fsm mode_fsm(&mode0);
-// *******************************************************************
 
 /******** ***********************************(set up)*** *************** **********************/
 void main_setup () {
@@ -182,10 +162,6 @@ void main_setup () {
 buzzer.beep();
 
   register_date_callback(date_callback);
-  
-  setup_fsm();
-  mode5_fsm_setup();
-  mode6_fsm_setup();
 }
 
 void date_callback(byte *hour, byte *minute, byte *second) {
@@ -194,20 +170,6 @@ void date_callback(byte *hour, byte *minute, byte *second) {
     char value_string[EVT_MAX_STR_LEN];
     snprintf(value_string, EVT_MAX_STR_LEN, "%02d:%02d:%02d", *hour, *minute, *second);
     push_event(EVT_TIME_CHANGE, value_string);
-  }
-}
-
-
-void setup_fsm() {
-  mode_fsm.add_timed_transition(&mode0, &mode1, 1000, NULL); // Go to Mode 1 after 1 second
-
-  // Set up transitions between each possible state and each other state, based on MODE_1, MODE_2, etc triggers.
-  State *mode_states[] = { &mode1, &mode2, &mode3, &mode4, &mode5, &mode6};
-  for (int i = 0; i < 6; i++) {
-    for (int j = 0; j < 6; j++) {
-      if (j == i) continue; // Don't need to transition from state to same state.
-      mode_fsm.add_transition(mode_states[i], mode_states[j], MODE_OFFSET + j + 1, NULL);
-    }
   }
 }
 
@@ -220,7 +182,6 @@ void clear_display() {
 
 // Variables
 int _mode = 1;
-int _new_mode = -1;
 
 // Check systems, and display Good or Bad on the display
 void mode0_run() {
@@ -270,9 +231,6 @@ void mode0_run() {
 }
 
 
-
-
-
 /*
     Based on Neil Kolban example for IDF: https://github.com/nkolban/esp32-snippets/blob/master/cpp_utils/tests/BLE%20Tests/SampleServer.cpp
     Ported to Arduino ESP32 by Evandro Copercini
@@ -289,6 +247,7 @@ void mode0_run() {
 
 // Characteristics
 #define MODE_UUID           "beb5483e-36e1-4688-b7f5-ea07361b26a9" // R/W
+#define RACER_NUMBER_UUID   "beb5483e-36e1-4688-b7f5-ea07361b26aa" // R/W
 #define FILENAME_UUID       "beb5483e-36e1-4688-b7f5-ea07361b26a8" // R/W
 #define BUZZER_UUID         "beb5483e-36e1-4688-b7f5-ea07361b26a1" // R
 #define SENSOR_UUID         "beb5483e-36e1-4688-b7f5-ea07361b26a2" // R
@@ -300,6 +259,7 @@ void mode0_run() {
 
 BLEServer* pServer = NULL;
 BLECharacteristic* pModeCharacteristic = NULL;
+BLECharacteristic* pRacerNumberCharacteristic = NULL;
 BLECharacteristic* pFilenameCharacteristic = NULL;
 BLECharacteristic* pBuzzerCharacteristic = NULL;
 BLECharacteristic* pSensorCharacteristic = NULL;
@@ -328,6 +288,22 @@ class ModeCallback: public BLECharacteristicCallbacks {
   }
 };
 
+
+class RacerNumberCallback: public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic *pCharacteristic) {
+    // do something because a new value was written.
+    Serial.println("Racer Number Written");
+    std::string os;
+    os = pCharacteristic->getValue();
+    Serial.write(os.c_str());
+    Serial.println();
+    int num = atoi(os.c_str());
+    Serial.print("Racer Number: ");
+    Serial.println(num);
+    push_event(EVT_RACER_NUMBER_ENTERED, os.c_str());
+  }
+};
+
 void setupSensor(BLEService *pService) {
   pSensorCharacteristic = pService->createCharacteristic(
                                          SENSOR_UUID,
@@ -347,6 +323,15 @@ void setupMode(BLEService *pService) {
                                          BLECharacteristic::PROPERTY_WRITE
                                        );
   pModeCharacteristic->setCallbacks(new ModeCallback());
+}
+
+void setupRacerNumber(BLEService *pService) {
+  pRacerNumberCharacteristic = pService->createCharacteristic(
+                                         RACER_NUMBER_UUID,
+                                         BLECharacteristic::PROPERTY_READ |
+                                         BLECharacteristic::PROPERTY_WRITE
+                                       );
+  pRacerNumberCharacteristic->setCallbacks(new RacerNumberCallback());
 }
 
 void setupCurrentTime(BLEService *pService) {
@@ -374,14 +359,29 @@ void bt_notify_callback(uint8_t event_type, char *event_data) {
     case EVT_BUZZER_CHANGE:
       pBuzzerCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
       pBuzzerCharacteristic->notify();
+      break;
     case EVT_TIME_CHANGE:
       pCurrentTimeCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
       pCurrentTimeCharacteristic->notify();
+      break;
     case EVT_MODE_CHANGE:
       pModeCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
       pModeCharacteristic->notify();
-    break;
+      break;
     }
+}
+
+// listen for mode change, and change our internal mode
+void mode_callback(uint8_t event_type, char *event_data) {
+  if (event_type == EVT_MODE_CHANGE) {
+    currentMode = atoi(event_data);
+    Serial.println("changing Mode to: ");
+    Serial.println(currentMode);
+    if(currentMode == 6) {
+      mode6_setup();
+    }
+    
+  }
 }
 
 void setup() {
@@ -397,6 +397,7 @@ void setup() {
   setupMode(pService);
   setupBuzzer(pService);
   setupCurrentTime(pService);
+  setupRacerNumber(pService);
   
 //  pBatteryCharacteristic->setValue("Hello World says Neil");
   
@@ -410,16 +411,10 @@ void setup() {
   Serial.println("Startup Complete!");
 
   register_subscriber(&bt_notify_callback);
+  register_subscriber(&mode_callback);
 }
 
-// GLOBAL STATE MANAGEMENT
-uint32_t currentMode = 0;
-
 void loop() {
-  // MODE Selection FSM
-  //  mode1_loop();
-  mode_fsm.run_machine();
-  //  
   gps.readData();
   gps.printPeriodically();
   #ifdef ENABLE_BUZZER
@@ -430,6 +425,13 @@ void loop() {
   char event_data[EVT_MAX_STR_LEN];
   bool new_event = pop_event(&event_type, event_data);
   if (new_event) {
+    switch(currentMode) {
+      case 0:
+        break;
+      case 6:
+        mode6_event_handler(event_type, event_data);
+        break;
+    }
     notify_subscribers(event_type, event_data);
   }  
   

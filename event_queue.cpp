@@ -14,7 +14,7 @@ void push_event(uint8_t evt, const char *val) {
   Serial.println(val);
   uint8_t next_opening = (next_event + event_count) % EVENT_STACK_SIZE;
   event_type[next_opening] = evt;
-  strncpy(event_data[next_opening], val, EVT_MAX_STR_LEN);
+  strlcpy(event_data[next_opening], val, EVT_MAX_STR_LEN);
   event_count += 1;
 }
 

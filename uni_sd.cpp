@@ -21,6 +21,7 @@ void UniSd::setup() {
 void UniSd::printCard() {
   File root = SD.open("/");
   printDirectory(root, 0);
+  root.close();
 }
 
 void UniSd::printDirectory(File dir, int numTabs) {

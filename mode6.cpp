@@ -1,6 +1,4 @@
-#include "uni_keypad.h"
 #include "uni_gps.h"
-#include "uni_display.h"
 #include "uni_printer.h"
 #include "uni_sd.h"
 #include "uni_buzzer.h"
@@ -8,10 +6,9 @@
 #include "modes.h"
 #include "recording.h"
 #include "accurate_timing.h"
+#include "event_queue.h"
 
-//extern UniKeypad keypad;
 extern UniGps gps;
-//extern UniDisplay display;
 //extern UniPrinter printer;
 extern UniSd sd;
 extern UniSensor sensor;
@@ -22,39 +19,18 @@ extern UniBuzzer buzzer;
 // ***************************************************** MODE 6 ***************************************
 //### Mode 6 - Race Run (Finish Line)
 //
-//- When a sensor is triggered, display E1 to indicate that you need to enter 1 racer number.
-//  - It will beep periodically to indicate this
-//  - If you have 2 times recorded, it will beep twice periodically, etc.
-//- when you press number keys, display the numbers on the display.
-//- If you enter more than 3 digits, it will beep and clear
-//- If you press "A", it will accept the input, and display the time and the racer number to printer/SD
-//- If you press "D", it will clear the display
-//- If you press "B", it will duplicate the last time, and create E2 (only available from initial mode)
-//- If you press C+* it will clear the last entry
+//- When a sensor is triggered (EVT_SENSOR_CHANGE), it will publish a EVT_TIME_RECORDED event hh:mm:ss.zzzz/###
+//- When a racer number is entered (EVT_RACER_NUMBER_ENTERED), it will store the recorded time to the SD card and publish a EVT_TIME_STORED event
+//- When a EVT_DUPLICATE is received it will create a new time entry, and publish EVT_TIME_RECORDED
+//- When a EVT_DELETE is received, it will delete the current time entry
 
-#define NUMBER_PRESSED 1
-#define DELETE 2
-#define ACCEPT 3
-#define CANCEL 4
-#define SENSOR 5
-
-void mode6_initial_entry();
-void mode6_initial_check();
-void mode6_initial_exit();
-void mode6_digit_check();
-void mode6_store_result();
-
-State mode6_initial(&mode6_initial_entry, &mode6_initial_check, &mode6_initial_exit);
-State mode6_digits_entered(NULL, &mode6_digit_check, NULL);
-
-Fsm mode6_fsm(&mode6_initial);
 #define MAX_RESULTS 10
-TimeResult results_to_record[MAX_RESULTS];
+char results_to_record[MAX_RESULTS][EVT_MAX_STR_LEN];
 int results_count = 0;
 
-void store_data_result(TimeResult *data) {
+void store_data_result(char *data) {
   if (results_count < MAX_RESULTS) {
-    results_to_record[results_count] = *data;
+    strcpy(results_to_record[results_count], data);
     results_count ++;
     Serial.println("stored new result");
   } else {
@@ -64,14 +40,14 @@ void store_data_result(TimeResult *data) {
 
 // Are there any results in the buffer, if so,
 // return the oldest one
-bool retrieve_data(TimeResult *data) {
+bool retrieve_data(char *data) {
   // TODO: Pause interrupts during this function?
   if (results_count > 0) {
-    *data = results_to_record[0];
+    strcpy(data, results_to_record[0]);
 
     // Copy the remaining results up 1 slot
     for (int i = 0; i < (results_count - 1); i++) {
-      results_to_record[i] = results_to_record[i + 1];
+      strcpy(results_to_record[i], results_to_record[i + 1]);
     }
     results_count--;
     
@@ -79,14 +55,25 @@ bool retrieve_data(TimeResult *data) {
   }
   return false;
 }
+char *filename() {
+  return "/Hello.txt";
+}
+void publish_time_recorded(int racer_number, char *data) {
+  char data_string[EVT_MAX_STR_LEN];
+  snprintf(data_string, EVT_MAX_STR_LEN, "%d,%s", racer_number, data);
+  Serial.println("Publish Time");
+  Serial.println(data_string);
+
+  sd.writeFile(filename(), data_string);
+  push_event(EVT_TIME_STORED, data_string);
+}
 
 // Create a second entry of the most recently-recorded data
 void duplicate_entry() {
   if (results_count > 0 && (results_count < MAX_RESULTS)) {
-    results_to_record[results_count - 1] = results_to_record[results_count];
+    strcpy(results_to_record[results_count - 1], results_to_record[results_count]);
     results_count += 1;
     buzzer.beep();
-//    display.showEntriesRemaining(results_count);
   }
 }
 
@@ -94,110 +81,49 @@ void duplicate_entry() {
 void drop_last_entry() {
   if (results_count > 0) {
     results_count -= 1;
-//    display.showEntriesRemaining(results_count);
   }
 }
 
-void store_timing_data() {
+void store_timing_data(char *event_data) {
   Serial.println("SENSOR TRIGGERED");
-  Serial.println(sensor_interrupt_micros());
   
   buzzer.beep();
-//  display.sens();
-  TimeResult data;
-  currentTime(&data);
-  store_data_result(&data);
+  store_data_result(event_data);
   
   clear_sensor_interrupt_micros();
 }
 
-bool deleting = false;
-// While waiting for a new datapoint
-// Watch for sensor, etc
-void mode6_initial_check() {
-  if (sensor_has_triggered()) {
-    mode6_fsm.trigger(SENSOR);
+void mode6_event_handler(uint8_t event_type, char *event_data) {
+  Serial.println("Mode 6 event handler");
+  switch(event_type) {
+    case EVT_DUPLICATE_RESULT:
+      duplicate_entry();
+      break;
+    case EVT_DELETE_RESULT:
+      drop_last_entry();
+      break;
+    case EVT_SENSOR_BLOCKED:
+      store_timing_data(event_data);
+      break;
+    case EVT_RACER_NUMBER_ENTERED:
+      store_racer_number(atoi(event_data));
+      char result_data[EVT_MAX_STR_LEN];
+      if (retrieve_data(result_data)) {
+        publish_time_recorded(racer_number(), result_data);
+        clear_racer_number();
+      }
+      clear_racer_number();
+    break;
   }
-  
-//  char last_key_pressed = keypad.readChar();
-//  if (keypad.isDigit(last_key_pressed)) {
-//    mode6_fsm.trigger(NUMBER_PRESSED);
-//  } else if (last_key_pressed == 'B') {
-//    duplicate_entry();
-//  } else if (!deleting && keypad.keyPressed('D') && keypad.keyPressed('#')) { // D+#
-//    drop_last_entry();
-//    deleting = true;
-//  } else if (deleting && !keypad.anyKeyPressed()) {
-//    deleting = false;
-//  }
-#ifdef FSM_DEBUG
-  Serial.println("Initial Check ");
-#endif
 }
 
-void mode6_initial_entry() {
-//  display.showEntriesRemaining(results_count);
-}
 
-void mode6_initial_exit() {
-}
-
-void mode6_loop() {
-  mode6_fsm.run_machine();
-}
-
-void mode6_fsm_setup() {
-  mode6_fsm.add_transition(&mode6_initial, &mode6_digits_entered, NUMBER_PRESSED, &store_racer_number);
-  mode6_fsm.add_transition(&mode6_initial, &mode6_initial, SENSOR, &store_timing_data);
-  
-  mode6_fsm.add_transition(&mode6_digits_entered, &mode6_initial, DELETE, &clear_racer_number);
-  mode6_fsm.add_transition(&mode6_digits_entered, &mode6_digits_entered, NUMBER_PRESSED, &store_racer_number);
-  mode6_fsm.add_transition(&mode6_digits_entered, &mode6_initial, ACCEPT, &mode6_store_result);
-  mode6_fsm.add_transition(&mode6_digits_entered, &mode6_digits_entered, SENSOR, &store_timing_data);
-}
-
-void mode6_setup() { 
+void mode6_setup() {
+  results_count = 0;
   print_filename();
-//  display.clear(); 
   sensor.attach_interrupt(); 
 }
 
 void mode6_teardown() {
   sensor.detach_interrupt();
-}
-
-// When a digit has been entered, monitor for A, C, #
-void mode6_digit_check() {
-  if (sensor_has_triggered()) {
-    mode6_fsm.trigger(SENSOR);
-  }
-  
-//  char last_key_pressed = keypad.readChar();
-//  if (keypad.isDigit(last_key_pressed)) {
-//    if (three_digits_racer_number()) {
-//      mode6_fsm.trigger(DELETE);
-//    } else {
-//      mode6_fsm.trigger(NUMBER_PRESSED);
-//    }
-//  } else if (keypad.keyPressed('C')) {
-//    mode6_fsm.trigger(DELETE);
-//  } else if (keypad.keyPressed('A')) {
-//    mode6_fsm.trigger(ACCEPT);
-//  }
-#ifdef FSM_DEBUG
-  Serial.println("Digit Check ");
-#endif
-}
-
-// Store the racer number and time together in a file
-void mode6_store_result() {
-  Serial.println("STORE RESULT");
-  
-  buzzer.beep();
-  TimeResult data;
-  if (retrieve_data(&data)) {
-    print_racer_data_to_printer(racer_number(), data);
-    print_racer_data_to_sd(racer_number(), data);
-    clear_racer_number();  
-  }
 }

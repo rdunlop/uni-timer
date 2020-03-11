@@ -1,7 +1,7 @@
 #pragma once
 
 #include "accurate_timing.h"
-void store_racer_number();
+void store_racer_number(int racer_number);
 void clear_racer_number();
 int racer_number();
 bool three_digits_racer_number();

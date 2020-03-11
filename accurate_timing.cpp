@@ -1,4 +1,5 @@
 #include "accurate_timing.h"
+#include "event_queue.h"
 
 unsigned long _pps_start_micros;
 unsigned long _interrupt_micros; // this value is cleared once the sensor trip is handled.
@@ -34,6 +35,10 @@ void pps_interrupt() {
   current_gps_time.second = gps_second;
 }
 
+void format_time_result(TimeResult *data, char *output, const int max_length) {
+  snprintf(output, max_length, "%2d,%02d,%03d", (data->hour * 60) + data->minute, data->second, data->millisecond);
+}
+
 void sensor_interrupt() {
   unsigned long now = micros();
   // Don't trigger 2x in 0.5 seconds
@@ -47,6 +52,9 @@ void sensor_interrupt() {
   last_sensor_time.minute = current_gps_time.minute;
   last_sensor_time.second = current_gps_time.second;
   last_sensor_time.millisecond = (_interrupt_micros - _pps_start_micros) / 1000;
+  char result[EVT_MAX_STR_LEN];
+  format_time_result(&last_sensor_time, result, EVT_MAX_STR_LEN);
+  push_event(EVT_SENSOR_BLOCKED, result);
 }
 
 bool sensor_has_triggered() {
