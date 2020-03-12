@@ -55,18 +55,6 @@ bool retrieve_data(char *data) {
   }
   return false;
 }
-char *filename() {
-  return "/Hello.txt";
-}
-void publish_time_recorded(int racer_number, char *data) {
-  char data_string[EVT_MAX_STR_LEN];
-  snprintf(data_string, EVT_MAX_STR_LEN, "%d,%s", racer_number, data);
-  Serial.println("Publish Time");
-  Serial.println(data_string);
-
-  sd.writeFile(filename(), data_string);
-  push_event(EVT_TIME_STORED, data_string);
-}
 
 // Create a second entry of the most recently-recorded data
 void duplicate_entry() {
@@ -86,11 +74,9 @@ void drop_last_entry() {
 
 void store_timing_data(char *event_data) {
   Serial.println("SENSOR TRIGGERED");
-  
+
   buzzer.beep();
   store_data_result(event_data);
-  
-  clear_sensor_interrupt_micros();
 }
 
 void mode6_event_handler(uint8_t event_type, char *event_data) {
@@ -120,10 +106,7 @@ void mode6_event_handler(uint8_t event_type, char *event_data) {
 
 void mode6_setup() {
   results_count = 0;
-  print_filename();
-  sensor.attach_interrupt(); 
 }
 
 void mode6_teardown() {
-  sensor.detach_interrupt();
 }

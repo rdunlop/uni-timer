@@ -161,7 +161,11 @@ void main_setup () {
 #endif
 buzzer.beep();
 
+  set_filename("/Hello.txt"); // TBD
   register_date_callback(date_callback);
+#ifdef ENABLE_SENSOR
+  sensor.attach_interrupt(); 
+#endif
 }
 
 void date_callback(byte *hour, byte *minute, byte *second) {
@@ -374,10 +378,20 @@ void bt_notify_callback(uint8_t event_type, char *event_data) {
 // listen for mode change, and change our internal mode
 void mode_callback(uint8_t event_type, char *event_data) {
   if (event_type == EVT_MODE_CHANGE) {
+    int previousMode = currentMode;
+    if (previousMode == 5) {
+      mode5_teardown();
+    } else if (previousMode == 6) {
+      mode6_teardown();
+    }
+    
     currentMode = atoi(event_data);
     Serial.println("changing Mode to: ");
     Serial.println(currentMode);
-    if(currentMode == 6) {
+    
+    if (currentMode == 5) {
+      mode5_setup();
+    } else if(currentMode == 6) {
       mode6_setup();
     }
     
@@ -427,6 +441,9 @@ void loop() {
   if (new_event) {
     switch(currentMode) {
       case 0:
+        break;
+      case 5:
+        mode5_event_handler(event_type, event_data);
         break;
       case 6:
         mode6_event_handler(event_type, event_data);

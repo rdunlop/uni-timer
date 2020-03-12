@@ -1,5 +1,6 @@
 #include "uni_sd.h"
 #include "recording.h"
+#include "event_queue.h"
 
 extern UniSd sd;
 
@@ -30,14 +31,27 @@ bool three_digits_racer_number() {
 
 // **((((((((( NEW FILE )))))))))))))))))
 
-Config _config = {true, 0, true, 1};
+Config _config;
 
 Config *getConfig() {
   return &_config;
 }
 
-void build_race_filename(char *filename, const int max_length) {
-  snprintf(filename, max_length, "%s_%s_%s_%d", _config.difficulty == 0 ? "Beginner" : _config.difficulty == 1 ? "Advanced" : "Expert", _config.up ? "Up" : "Down", _config.start ? "Start" : "Finish", _config.number);
+void set_filename(const char *filename) {
+  snprintf(_config.filename, 40, filename);
+}
+char *filename() {
+  return getConfig()->filename;
+}
+
+void publish_time_recorded(int racer_number, char *data) {
+  char data_string[EVT_MAX_STR_LEN];
+  snprintf(data_string, EVT_MAX_STR_LEN, "%d,%s", racer_number, data);
+  Serial.println("Publish Time");
+  Serial.println(data_string);
+
+  sd.writeFile(filename(), data_string);
+  push_event(EVT_TIME_STORED, data_string);
 }
 
 void print_racer_data_to_printer(int racer_number, TimeResult data) {

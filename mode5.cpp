@@ -1,6 +1,4 @@
-#include "uni_keypad.h"
 #include "uni_gps.h"
-#include "uni_display.h"
 #include "uni_printer.h"
 #include "uni_sd.h"
 #include "uni_buzzer.h"
@@ -8,10 +6,9 @@
 #include "modes.h"
 #include "recording.h"
 #include "accurate_timing.h"
+#include "event_queue.h"
 
-//extern UniKeypad keypad;
 extern UniGps gps;
-//extern UniDisplay display;
 //extern UniPrinter printer;
 extern UniSd sd;
 extern UniSensor sensor;
@@ -39,174 +36,40 @@ extern UniBuzzer buzzer;
 //
 
 // *****************************************************
-// Mode 5 FSM
-
-// Data
-
-void good_music() {
-  buzzer.success();
-}
-
-void initial_check();
-void digit_check();
-void sensor_check();
-void sensor_entry();
-void sensor_exit();
-
-State initial(NULL, &initial_check, NULL);
-State digits_entered(NULL, &digit_check, NULL);
-State ready_for_sensor(&sensor_entry, &sensor_check, &sensor_exit);
-
-Fsm mode5_fsm(&initial);
-
-#define NUMBER_PRESSED 1
-#define DELETE 2
-#define ACCEPT 3
-#define CANCEL 4
-#define SENSOR 5
-
-void initial_check() {
-//  char last_key_pressed = keypad.readChar();
-//  if (keypad.isDigit(last_key_pressed)) {
-//    mode5_fsm.trigger(NUMBER_PRESSED);
-//  } else if(sensor.blocked()) {
-//    buzzer.beep();
-//    display.sens();
-//  } else if (keypad.keyPressed('D') && keypad.keyPressed('#')) { // D+#
-//    clear_previous_entry();
-//  }
-//#ifdef FSM_DEBUG
-//  Serial.println("Initial Check ");
-//#endif
-}
-
-void digit_check() {
-  #define MAX_FILENAME_LENGTH 35
-  // - 0-9 -> TWO_DIGITS_ENTERED or THREE_DIGITS_ENTERED
-  // - A -> ACCEPTING
-  // - C -> INITIAL
-  char filename[MAX_FILENAME_LENGTH];
-  build_race_filename(filename, MAX_FILENAME_LENGTH);
-//  char last_key_pressed = keypad.readChar();
-//  if (keypad.isDigit(last_key_pressed)) {
-//    if (three_digits_racer_number()) {
-//      mode5_fsm.trigger(DELETE);
-//    } else {
-//      mode5_fsm.trigger(NUMBER_PRESSED);
-//    }
-//  } else if (last_key_pressed == 'A') {
-//    mode5_fsm.trigger(ACCEPT);
-//  } else if (last_key_pressed == 'C') {
-//    mode5_fsm.trigger(DELETE);
-//  } else if (sensor.blocked()) {
-//    buzzer.beep();
-////    display.sens();
-//  }
-#ifdef FSM_DEBUG
-  Serial.println("Digit Check");
-#endif
-}
-
-void sensor_check() {
-//  if (keypad.newKeyPressed() && keypad.keyPressed('C')) {
-//    mode5_fsm.trigger(DELETE);
-//  } else if (sensor_has_triggered()) {
-//    mode5_fsm.trigger(SENSOR);
-//  }
-#ifdef FSM_DEBUG
-  Serial.println("Sensor Check");
-#endif
-}
 
 // This is the FSM action which occurs after
 // we notice that the sensor interrupt has fired.
-void sensor_triggered() {
+void sensor_triggered(char *event_data) {
   Serial.println("SENSOR TRIGGERED");
-  Serial.println(sensor_interrupt_micros());
   
-  buzzer.beep();
-//  display.sens();
-  
-  TimeResult data;
-  currentTime(&data);
-  print_racer_data_to_printer(racer_number(), data);
-  print_racer_data_to_sd(racer_number(), data);
+  if (racer_number()) {
+    buzzer.success();
+    publish_time_recorded(racer_number(), event_data);
+  } else {
+    buzzer.error();
+  }
   
   clear_racer_number();
-  clear_sensor_interrupt_micros();
-}
-
-void sensor_entry() {
-  clear_sensor_interrupt_micros();
-//  display.setBlink(true);
-}
-
-void sensor_exit() {
-//  display.setBlink(false);
-}
-
-/*
- * Possible Actions:
- * Sensor
- * Number
- * C
- * A
- * D*
- * 
- * Possible States:
- * INITIAL
- * DIGITS
- * READY
- */
-
-void mode5_fsm_setup() {
-//   mode5_fsm.add_transition(&initial, &digits_entered, NUMBER_PRESSED, &store_racer_number);
-  
-  mode5_fsm.add_transition(&digits_entered, &initial, DELETE, &clear_racer_number);
-//  mode5_fsm.add_transition(&digits_entered, &digits_entered, NUMBER_PRESSED, &store_racer_number);
-  mode5_fsm.add_transition(&digits_entered, &ready_for_sensor, ACCEPT, NULL);
-
-  mode5_fsm.add_transition(&ready_for_sensor, &initial, SENSOR, &sensor_triggered);
-  mode5_fsm.add_transition(&ready_for_sensor, &initial, DELETE, &clear_racer_number);
 }
 
 void mode5_setup() {
-  print_filename();
-  
-//  display.clear();
-  sensor.attach_interrupt();
-  // States:
-  // INITIAL
-  // DIGITS_ENTERED
-  // READY_FOR_SENSOR
-
-  // Transitions
-  // INITIAL:
-  // - 0-9 -> DIGITS_ENTERED
-  // - C   -> (Cancel Previous Data AND) INITIAL
-  // - D+* -> Delete last entry
-  // - SENSOR -> Beep
-  // DIGITS_ENTERED:
-  // - 0-9 -> DIGITS_ENTERED
-  // - A -> ACCEPTING
-  // - D -> INITIAL
-  // READY_FOR_SENSOR:
-  // - SENSOR -> RECORD
-  // - D -> Clear
-  
-
-  // Entry/Exit
-  // INITIAL:
-  // - Clear the racer number
-  // DIGITS_ENTERED
-  // - On Transition -> Store current keypress
-  // READY_FOR_SENSOR
-  // - On Entry -> Success Music
+  clear_racer_number();
 }
-void mode5_loop() {
-  mode5_fsm.run_machine();
+
+void mode5_event_handler(uint8_t event_type, char *event_data) {
+  Serial.println("Mode 5 event handler");
+  switch(event_type) {
+    case EVT_DELETE_RESULT:
+      buzzer.error(); // TBD
+      break;
+    case EVT_SENSOR_BLOCKED:
+      sensor_triggered(event_data);
+      break;
+    case EVT_RACER_NUMBER_ENTERED:
+      store_racer_number(atoi(event_data));
+      break;
+  }
 }
 
 void mode5_teardown() {
-  sensor.detach_interrupt();
 }

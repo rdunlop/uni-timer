@@ -41,3 +41,7 @@ void UniBuzzer::checkBeep() {
 void UniBuzzer::success() {
   beep();
 }
+
+void UniBuzzer::error() {
+  beep(100);
+}

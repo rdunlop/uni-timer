@@ -10,6 +10,7 @@ class UniBuzzer
     void loop();
     void beep(int duration = 1000);
     void success();
+    void error();
     void checkBeep();
   private:
     int _output;
