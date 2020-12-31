@@ -7,18 +7,17 @@ UniSd::UniSd(int cs)
 }
 
 void UniSd::setup() {
-  // returns 1 on success
-  // returns 0 on failure
-  _status = SD.begin(5);
+
+  _status = SD.begin(_cs);
   if (status()) {
-    Serial.println("SD initialization OK.");  
+    Serial.println("SD initialization OK.");
   } else {
     Serial.println("SD initialization failed!");
   }
-  printCard();
+  printCardContents();
 }
 
-void UniSd::printCard() {
+void UniSd::printCardContents() {
   File root = SD.open("/");
   printDirectory(root, 0);
   root.close();
@@ -49,6 +48,8 @@ void UniSd::printDirectory(File dir, int numTabs) {
 }
 
 // Return true on success
+// returns 1 on success
+// returns 0 on failure
 bool UniSd::status() {
   return _status;
 //  writeFile("testfile.txt", "hEllo Robin");
@@ -56,7 +57,7 @@ bool UniSd::status() {
 //  readFile("testfile.txt");
 }
 
-void UniSd::writeFile(char *filename, char *text) {
+bool UniSd::writeFile(char *filename, char *text) {
 // open the file. note that only one file can be open at a time,
   // so you have to close this one before opening another.
   myFile = SD.open(filename, FILE_WRITE);
@@ -71,28 +72,38 @@ void UniSd::writeFile(char *filename, char *text) {
     // close the file:
     myFile.close();
     Serial.println("done.");
+    return true;
   } else {
     // if the file didn't open, print an error:
     Serial.print("error opening ");
     Serial.println(filename);
+    return false;
   }
 }
 
-void UniSd::readFile(char *filename) {
+bool UniSd::readFile(char *filename, char *result, int max_result) {
   // re-open the file for reading:
   myFile = SD.open(filename);
   if (myFile) {
     Serial.println(filename);
 
     // read from the file until there's nothing else in it:
+    int current_position = 0;
     while (myFile.available()) {
-      Serial.write(myFile.read());
+      char character = myFile.read();
+      if (current_position < max_result) {
+        result[current_position++] = character;
+      }
+
+      Serial.write(character);
     }
     // close the file:
     myFile.close();
+    return true;
   } else {
     // if the file didn't open, print an error:
     Serial.print("error opening ");
     Serial.println(filename);
+    return false;
   }
 }

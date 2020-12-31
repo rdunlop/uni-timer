@@ -13,12 +13,12 @@ void print_racer_data_to_printer(int racer_number, TimeResult data);
 void print_racer_data_to_sd(int racer_number, TimeResult data);
 void clear_previous_entry();
 char *filename();
-void set_filename(const char *filename);
+// void set_filename(const char *filename);
 
-typedef struct {
-  char filename[40];  
-} Config;
+// typedef struct {
+//   char filename[40];
+// } Config;
 
-Config *getConfig();
+// Config *getConfig();
 
 // ****************

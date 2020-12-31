@@ -11,13 +11,13 @@ class UniSd
     void setup();
     void loop();
     bool status();
-    void writeFile(char *filename, char *text);
-    void readFile(char *filename);
+    bool writeFile(char *filename, char *text);
+    bool readFile(char *filename, char *result, int max_result);
   private:
     int _cs;
-    boolean _status;
+    bool _status;
     void printDirectory(File, int);
-    void printCard();
+    void printCardContents();
     File myFile;
 };
 

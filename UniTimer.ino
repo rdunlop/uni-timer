@@ -72,6 +72,7 @@
 
 #include "modes.h"
 #include "recording.h"
+#include "uni_config.h"
 #include "accurate_timing.h"
 
 /* *************************** (Defining Global Variables) ************************** */
@@ -121,6 +122,9 @@ UniBuzzer buzzer(BUZZER_DIGITAL_OUTPUT);
 UniSensor sensor(SENSOR_DIGITAL_INPUT);
 #endif
 
+UniConfig config; // No arguments for constructor, no parentheses
+Config _config;
+
 // GLOBAL STATE MANAGEMENT
 uint32_t currentMode = 0;
 
@@ -161,10 +165,16 @@ void main_setup () {
 #endif
 buzzer.beep();
 
-  set_filename("/Hello.txt"); // TBD
+  if (config.readConfig(&_config)) {
+    Serial.println("Config Read Success");
+  } else {
+    _config.mode = 1;
+    strcpy(_config.filename, "RObIN");
+    config.writeConfig(&_config);
+  }
   register_date_callback(date_callback);
 #ifdef ENABLE_SENSOR
-  sensor.attach_interrupt(); 
+  sensor.attach_interrupt();
 #endif
 }
 
@@ -177,7 +187,7 @@ void date_callback(byte *hour, byte *minute, byte *second) {
   }
 }
 
-void clear_display() { 
+void clear_display() {
 #ifdef ENABLE_DISPLAY
   display.clear();
 #endif
@@ -247,15 +257,24 @@ void mode0_run() {
 // See the following for generating UUIDs:
 // https://www.uuidgenerator.net/
 
+// This is the Service that we advertise to the BLE application
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 
 // Characteristics
+
+// Which configuration mode are we in, and allow the user to change the mode
 #define MODE_UUID           "beb5483e-36e1-4688-b7f5-ea07361b26a9" // R/W
+// Read or write the active racer number
 #define RACER_NUMBER_UUID   "beb5483e-36e1-4688-b7f5-ea07361b26aa" // R/W
+// Read or write the filename to write the results
 #define FILENAME_UUID       "beb5483e-36e1-4688-b7f5-ea07361b26a8" // R/W
+// Read the state of the buzzer
 #define BUZZER_UUID         "beb5483e-36e1-4688-b7f5-ea07361b26a1" // R
+// Read the state of the sensor
 #define SENSOR_UUID         "beb5483e-36e1-4688-b7f5-ea07361b26a2" // R
+// Read the current time from the GPS (note: notification is only 1/second)
 #define CURRENT_TIME_UUID   "beb5483e-36e1-4688-b7f5-ea07361b26a0" // R
+// Read the number of results ?????
 #define NUM_RESULTS_UUID    "beb5483e-36e1-4688-b7f5-ea07361b26a3" // R
 #define STORE_RESULT_UUID   "beb5483e-36e1-4688-b7f5-ea07361b26a4" // W
 #define DELETE_RESULT_UUID  "beb5483e-36e1-4688-b7f5-ea07361b26a5" // W
@@ -341,7 +360,7 @@ void setupRacerNumber(BLEService *pService) {
 void setupCurrentTime(BLEService *pService) {
   pCurrentTimeCharacteristic = pService->createCharacteristic(
                                         CURRENT_TIME_UUID,
-                                        BLECharacteristic::PROPERTY_READ | 
+                                        BLECharacteristic::PROPERTY_READ |
                                         BLECharacteristic::PROPERTY_NOTIFY |
                                         BLECharacteristic::PROPERTY_INDICATE
                                        );
@@ -358,6 +377,7 @@ void setupBuzzer(BLEService *pService) {
 }
 
 // Callback method which listens to events, and publishes them to the BT data connection
+// if they are relevant
 void bt_notify_callback(uint8_t event_type, char *event_data) {
     switch(event_type) {
     case EVT_BUZZER_CHANGE:
@@ -379,27 +399,38 @@ void bt_notify_callback(uint8_t event_type, char *event_data) {
 void mode_callback(uint8_t event_type, char *event_data) {
   if (event_type == EVT_MODE_CHANGE) {
     int previousMode = currentMode;
-    if (previousMode == 5) {
+    if (previousMode == 4) {
+      mode4_teardown();
+    } else if (previousMode == 5) {
       mode5_teardown();
     } else if (previousMode == 6) {
       mode6_teardown();
     }
-    
+
     currentMode = atoi(event_data);
     Serial.println("changing Mode to: ");
     Serial.println(currentMode);
-    
-    if (currentMode == 5) {
+
+    if (currentMode == 4) {
+      mode4_setup();
+    } else if (currentMode == 5) {
       mode5_setup();
     } else if(currentMode == 6) {
       mode6_setup();
     }
-    
+
   }
 }
 
+// This method is run once-and-only-once when the device
+// is first powered on.
+// It does Self-test, and then configures the device in the
+// appropriate mode (if possible)
+// After this method finishes, the loop() method runs over and over again.
 void setup() {
   main_setup();
+
+  // Extract BLE SETUP *******************************************************
   Serial.begin(115200);
   Serial.println("Starting BLE work!");
 
@@ -407,14 +438,15 @@ void setup() {
   pServer = BLEDevice::createServer();
   BLEService *pService = pServer->createService(SERVICE_UUID);
 
+  // set up BLE characteristics
   setupSensor(pService);
   setupMode(pService);
   setupBuzzer(pService);
   setupCurrentTime(pService);
   setupRacerNumber(pService);
-  
+
 //  pBatteryCharacteristic->setValue("Hello World says Neil");
-  
+
   pService->start();
   BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
   pAdvertising->addServiceUUID(SERVICE_UUID); // necessary so that the App can identify this device without first connecting
@@ -422,25 +454,33 @@ void setup() {
   pAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
   pAdvertising->setMinPreferred(0x12);
   BLEDevice::startAdvertising();
+  // BLE SETUP *******************************************************
+
   Serial.println("Startup Complete!");
 
   register_subscriber(&bt_notify_callback);
   register_subscriber(&mode_callback);
 }
 
+// once the main() method completes,
+// this method will run over and over again, as quickly
+// and frequently as possible.
 void loop() {
   gps.readData();
   gps.printPeriodically();
   #ifdef ENABLE_BUZZER
   buzzer.checkBeep();
   #endif
-  
+
   uint8_t event_type;
   char event_data[EVT_MAX_STR_LEN];
   bool new_event = pop_event(&event_type, event_data);
   if (new_event) {
     switch(currentMode) {
       case 0:
+        break;
+      case 4:
+        mode4_event_handler(event_type, event_data);
         break;
       case 5:
         mode5_event_handler(event_type, event_data);
@@ -450,18 +490,19 @@ void loop() {
         break;
     }
     notify_subscribers(event_type, event_data);
-  }  
-  
+  }
+
   // disconnecting
   if (!deviceConnected && oldDeviceConnected) {
-      delay(500); // give the bluetooth stack the chance to get things ready
-      pServer->startAdvertising(); // restart advertising
-      Serial.println("start advertising");
-      oldDeviceConnected = deviceConnected;
+    delay(500); // give the bluetooth stack the chance to get things ready
+    pServer->startAdvertising(); // restart advertising
+    Serial.println("start advertising");
+    oldDeviceConnected = deviceConnected;
   }
   // connecting
   if (deviceConnected && !oldDeviceConnected) {
-      // do stuff here on connecting
-      oldDeviceConnected = deviceConnected;
+    // do stuff here on connecting
+    Serial.println("Connecting BLE device");
+    oldDeviceConnected = deviceConnected;
   }
 }

@@ -1,8 +1,10 @@
 #include "uni_sd.h"
 #include "recording.h"
 #include "event_queue.h"
+#include "uni_buzzer.h"
 
 extern UniSd sd;
+extern UniBuzzer buzzer;
 
 int _racer_number = 0;
 
@@ -31,17 +33,17 @@ bool three_digits_racer_number() {
 
 // **((((((((( NEW FILE )))))))))))))))))
 
-Config _config;
+// Config _config;
 
-Config *getConfig() {
-  return &_config;
-}
+// Config *getConfig() {
+//   return &_config;
+// }
 
-void set_filename(const char *filename) {
-  snprintf(_config.filename, 40, filename);
-}
+// void set_filename(const char *filename) {
+//   snprintf(_config.filename, 40, filename);
+// }
 char *filename() {
-  return getConfig()->filename;
+  return "HELLO.txt";
 }
 
 void publish_time_recorded(int racer_number, char *data) {
@@ -50,7 +52,12 @@ void publish_time_recorded(int racer_number, char *data) {
   Serial.println("Publish Time");
   Serial.println(data_string);
 
-  sd.writeFile(filename(), data_string);
+  if (sd.writeFile(filename(), data_string)) {
+
+  } else {
+    buzzer.error();
+  }
+
   push_event(EVT_TIME_STORED, data_string);
 }
 
