@@ -1,6 +1,6 @@
 #ifndef UNI_BUZZER_H
 #define UNI_BUZZER_H
-
+#include "RTClib.h"
 #define MAX_SCHEDULED_BEEPS 10
 
 typedef struct {
@@ -19,16 +19,14 @@ class UniBuzzer
     void beep(int duration = 1000);
     void clear();
 
-    // delete
-    void beep_next();
-    void checkBeep();
-    // schedule beeps
     void success();
     void warning();
     void error();
-    void countdown();
+    void countdown(void (*interrupt_handler)());
   private:
-    bool UniBuzzer::schedule(unsigned long start, unsigned long end, void (*interrupt_handler)() = NULL);
+    bool schedule(unsigned long start, unsigned long end, void (*interrupt_handler)() = NULL);
+    void removeExpiredEntries();
+    bool activeEntry(BuzzerEntry *);
     int _output;
     bool _buzzerOn;
     int _channel;

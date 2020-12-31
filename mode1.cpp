@@ -6,17 +6,14 @@
 extern UniSensor sensor;
 extern UniBuzzer buzzer;
 
-//### Mode 1 - Keypad/Sensor Input Test
+//### Mode 1 - Sensor Input Test
 //
-//- If you press a Key, it will Beep for 100ms
-//- If you block the Sensor, or un-block the sensor, it will beep for 100ms
-bool last_sensor = false;
-void mode1_loop() {
-  bool sensor_value = sensor.blocked();
-  if (last_sensor != sensor_value) {
-    push_event(EVT_SENSOR_CHANGE, sensor_value ? "1" : "0");
-    Serial.println("blocked");
-    buzzer.beep();
-    last_sensor = sensor_value;
+//- If you cross the sensor, beep for 100ms
+void mode1_event_handler(uint8_t event_type, char *event_data) {
+  Serial.println("Mode 1 event handler");
+  switch(event_type) {
+    case EVT_SENSOR_CHANGE:
+      buzzer.beep(1000);
+      break;
   }
 }

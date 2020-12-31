@@ -1,10 +1,10 @@
 #pragma once
 
-void mode1_loop();
+void mode1_event_handler(uint8_t event_type, char *event_data);
 
-void mode2_loop();
-
-void mode3_loop();
+void mode3_setup();
+void mode3_event_handler(uint8_t event_type, char *event_data);
+void mode3_teardown();
 
 void mode4_setup();
 void mode4_event_handler(uint8_t event_type, char *event_data);

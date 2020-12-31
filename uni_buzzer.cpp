@@ -2,13 +2,6 @@
 #include "uni_buzzer.h"
 #include <Arduino.h>
 #include "event_queue.h"
-
-// typedef struct {
-//   unsigned long startTime;
-//   unsigned long endTime;
-//   void (*callbackAtEventStart)();
-// } BuzzerEntry;
-
 // Because there is no support for scheduling
 // future events on this processor, we have a
 // simple scheduling system
@@ -32,16 +25,17 @@ void UniBuzzer::setup() {
 
 void UniBuzzer::loop() {
   bool buzzerShouldBeOn = false;
+  // Serial.print("num scheduled");
+  // Serial.println(num_scheduled);
   removeExpiredEntries();
   // Determine if ANY of the entries are activating the buzzer
   for (int i = 0; i < num_scheduled; i++) {
-    BuzzerEntry entry = scheduled_entries[i];
+    BuzzerEntry *entry = &scheduled_entries[i];
     if (activeEntry(entry)) {
       buzzerShouldBeOn = true;
-      if (!entry.callbackCalled && entry.callbackAtEntryStart != NULL) {
-        Serial.println("calling callback function");
-        entry.callbackCalled = true
-        // entry.callbackAtEntryStart()
+      if (!entry->callbackCalled && entry->callbackAtEventStart != NULL) {
+        entry->callbackCalled = true;
+        entry->callbackAtEventStart();
       }
     }
   }
@@ -58,13 +52,22 @@ void UniBuzzer::loop() {
   }
 }
 
+void UniBuzzer::clear() {
+  Serial.println("clearing buzzer");
+  ledcWriteTone(_channel, 0);
+  _buzzerOn = false;
+  num_scheduled = 0;
+}
+
 // remove entries which have passed
 void UniBuzzer::removeExpiredEntries() {
   for (int i = 0; i < num_scheduled; i++) {
-    BuzzerEntry entry = scheduled_entries[i];
-    if (entry.endTime < millis()) {
-      // copy the last entry onto the current entry
-      memcpy(&entry, &scheduled_entries[num_scheduled - 1], sizeof(BuzzerEntry))
+    BuzzerEntry *entry = &scheduled_entries[i];
+    if (entry->endTime < millis()) {
+      // copy the last entry onto the current entry, if there is more than 1
+      memcpy(entry, &scheduled_entries[num_scheduled - 1], sizeof(BuzzerEntry));
+      Serial.print("removed ");
+      Serial.println(num_scheduled);
       num_scheduled--;
       // restart our search from 0 by setting the iterator to -1
       i = -1;
@@ -73,27 +76,28 @@ void UniBuzzer::removeExpiredEntries() {
 }
 
 // return true if the entry is active
-bool UniBuzzer::activeEntry(BuzzerEntry entry) {
+bool UniBuzzer::activeEntry(BuzzerEntry *entry) {
   unsigned long now = millis();
-  return (entry.startTime <= now) && (now <= entry.endTime);
+  return (entry->startTime <= now) && (now <= entry->endTime);
 }
 
 // Beep for 1 second (or shorter)
 void UniBuzzer::beep(int duration) {
-  scheduleBeep(millis(), millis() + duration);
+  schedule(millis(), millis() + duration);
 }
 
-bool UniBuzzer::schedule(unsigned long start, unsigned long end) {
+bool UniBuzzer::schedule(unsigned long start, unsigned long end, void (*interrupt_handler)()) {
   if (num_scheduled >= MAX_SCHEDULED_BEEPS) {
     Serial.println("Too many scheduled beeps");
     return false;
   }
-  BuzzerEntry next_beep = scheduled_entries[num_scheduled];
-  next_entry.startTime = start;
-  next_entry.endTime = end;
-  next_entry.callbackAtEventStart = NULL;
-  next_entry.callbackCalled = false;
+  BuzzerEntry *next_entry = &scheduled_entries[num_scheduled];
+  next_entry->startTime = start;
+  next_entry->endTime = end;
+  next_entry->callbackAtEventStart = interrupt_handler;
+  next_entry->callbackCalled = false;
   num_scheduled++;
+  Serial.println("Scheduled beep");
 
   return true;
 }
@@ -121,21 +125,12 @@ void UniBuzzer::warning() {
   schedule(now + 800, now + 1200);
 }
 
-// callback function to be called when the countdown
-// finishes
-void cb() {
-  char result[EVT_MAX_STR_LEN];
-  TimeResult output;
-  currentTime(&output);
-  format_time_result(&output, result, EVT_MAX_STR_LEN);
-  push_event(EVT_TIMER_COUNTDOWN_FINISHED, result);
-}
-
 // beep, beep, bEEEP
-void UniBuzzer::countdown() {
+// calls the interrupt handler when the 3rd pulse starts
+void UniBuzzer::countdown(void (*interrupt_handler)()) {
   unsigned long now = millis();
 
   schedule(now       , now + 1000);
   schedule(now + 2000, now + 3000);
-  schedule(now + 4000, now + 6000, cb);
+  schedule(now + 4000, now + 6000, interrupt_handler);
 }

@@ -41,6 +41,16 @@ void mode4_setup() {
   clear_racer_number();
 }
 
+// callback function to be called when the countdown
+// finishes
+void cb() {
+  char result[EVT_MAX_STR_LEN];
+  TimeResult output;
+  currentTime(&output);
+  format_time_result(&output, result, EVT_MAX_STR_LEN);
+  push_event(EVT_TIMER_COUNTDOWN_FINISHED, result);
+}
+
 void mode4_event_handler(uint8_t event_type, char *event_data) {
 //  Serial.println("Mode 4 event handler");
   switch(event_type) {
@@ -53,7 +63,7 @@ void mode4_event_handler(uint8_t event_type, char *event_data) {
       break;
     case EVT_RACER_NUMBER_ENTERED:
       countdown_finished = false;
-      buzzer.countdown();
+      buzzer.countdown(cb);
       store_racer_number(atoi(event_data));
       break;
     case EVT_TIMER_COUNTDOWN_FINISHED:

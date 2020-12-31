@@ -414,15 +414,35 @@ void loop() {
   gps.readData();
   gps.printPeriodically();
   #ifdef ENABLE_BUZZER
-  buzzer.checkBeep();
+  buzzer.loop();
   #endif
+  #ifdef ENABLE_SENSOR
+  sensor.loop();
+  #endif
+
+  // Increment mode via console
+  bool changeMode = false;
+  while (Serial.available()) {
+    // discard contents of serial
+    changeMode = true;
+    Serial.read();
+  }
+  if (changeMode) {
+    char new_mode[10];
+    sprintf(new_mode, "%d", (_config.mode + 1) % 7);
+    push_event(EVT_MODE_CHANGE, new_mode);
+  }
 
   uint8_t event_type;
   char event_data[EVT_MAX_STR_LEN];
   bool new_event = pop_event(&event_type, event_data);
   if (new_event) {
     switch(_config.mode) {
-      case 0:
+      case 1:
+        mode1_event_handler(event_type, event_data);
+        break;
+      case 3:
+        mode3_event_handler(event_type, event_data);
         break;
       case 4:
         mode4_event_handler(event_type, event_data);
