@@ -1,5 +1,4 @@
 #include "uni_gps.h"
-#include "uni_printer.h"
 #include "uni_sd.h"
 #include "uni_buzzer.h"
 #include "uni_sensor.h"
@@ -15,8 +14,6 @@ extern UniSensor sensor;
 extern UniBuzzer buzzer;
 
 boolean countdown_finished = true;
-
-#include <Fsm.h>
 
 /*********************************************************************************** */
 //### Mode 5 - Race Run (Start Line, beep start)
@@ -51,6 +48,7 @@ void mode4_event_handler(uint8_t event_type, char *event_data) {
       buzzer.error(); // TBD
       break;
     case EVT_SENSOR_BLOCKED:
+      // A racer crossed the line, and we have recorded the time and the (possible) penalty
       mode4_sensor_triggered(event_data);
       break;
     case EVT_RACER_NUMBER_ENTERED:

@@ -1,5 +1,4 @@
 #include "uni_gps.h"
-#include "uni_printer.h"
 #include "uni_sd.h"
 #include "uni_buzzer.h"
 #include "uni_sensor.h"
@@ -9,12 +8,9 @@
 #include "event_queue.h"
 
 extern UniGps gps;
-//extern UniPrinter printer;
 extern UniSd sd;
 extern UniSensor sensor;
 extern UniBuzzer buzzer;
-
-#include <Fsm.h>
 
 // ***************************************************** MODE 6 ***************************************
 //### Mode 6 - Race Run (Finish Line)
@@ -50,7 +46,7 @@ bool retrieve_data(char *data) {
       strcpy(results_to_record[i], results_to_record[i + 1]);
     }
     results_count--;
-    
+
     return true;
   }
   return false;

@@ -14,18 +14,18 @@ UniGps::UniGps(int pps_signal_input)
 void UniGps::setup(void (*interrupt_handler)()) {
   newData = false;
   last_gps_print_time = millis();
-  
+
   Serial.println("GPS Initializing");
   pinMode(_pps_signal_input, INPUT);
   attachInterrupt(digitalPinToInterrupt(_pps_signal_input), interrupt_handler, RISING);
-  
+
   Serial2.begin(9600);
   Serial.println("GPS Done init");
 }
 
 // return true on success
 // return false on error
-// return the current hour/minute in GPS time, including milliseconds from
+// return the current hour/minute in GPS time, including hour, minute, second from
 // the PPS pulse
 bool UniGps::current_time(byte *hour, byte *minute, byte *second) {
   int year;
@@ -38,7 +38,7 @@ bool UniGps::current_time(byte *hour, byte *minute, byte *second) {
   *hour = new_hour;
   *minute = new_minute;
   *second = new_second;
-  
+
   return true;
 }
 
@@ -58,7 +58,7 @@ void UniGps::printPeriodically() {
   // if millis() or timer wraps around, we'll just reset it
   if (last_gps_print_time > millis())  last_gps_print_time = millis();
   // approximately every 2 seconds or so, print out the current GPS stats
-  if (millis() - last_gps_print_time > 2000) { 
+  if (millis() - last_gps_print_time > 2000) {
     last_gps_print_time = millis(); // reset the timer
 
     printGPS();
@@ -75,14 +75,14 @@ int UniGps::getHourMinuteSecond(int *hour, int *minute, int *second) {
   *hour = new_hour;
   *minute = new_minute;
   *second = new_second;
-  
+
   return 1;
 }
 
 void UniGps::printGPS() {
   unsigned long chars;
   unsigned short sentences, failed;
-  
+
   Serial.println("---------------------------");
   Serial.println("GPS:");
   if (newData)
@@ -100,7 +100,7 @@ void UniGps::printGPS() {
     Serial.print(gps.hdop() == TinyGPS::GPS_INVALID_HDOP ? 0 : gps.hdop());
     newData = false;
   }
-  
+
   gps.stats(&chars, &sentences, &failed);
   Serial.print(" CHARS=");
   Serial.print(chars);

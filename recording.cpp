@@ -6,6 +6,7 @@
 extern UniSd sd;
 extern UniBuzzer buzzer;
 
+/* **************************************** */
 int _racer_number = 0;
 
 // Add a new digit to the current racer number
@@ -22,26 +23,8 @@ void clear_racer_number() {
 int racer_number() {
   return _racer_number;
 }
+/* **************************************** */
 
-// Is the racer number already 3 digits long?
-// if so, another digit will be "too long"
-bool three_digits_racer_number() {
-  return racer_number() > 99;
-}
-
-
-
-// **((((((((( NEW FILE )))))))))))))))))
-
-// Config _config;
-
-// Config *getConfig() {
-//   return &_config;
-// }
-
-// void set_filename(const char *filename) {
-//   snprintf(_config.filename, 40, filename);
-// }
 char *filename() {
   return "HELLO.txt";
 }

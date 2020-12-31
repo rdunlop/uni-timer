@@ -75,7 +75,7 @@ bool UniSd::writeFile(char *filename, char *text) {
     return true;
   } else {
     // if the file didn't open, print an error:
-    Serial.print("error opening ");
+    Serial.print("WRITE: error opening ");
     Serial.println(filename);
     return false;
   }
@@ -102,7 +102,7 @@ bool UniSd::readFile(char *filename, char *result, int max_result) {
     return true;
   } else {
     // if the file didn't open, print an error:
-    Serial.print("error opening ");
+    Serial.print("READ: error opening ");
     Serial.println(filename);
     return false;
   }

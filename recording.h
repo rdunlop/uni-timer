@@ -4,7 +4,6 @@
 void store_racer_number(int racer_number);
 void clear_racer_number();
 int racer_number();
-bool three_digits_racer_number();
 
 // ****************
 void build_race_filename(char *filename, const int max_length);

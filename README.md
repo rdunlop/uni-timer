@@ -97,7 +97,17 @@ Use this mode when attempting to line up the sensor and reflector across the rac
 
 - While in this mode, the following are active: BUZZER_UUID SENSOR_UUID CURRENT_TIME_UUID
 
-### Mode 4 - ?
+### Mode 4 - Race Start (Beep Start)
+
+- After entering a Racer Number, the system starts a countdown beep, and when the final beep starts, the racer's time is recorded.
+- If the racer crosses the line before the final beep starts, a penalty beep is heard, and a penalty is recorded.
+- need to adjust UDA import to allow Penalty.
+- the RACE_FILENAME is a configuration
+
+- Each entry is recorded as:
+- RACER|TIME|#Penalty\n
+- e.g. 123|10:23:30.1201|0
+
 
 ### Mode 5 - Race Run (Start Line)
 
@@ -158,7 +168,7 @@ This project requires the following Arduino libraries:
 - Choose the correct Port
 - Program
 
-You may need to reset the arduino if it fails to connect (wait until it fails at least once before trying this)
+You may need to press the "Boot" button on the arduino if it fails to connect (wait until it fails at least once before trying this)
 
 ## Monitoring
 

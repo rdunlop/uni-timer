@@ -37,7 +37,6 @@
 /* ************************* Capabilities flags ******************************************* */
 /* Set these flags to enable certain combinations of components */
 #define ENABLE_GPS
-//#define ENABLE_PRINTER
 #define ENABLE_SD
 #define ENABLE_SENSOR
 #define ENABLE_BUZZER
@@ -52,10 +51,6 @@
 // - SENSOR
 #ifdef ENABLE_GPS
 #include "uni_gps.h"
-#endif
-// - PRINTER
-#ifdef ENABLE_PRINTER
-#include "uni_printer.h"
 #endif
 // - SD Card
 #ifdef ENABLE_SD
@@ -82,9 +77,6 @@
 #define GPS_PPS_DIGITAL_INPUT 15
 #define GPS_DIGITAL_OUTPUT 16 // hardware serial #2
 #define GPS_DIGITAL_INPUT 17 // hardware serial #2
-// - PRINTER
-#define PRINTER_DIGITAL_OUTPUT 8 // Arduino transmit  YELLOW WIRE  labeled RX on printer
-#define PRINTER_DIGITAL_INPUT 7 // Arduino receive   GREEN WIRE   labeled TX on printer
 // - SD Card
 #define SD_SPI_CHIP_SELECT_OUTPUT 5
 #define SD_SPI_MOSI_INPUT 23 // The SD library defaults to this set of pins on this board
@@ -92,17 +84,10 @@
 #define SD_SPI_CLK_OUTPUT 9 // The SD library defaults to this set of pins on this board
 // - BUZZER
 #define BUZZER_DIGITAL_OUTPUT 25
-// - BUTTON
-#define BUTTON_DIGITAL_INPUT 25 // unused
 
 #define LED_BUILTIN 2
 
 /* ************************** Initialization ******************* */
-
-// PRINTER -------------------------------------
-#ifdef ENABLE_PRINTER
-UniPrinter printer(PRINTER_DIGITAL_INPUT, PRINTER_DIGITAL_OUTPUT);
-#endif
 
 // SD
 #ifdef ENABLE_SD
@@ -122,14 +107,11 @@ UniBuzzer buzzer(BUZZER_DIGITAL_OUTPUT);
 UniSensor sensor(SENSOR_DIGITAL_INPUT);
 #endif
 
+// GLOBAL STATE MANAGEMENT
 UniConfig config; // No arguments for constructor, no parentheses
 Config _config;
 
-// GLOBAL STATE MANAGEMENT
-uint32_t currentMode = 0;
-
 // NEW HEADER FILE
-void clear_display();
 void date_callback(byte *hour, byte *minute, byte *second);
 
 /******** ***********************************(set up)*** *************** **********************/
@@ -151,11 +133,6 @@ void main_setup () {
   gps.setup(&pps_interrupt);
 #endif
 
-  // PRINTER
-#ifdef ENABLE_PRINTER
-  printer.setup();
-#endif
-
 #ifdef ENABLE_BUZZER
   buzzer.setup();
 #endif
@@ -168,10 +145,12 @@ buzzer.beep();
   if (config.readConfig(&_config)) {
     Serial.println("Config Read Success");
   } else {
+    // Default Config, as the config file is not found
     _config.mode = 1;
-    strcpy(_config.filename, "RObIN");
+    strncpy(_config.filename, "/results.txt", 40);
     config.writeConfig(&_config);
   }
+  // the date_callback will be called on each PPS (1/second).
   register_date_callback(date_callback);
 #ifdef ENABLE_SENSOR
   sensor.attach_interrupt();
@@ -180,40 +159,16 @@ buzzer.beep();
 
 void date_callback(byte *hour, byte *minute, byte *second) {
   if (gps.current_time(hour, minute, second)) {
-    Serial.println("Tick");
+    Serial.println("PPS Tick");
     char value_string[EVT_MAX_STR_LEN];
     snprintf(value_string, EVT_MAX_STR_LEN, "%02d:%02d:%02d", *hour, *minute, *second);
     push_event(EVT_TIME_CHANGE, value_string);
   }
 }
 
-void clear_display() {
-#ifdef ENABLE_DISPLAY
-  display.clear();
-#endif
-}
-
-
-// Variables
-int _mode = 1;
-
 // Check systems, and display Good or Bad on the display
 void mode0_run() {
   bool success = true;
-
-  // Show 88:88
-#ifdef ENABLE_DISPLAY
-  display.all();
-#endif
-
-#ifdef ENABLE_PRINTER
-  if (printer.hasPaper()) {
-    Serial.println("printer has paper");
-  } else {
-    Serial.println("printer has no paper");
-    success = false;
-  }
-#endif
 
 #ifdef ENABLE_SD
   if (sd.status()) {
@@ -230,17 +185,6 @@ void mode0_run() {
   // Wait 2 seconds
   delay(2000);
 
-#ifdef ENABLE_DISPLAY
-  if (success) {
-    Serial.println("All systems Good");
-    display.good();
-  } else {
-    Serial.println("*************** Init Problem");
-    display.bad();
-  }
-#endif
-
-  // wait 1 second
   delay(1000);
 }
 
@@ -398,7 +342,7 @@ void bt_notify_callback(uint8_t event_type, char *event_data) {
 // listen for mode change, and change our internal mode
 void mode_callback(uint8_t event_type, char *event_data) {
   if (event_type == EVT_MODE_CHANGE) {
-    int previousMode = currentMode;
+    int previousMode = _config.mode;
     if (previousMode == 4) {
       mode4_teardown();
     } else if (previousMode == 5) {
@@ -407,15 +351,16 @@ void mode_callback(uint8_t event_type, char *event_data) {
       mode6_teardown();
     }
 
-    currentMode = atoi(event_data);
+    _config.mode = atoi(event_data);
+    config.writeConfig(&_config);
     Serial.println("changing Mode to: ");
-    Serial.println(currentMode);
+    Serial.println(_config.mode);
 
-    if (currentMode == 4) {
+    if (_config.mode == 4) {
       mode4_setup();
-    } else if (currentMode == 5) {
+    } else if (_config.mode == 5) {
       mode5_setup();
-    } else if(currentMode == 6) {
+    } else if(_config.mode == 6) {
       mode6_setup();
     }
 
@@ -428,10 +373,10 @@ void mode_callback(uint8_t event_type, char *event_data) {
 // appropriate mode (if possible)
 // After this method finishes, the loop() method runs over and over again.
 void setup() {
+  Serial.begin(115200);
   main_setup();
 
   // Extract BLE SETUP *******************************************************
-  Serial.begin(115200);
   Serial.println("Starting BLE work!");
 
   BLEDevice::init("ESP32");
@@ -476,7 +421,7 @@ void loop() {
   char event_data[EVT_MAX_STR_LEN];
   bool new_event = pop_event(&event_type, event_data);
   if (new_event) {
-    switch(currentMode) {
+    switch(_config.mode) {
       case 0:
         break;
       case 4:

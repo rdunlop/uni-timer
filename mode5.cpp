@@ -1,5 +1,4 @@
 #include "uni_gps.h"
-#include "uni_printer.h"
 #include "uni_sd.h"
 #include "uni_buzzer.h"
 #include "uni_sensor.h"
@@ -13,8 +12,6 @@ extern UniGps gps;
 extern UniSd sd;
 extern UniSensor sensor;
 extern UniBuzzer buzzer;
-
-#include <Fsm.h>
 
 /*********************************************************************************** */
 //### Mode 5 - Race Run (Start Line)
@@ -41,14 +38,14 @@ extern UniBuzzer buzzer;
 // we notice that the sensor interrupt has fired.
 void sensor_triggered(char *event_data) {
   Serial.println("SENSOR TRIGGERED");
-  
+
   if (racer_number()) {
     buzzer.success();
     publish_time_recorded(racer_number(), event_data);
   } else {
     buzzer.error();
   }
-  
+
   clear_racer_number();
 }
 
