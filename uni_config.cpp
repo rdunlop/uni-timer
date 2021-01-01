@@ -1,24 +1,30 @@
 // Persistent Configuration
 #include "uni_config.h"
+#include <string.h>
 
+#ifdef ENABLE_SD
 #include "uni_sd.h"
-
 extern UniSd sd;
+#endif
+
 #define CONFIG_FILENAME "/config.txt"
 
 UniConfig::UniConfig()
 {
   // read Config
   if (!readConfig()) {
+    _loadedFromDefault = true;
     // Default Config, as the config file is not found
     _config.mode = 1;
     strncpy(_config.filename, "/results.txt", 40);
+  } else {
+    _loadedFromDefault = false;
   }
 }
 
 // Return true if the config exists on disk
-bool UniConfig::fileExists() {
-  return sd.readFile(CONFIG_FILENAME, NULL, 0);
+bool UniConfig::loadedFromDefault() {
+  return _loadedFromDefault;
 }
 
 char *UniConfig::filename() {
@@ -55,6 +61,7 @@ char *UniConfig::value(const char *str, const char *prefix)
 
 // Read the config, return true on success
 bool UniConfig::readConfig() {
+#ifdef ENABLE_SD
   int max_config_string = 100;
   char data_string[max_config_string];
   if (sd.readFile(CONFIG_FILENAME, data_string, max_config_string)) {
@@ -74,12 +81,16 @@ bool UniConfig::readConfig() {
   } else {
     return false;
   }
+#else
+  return false;
+#endif
 }
 
 // Writes the configuration to the SD Card
 // the format is:
 // config_name|configuration value
 bool UniConfig::writeConfig() {
+#ifdef ENABLE_SD
   int max_config_string = 100;
   char data_string[max_config_string];
   snprintf(data_string, max_config_string,
@@ -95,4 +106,7 @@ bool UniConfig::writeConfig() {
     Serial.println("Failed to write config file");
     return false;
   }
+#else
+  return true;
+#endif
 }

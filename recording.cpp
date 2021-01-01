@@ -3,10 +3,15 @@
 #include "event_queue.h"
 #include "uni_buzzer.h"
 
+#ifdef ENABLE_SD
 extern UniSd sd;
-extern UniBuzzer buzzer;
+#endif
 
-/* **************************************** */
+#ifdef ENABLE_BUZZER
+extern UniBuzzer buzzer;
+#endif
+
+/* ********** Current-RACER NUMBER globals ****************************** */
 int _racer_number = 0;
 
 // Add a new digit to the current racer number
@@ -23,73 +28,30 @@ void clear_racer_number() {
 int racer_number() {
   return _racer_number;
 }
-/* **************************************** */
-
-char *filename() {
-  return "HELLO.txt";
-}
-
-void publish_time_recorded(int racer_number, char *data) {
+/* *************** PUBLISH Listener ************************* */
+void push_racer_number(int racer_number, char *data) {
   char data_string[EVT_MAX_STR_LEN];
   snprintf(data_string, EVT_MAX_STR_LEN, "%d,%s", racer_number, data);
-  Serial.println("Publish Time");
-  Serial.println(data_string);
+  push_event(EVT_TIME_RECORD, data_string);
+}
 
-  if (sd.writeFile(filename(), data_string)) {
+void publish_time_recorded(uint8_t event_type, char *event_data) {
+  switch(event_type) {
+    case EVT_TIME_RECORD:
+      Serial.println("Recording Racer");
+      Serial.println(event_data);
+      bool success = false;
+#ifdef ENABLE_SD
+      success = sd.writeFile("HELLO.txt", event_data);
+#else
+      success = true;
+#endif
 
-  } else {
-    buzzer.error();
+#ifdef ENABLE_BUZZER
+      if (!success) {
+        buzzer.error();
+      }
+#endif
+      push_event(EVT_TIME_STORED, event_data);
   }
-
-  push_event(EVT_TIME_STORED, data_string);
-}
-
-void print_racer_data_to_printer(int racer_number, TimeResult data) {
-  #define MAX_RACER_DATA 35
-  char full_string[MAX_RACER_DATA];
-  char data_string[MAX_RACER_DATA];
-  snprintf(data_string, MAX_RACER_DATA, "%02d:%02d:%02d.%03d", data.hour, data.minute, data.second, data.millisecond);
-  snprintf(full_string, MAX_RACER_DATA, "RACER %d - %s", racer_number, data_string);
-  Serial.println(full_string);
-//  printer.print(full_string);
-  Serial.println("Done Printing");
-}
-
-void print_racer_data_to_sd(int racer_number, TimeResult data) {
-#define FILENAME_LENGTH 35
-  char filename[FILENAME_LENGTH];
-  char full_string[FILENAME_LENGTH];
-  char data_string[FILENAME_LENGTH];
-  snprintf(data_string, FILENAME_LENGTH, "%2d,%02d,%03d", (data.hour * 60) + data.minute, data.second, data.millisecond);
-  Serial.println("data_string");
-  Serial.println(data_string);
-  Serial.println("racer_number");
-  Serial.println(racer_number);
-  snprintf(full_string, FILENAME_LENGTH, "%d,%s", racer_number, data_string);
-
-  build_race_filename(filename, FILENAME_LENGTH);
-  sd.writeFile(filename, full_string);
-  // temporary
-//  printer.print(full_string);
-  Serial.println(full_string);
-}
-
-void clear_previous_entry() {
-  #define MAX_FILENAME 35
-  #define MAX_MESSAGE 20
-  char filename[MAX_FILENAME];
-  char message[MAX_MESSAGE];
-  build_race_filename(filename, MAX_FILENAME);
-
-  snprintf(message, MAX_MESSAGE, "CLEAR_PREVIOUS");
-  Serial.println("Clear previous entry");
-//  printer.print(message);
-  sd.writeFile(filename, message);
-}
-
-void print_filename() {
-  char filename[MAX_FILENAME];
-  build_race_filename(filename, MAX_FILENAME);
-//  printer.print(filename);
-//  printer.feed();
 }

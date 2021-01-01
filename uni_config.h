@@ -14,13 +14,14 @@ class UniConfig
 
   public:
     UniConfig();
-    bool fileExists();
+    bool loadedFromDefault();
     char *filename();
     void setFilename(char *filename);
     int mode();
     void setMode(int mode);
   private:
     bool readConfig();
+    bool _loadedFromDefault;
     bool writeConfig();
     bool prefix(const char *str, const char *prefix);
     char *value(const char *str, const char *prefix);

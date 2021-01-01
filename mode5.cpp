@@ -41,7 +41,7 @@ void sensor_triggered(char *event_data) {
 
   if (racer_number()) {
     buzzer.success();
-    publish_time_recorded(racer_number(), event_data);
+    push_racer_number(racer_number(), event_data);
   } else {
     buzzer.error();
   }

@@ -13,7 +13,9 @@
 #define EVT_SENSOR_CHANGE 3
 // The Sensor was blocked (data includes precise time of blockage)
 #define EVT_SENSOR_BLOCKED 4
-#define EVT_TIME_RECORDED 5
+// A time record is generated, store it to SD
+#define EVT_TIME_RECORD 5
+// A Time record has been stored to SD
 #define EVT_TIME_STORED 6
 #define EVT_DUPLICATE_RESULT 7
 #define EVT_DELETE_RESULT 8

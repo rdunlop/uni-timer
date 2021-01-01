@@ -15,9 +15,9 @@ extern UniBuzzer buzzer;
 // ***************************************************** MODE 6 ***************************************
 //### Mode 6 - Race Run (Finish Line)
 //
-//- When a sensor is triggered (EVT_SENSOR_CHANGE), it will publish a EVT_TIME_RECORDED event hh:mm:ss.zzzz/###
+//- When a sensor is triggered (EVT_SENSOR_CHANGE), it will publish a EVT_TIME_RECORD event ##,hh:mm:ss.zzzz/###
 //- When a racer number is entered (EVT_RACER_NUMBER_ENTERED), it will store the recorded time to the SD card and publish a EVT_TIME_STORED event
-//- When a EVT_DUPLICATE is received it will create a new time entry, and publish EVT_TIME_RECORDED
+//- When a EVT_DUPLICATE is received it will create a new time entry, and publish EVT_TIME_RECORD
 //- When a EVT_DELETE is received, it will delete the current time entry
 
 #define MAX_RESULTS 10
@@ -91,7 +91,7 @@ void mode6_event_handler(uint8_t event_type, char *event_data) {
       store_racer_number(atoi(event_data));
       char result_data[EVT_MAX_STR_LEN];
       if (retrieve_data(result_data)) {
-        publish_time_recorded(racer_number(), result_data);
+        push_racer_number(racer_number(), result_data);
         clear_racer_number();
       }
       clear_racer_number();

@@ -29,7 +29,7 @@ void mode4_sensor_triggered(char *event_data) {
   snprintf(result, EVT_MAX_STR_LEN, "%s,FS", event_data);
   if (racer_number()) {
     buzzer.warning();
-    publish_time_recorded(racer_number(), result);
+    push_racer_number(racer_number(), result);
     clear_racer_number();
   } else {
     buzzer.success();
@@ -69,7 +69,7 @@ void mode4_event_handler(uint8_t event_type, char *event_data) {
     case EVT_TIMER_COUNTDOWN_FINISHED:
       countdown_finished = true;
       if (racer_number()) {
-        publish_time_recorded(racer_number(), event_data);
+        push_racer_number(racer_number(), event_data);
         clear_racer_number();
       }
       break;

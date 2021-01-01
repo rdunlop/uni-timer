@@ -36,12 +36,12 @@
 
 /* ************************* Capabilities flags ******************************************* */
 /* Set these flags to enable certain combinations of components */
-/* NOTE: Any combination of these flags should be allowed */
 // #define ENABLE_BLE
 #define ENABLE_GPS
-#define ENABLE_SD
+// #define ENABLE_SD
 #define ENABLE_SENSOR
 #define ENABLE_BUZZER
+// #define ENABLE_ACCURATE_TIMING
 
 /* *********************** Includes *********************************** */
 
@@ -122,7 +122,9 @@ void main_setup () {
 
   // SENSOR
 #ifdef ENABLE_SENSOR
+#ifdef ENABLE_ACCURATE_TIMING
   sensor.setup(&sensor_interrupt);
+#endif
 #endif
 
   delay(2000); // wait for serial to connect before starting
@@ -142,13 +144,17 @@ void main_setup () {
 #endif
 buzzer.beep();
 
-  if (config.fileExists()) {
+  if (config.loadedFromDefault()) {
+    Serial.println("Config File not found, loaded defaults");
+  } else {
     Serial.println("Config Read Success");
   }
   // the date_callback will be called on each PPS (1/second).
   register_date_callback(date_callback);
 #ifdef ENABLE_SENSOR
+#ifdef ENABLE_ACCURATE_TIMING
   sensor.attach_interrupt();
+#endif
 #endif
 }
 
@@ -232,6 +238,7 @@ void setup() {
 #endif
 
   register_subscriber(&mode_callback);
+  register_subscriber(&publish_time_recorded);
 }
 
 // once the main() method completes,
