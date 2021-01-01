@@ -1,10 +1,8 @@
-#include "uni_sensor.h"
 #include "uni_buzzer.h"
 #include "modes.h"
 #include "event_queue.h"
 
 extern UniBuzzer buzzer;
-extern UniSensor sensor;
 
 //### Mode 3 - Sensor Tuning
 //

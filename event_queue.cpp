@@ -9,6 +9,7 @@ char event_data[EVENT_STACK_SIZE][EVT_MAX_STR_LEN];
 
 void push_event(uint8_t evt, const char *val) {
   if (event_count >= EVENT_STACK_SIZE) {
+    Serial.println("Too many events");
     return;
   }
   uint8_t next_opening = (next_event + event_count) % EVENT_STACK_SIZE;

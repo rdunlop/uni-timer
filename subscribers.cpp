@@ -13,6 +13,7 @@ void notify_subscribers(uint8_t event_type, char *event_data) {
 
 void register_subscriber(void (*event_callback)(uint8_t event_type, char *event_data)) {
   if (num_subscribers >= MAX_SUBSCRIBERS) {
+    Serial.println("Too Many Subscribers");
     return;
   }
   subscribers[num_subscribers] = event_callback;
@@ -25,7 +26,9 @@ void unregister_subscriber(void (*event_callback)(uint8_t event_type, char *even
       // copy last element
       subscribers[i] = subscribers[num_subscribers - 1];
       num_subscribers -= 1;
-      break;
+      return;
     }
   }
+
+  Serial.println("Unable to find subscriber during unregister");
 }

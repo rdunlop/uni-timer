@@ -1,19 +1,11 @@
-#include "uni_gps.h"
-#include "uni_sd.h"
 #include "uni_buzzer.h"
-#include "uni_sensor.h"
 #include "modes.h"
 #include "recording.h"
 #include "accurate_timing.h"
 #include "event_queue.h"
 
-extern UniGps gps;
 //extern UniPrinter printer;
-extern UniSd sd;
-extern UniSensor sensor;
 extern UniBuzzer buzzer;
-
-boolean countdown_finished = true;
 
 /*********************************************************************************** */
 //### Mode 5 - Race Run (Start Line, beep start)
@@ -24,21 +16,23 @@ boolean countdown_finished = true;
 // This is the FSM action which occurs after
 // we notice that the sensor interrupt has fired.
 void mode4_sensor_triggered(char *event_data) {
-  Serial.println("SENSOR TRIGGERED");
-  char result[EVT_MAX_STR_LEN];
-  snprintf(result, EVT_MAX_STR_LEN, "%s,FS", event_data);
+  Serial.println("Sensor triggered before countdown completed");
   if (racer_number()) {
     buzzer.warning();
+    Serial.println("Logging False-start for racer");
+    char result[EVT_MAX_STR_LEN];
+    snprintf(result, EVT_MAX_STR_LEN, "%s,FS", event_data);
     push_racer_number(racer_number(), result);
     clear_racer_number();
   } else {
+    Serial.println("no racer was entered yet");
     buzzer.success();
   }
 }
 
 void mode4_setup() {
-  countdown_finished = true;
   clear_racer_number();
+  buzzer.clear();
 }
 
 // callback function to be called when the countdown
@@ -62,12 +56,10 @@ void mode4_event_handler(uint8_t event_type, char *event_data) {
       mode4_sensor_triggered(event_data);
       break;
     case EVT_RACER_NUMBER_ENTERED:
-      countdown_finished = false;
       buzzer.countdown(cb);
       store_racer_number(atoi(event_data));
       break;
     case EVT_TIMER_COUNTDOWN_FINISHED:
-      countdown_finished = true;
       if (racer_number()) {
         push_racer_number(racer_number(), event_data);
         clear_racer_number();
@@ -77,4 +69,6 @@ void mode4_event_handler(uint8_t event_type, char *event_data) {
 }
 
 void mode4_teardown() {
+  buzzer.clear();
+  clear_racer_number();
 }

@@ -23,6 +23,8 @@
 #define EVT_RACER_NUMBER_ENTERED 9
 // The countdown has finished (data includes precise time of end of countdown)
 #define EVT_TIMER_COUNTDOWN_FINISHED 10
+// how many time events are cached, awaiting racer number (data will be the count)
+#define EVT_CACHED_TIME_COUNT 11
 
 // Useful constants
 #define EVENT_STACK_SIZE 10

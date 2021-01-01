@@ -111,20 +111,13 @@ Use this mode when attempting to line up the sensor and reflector across the rac
 
 ### Mode 5 - Race Run (Start Line)
 
-- If you enter a number on the keypad, display that number, and allow up to 3 numbers to be entered.
-- If you enter a 4th number, beep and clear the display.
-- If you press A, it "Accepts" the number, and makes success music, and continues to show the number on the display.
-- Once Accepted, blink the number on the display every second
-- If you press D, it clears the number and leaves "Accepted" mode
-- When in Accepted state:
-  - If the sensor is crossed
-    - write the current time to the SD and the printer
-    - display 5En5 on the display for 2 seconds and beep for 2 seconds.
-- When NOT in Accepted State:
-  - If the sensor is crossed
-    - display Err and beep
-- Press C+* If you need to cancel the previosu rider's start time.
-  - This will print and record the cancellation of the previous start time
+- After entering a Racer Number, the system will start as soon as the user crosses the start line. (EVT_RACER_NUMBER_ENTERED)
+  - Once entered, success music is played
+  - Every 2 seconds it will do a short-beep every second until the racer starts
+- You can also clear the racer number (EVT_RACER_NUMBER_ENTERED with "")
+- When the racer crosses the line, we record their time, and beep success.
+- If no racer nuber is entered, and the sensor is crossed, we error-beep
+- If you need to cancel the previous rider's start time, EVT_DELETE_RESULT
 
 ### Mode 6 - Race Run (Finish Line)
 
@@ -137,6 +130,11 @@ Use this mode when attempting to line up the sensor and reflector across the rac
 - If you press "C", it will clear the display
 - If you press "B", it will duplicate the last time, and create E2
 - If you press D+* it will clear the last entry
+
+- When a sensor is triggered (EVT_SENSOR_BLOCKED), it will publish a EVT_TIME_RECORD event ##,hh:mm:ss.zzzz/###
+- When a racer number is entered (EVT_RACER_NUMBER_ENTERED), it will store the recorded time to the SD card and publish a EVT_TIME_STORED event
+- When a EVT_DUPLICATE is received it will create a new time entry, and publish EVT_TIME_RECORD
+- When a EVT_DELETE is received, it will delete the current time entry
 
 
 # Installing this code on the physical device
@@ -162,6 +160,7 @@ You may need to install the virtual COM port software (see https://docs.espressi
 This project requires the following Arduino libraries:
 - Arduino SD 1.2.3 (built-in?)
 - Adafruit GPS Library 1.0.3
+- AUnit testing framework 1.0.3
 
 ## Programming with Arduino
 - Connect the cable to the Arduino device

@@ -63,18 +63,22 @@ void UniBle::setupMode(BLEService *pService) {
   pModeCharacteristic = pService->createCharacteristic(
                                          MODE_UUID,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_WRITE |
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
   pModeCharacteristic->setCallbacks(new ModeCallback());
+  pModeCharacteristic->addDescriptor(new BLE2902());
 }
 
 void UniBle::setupRacerNumber(BLEService *pService) {
   pRacerNumberCharacteristic = pService->createCharacteristic(
                                          RACER_NUMBER_UUID,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_WRITE |
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
   pRacerNumberCharacteristic->setCallbacks(new RacerNumberCallback());
+  pRacerNumberCharacteristic->addDescriptor(new BLE2902());
 }
 
 void UniBle::setupCurrentTime(BLEService *pService) {
@@ -84,16 +88,16 @@ void UniBle::setupCurrentTime(BLEService *pService) {
                                         BLECharacteristic::PROPERTY_NOTIFY |
                                         BLECharacteristic::PROPERTY_INDICATE
                                        );
-  // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
-  // Create a BLE Descriptor to allow subscribing to this characteristic (to support NOTIFY/INDICATE flagging)
   pCurrentTimeCharacteristic->addDescriptor(new BLE2902());
 }
 
 void UniBle::setupBuzzer(BLEService *pService) {
   pBuzzerCharacteristic = pService->createCharacteristic(
                                          BUZZER_UUID,
-                                         BLECharacteristic::PROPERTY_READ
+                                         BLECharacteristic::PROPERTY_READ |
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
+  pCurrentTimeCharacteristic->addDescriptor(new BLE2902());
 }
 
 // Callback method which listens to events, and publishes them to the BT data connection
@@ -111,6 +115,13 @@ void UniBle::bt_notify_callback(uint8_t event_type, char *event_data) {
     case EVT_MODE_CHANGE:
       pModeCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
       pModeCharacteristic->notify();
+      break;
+    case EVT_RACER_NUMBER_ENTERED:
+      pRacerNumberCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
+      pRacerNumberCharacteristic->notify();
+      break;
+    case EVT_CACHED_TIME_COUNT:
+      // inform the UI that a cached entry exists
       break;
     }
 }
