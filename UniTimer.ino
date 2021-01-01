@@ -36,37 +36,37 @@
 
 /* ************************* Capabilities flags ******************************************* */
 /* Set these flags to enable certain combinations of components */
-#define UNIT_TESTS
+/* NOTE: Any combination of these flags should be allowed */
+// #define ENABLE_BLE
 #define ENABLE_GPS
 #define ENABLE_SD
 #define ENABLE_SENSOR
 #define ENABLE_BUZZER
-#include "event_queue.h"
-#include "subscribers.h"
 
 /* *********************** Includes *********************************** */
-// - SENSOR
+
 #ifdef ENABLE_GPS
 #include "uni_gps.h"
 #endif
-// - SD Card
 #ifdef ENABLE_SD
 #include "uni_sd.h"
 #endif
-// - BUZZER
 #ifdef ENABLE_BUZZER
 #include "uni_buzzer.h"
 #endif
 #ifdef ENABLE_SENSOR
 #include "uni_sensor.h"
 #endif
-// - BUTTON
+#ifdef ENABLE_BLE
+#include "uni_ble.h"
+#endif
 
+#include "accurate_timing.h"
+#include "event_queue.h"
 #include "modes.h"
 #include "recording.h"
+#include "subscribers.h"
 #include "uni_config.h"
-#include "accurate_timing.h"
-#include "uni_ble.h"
 
 /* *************************** (Defining Global Variables) ************************** */
 // - SENSOR
@@ -87,10 +87,8 @@
 
 /* ************************** Initialization ******************* */
 
-// SD
 #ifdef ENABLE_SD
-UniSd sd(
-  SD_SPI_CHIP_SELECT_OUTPUT);
+UniSd sd(SD_SPI_CHIP_SELECT_OUTPUT);
 #endif
 
 #ifdef ENABLE_GPS
@@ -105,12 +103,13 @@ UniBuzzer buzzer(BUZZER_DIGITAL_OUTPUT);
 UniSensor sensor(SENSOR_DIGITAL_INPUT);
 #endif
 
-// GLOBAL STATE MANAGEMENT
-UniConfig config; // No arguments for constructor, no parentheses
-Config _config;
-
-// BLE management
+#ifdef ENABLE_BLE
 UniBle ble;
+#endif
+
+// GLOBAL STATE MANAGEMENT
+UniConfig config; // No arguments for constructor, hence, no parentheses
+
 
 // NEW HEADER FILE
 void date_callback(byte *hour, byte *minute, byte *second);
@@ -143,13 +142,8 @@ void main_setup () {
 #endif
 buzzer.beep();
 
-  if (config.readConfig(&_config)) {
+  if (config.fileExists()) {
     Serial.println("Config Read Success");
-  } else {
-    // Default Config, as the config file is not found
-    _config.mode = 1;
-    strncpy(_config.filename, "/results.txt", 40);
-    config.writeConfig(&_config);
   }
   // the date_callback will be called on each PPS (1/second).
   register_date_callback(date_callback);
@@ -192,7 +186,7 @@ void mode0_run() {
 // listen for mode change, and change our internal mode
 void mode_callback(uint8_t event_type, char *event_data) {
   if (event_type == EVT_MODE_CHANGE) {
-    int previousMode = _config.mode;
+    int previousMode = config.mode();
     if (previousMode == 4) {
       mode4_teardown();
     } else if (previousMode == 5) {
@@ -201,26 +195,27 @@ void mode_callback(uint8_t event_type, char *event_data) {
       mode6_teardown();
     }
 
-    _config.mode = atoi(event_data);
-    config.writeConfig(&_config);
+    config.setMode(atoi(event_data));
     Serial.println("changing Mode to: ");
-    Serial.println(_config.mode);
+    Serial.println(config.mode());
 
-    if (_config.mode == 4) {
+    if (config.mode() == 4) {
       mode4_setup();
-    } else if (_config.mode == 5) {
+    } else if (config.mode() == 5) {
       mode5_setup();
-    } else if(_config.mode == 6) {
+    } else if(config.mode() == 6) {
       mode6_setup();
     }
 
   }
 }
+#ifdef ENABLE_BLE
 // pass-through method to pass the callback to the
 // one-and-only ble object
 void bt_notify_callback(uint8_t event_type, char *event_data) {
   ble.bt_notify_callback(event_type, event_data);
 }
+#endif
 
 // This method is run once-and-only-once when the device
 // is first powered on.
@@ -231,9 +226,11 @@ void setup() {
   Serial.begin(115200);
   main_setup();
 
+#ifdef ENABLE_BLE
   ble.setup();
-
   register_subscriber(&bt_notify_callback);
+#endif
+
   register_subscriber(&mode_callback);
 }
 
@@ -259,7 +256,7 @@ void loop() {
   }
   if (changeMode) {
     char new_mode[10];
-    sprintf(new_mode, "%d", (_config.mode + 1) % 7);
+    sprintf(new_mode, "%d", (config.mode() + 1) % 7);
     push_event(EVT_MODE_CHANGE, new_mode);
   }
 
@@ -267,7 +264,7 @@ void loop() {
   char event_data[EVT_MAX_STR_LEN];
   bool new_event = pop_event(&event_type, event_data);
   if (new_event) {
-    switch(_config.mode) {
+    switch(config.mode()) {
       case 1:
         mode1_event_handler(event_type, event_data);
         break;
@@ -286,6 +283,7 @@ void loop() {
     }
     notify_subscribers(event_type, event_data);
   }
-
+#ifdef ENABLE_BLE
   ble.loop();
+#endif
 }

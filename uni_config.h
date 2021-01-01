@@ -14,10 +14,16 @@ class UniConfig
 
   public:
     UniConfig();
-    bool readConfig(Config *);
-    bool writeConfig(Config *config);
+    bool fileExists();
+    char *filename();
+    void setFilename(char *filename);
+    int mode();
+    void setMode(int mode);
   private:
+    bool readConfig();
+    bool writeConfig();
     bool prefix(const char *str, const char *prefix);
     char *value(const char *str, const char *prefix);
+    Config _config;
 };
 #endif

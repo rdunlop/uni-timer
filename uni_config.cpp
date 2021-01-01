@@ -9,9 +9,37 @@ extern UniSd sd;
 UniConfig::UniConfig()
 {
   // read Config
-  // readConfig(&_config);
+  if (!readConfig()) {
+    // Default Config, as the config file is not found
+    _config.mode = 1;
+    strncpy(_config.filename, "/results.txt", 40);
+  }
 }
 
+// Return true if the config exists on disk
+bool UniConfig::fileExists() {
+  return sd.readFile(CONFIG_FILENAME, NULL, 0);
+}
+
+char *UniConfig::filename() {
+  return _config.filename;
+}
+
+void UniConfig::setFilename(char *filename) {
+  strcpy(_config.filename, filename);
+  writeConfig();
+}
+
+int UniConfig::mode() {
+  return _config.mode;
+}
+
+void UniConfig::setMode(int mode) {
+  _config.mode = mode;
+  writeConfig();
+}
+
+/* ******************* PRIVATE METHODS ******************* */
 // Return true if the string starts with prefix
 bool UniConfig::prefix(const char *str, const char *prefix)
 {
@@ -26,7 +54,7 @@ char *UniConfig::value(const char *str, const char *prefix)
 }
 
 // Read the config, return true on success
-bool UniConfig::readConfig(Config *config) {
+bool UniConfig::readConfig() {
   int max_config_string = 100;
   char data_string[max_config_string];
   if (sd.readFile(CONFIG_FILENAME, data_string, max_config_string)) {
@@ -34,9 +62,9 @@ bool UniConfig::readConfig(Config *config) {
     token = strtok(data_string, "\n");
     while(token != NULL) {
       if (prefix(token, "FILENAME:")) {
-        strcpy(config->filename, value(token, "FILENAME:"));
+        strcpy(_config.filename, value(token, "FILENAME:"));
       } else if (prefix(token, "MODE:")) {
-        config->mode = atoi(value(token, "MODE:"));
+        _config.mode = atoi(value(token, "MODE:"));
       }
       Serial.println("Got Config: ");
       Serial.println(token);
@@ -51,13 +79,13 @@ bool UniConfig::readConfig(Config *config) {
 // Writes the configuration to the SD Card
 // the format is:
 // config_name|configuration value
-bool UniConfig::writeConfig(Config *config) {
+bool UniConfig::writeConfig() {
   int max_config_string = 100;
   char data_string[max_config_string];
   snprintf(data_string, max_config_string,
     "%s%s\n%s%d\n",
-    "FILENAME:", config->filename,
-    "MODE:", config->mode
+    "FILENAME:", _config.filename,
+    "MODE:", _config.mode
     );
   if (sd.writeFile(CONFIG_FILENAME, data_string)) {
     Serial.println("Write File");
