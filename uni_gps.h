@@ -7,7 +7,7 @@ class UniGps
   public:
     UniGps(int pps_signal_input);
     void setup(void (*interrupt_handler)());
-    void readData();
+    void loop();
     void printPeriodically();
     int getHourMinuteSecond(int *, int *, int *);
     bool current_time(byte *hour, byte *minute, byte *second);
@@ -18,7 +18,7 @@ class UniGps
     int _pps_signal_input;
     TinyGPS gps;
     void printGPS();
-    
+
 };
 
 #endif

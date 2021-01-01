@@ -41,7 +41,8 @@
 // #define ENABLE_SD
 #define ENABLE_SENSOR
 #define ENABLE_BUZZER
-// #define ENABLE_ACCURATE_TIMING
+#define ENABLE_ACCURATE_TIMING
+// #define DEBUG_GPS
 
 /* *********************** Includes *********************************** */
 
@@ -123,7 +124,7 @@ void main_setup () {
   // SENSOR
 #ifdef ENABLE_SENSOR
 #ifdef ENABLE_ACCURATE_TIMING
-  sensor.setup(&sensor_interrupt);
+  sensor.setupInterruptHandler(&sensor_interrupt);
 #endif
 #endif
 
@@ -245,8 +246,10 @@ void setup() {
 // this method will run over and over again, as quickly
 // and frequently as possible.
 void loop() {
-  gps.readData();
+  gps.loop();
+  #ifdef DEBUG_GPS
   gps.printPeriodically();
+  #endif
   #ifdef ENABLE_BUZZER
   buzzer.loop();
   #endif

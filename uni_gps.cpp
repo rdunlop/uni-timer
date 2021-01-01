@@ -42,7 +42,7 @@ bool UniGps::current_time(byte *hour, byte *minute, byte *second) {
   return true;
 }
 
-void UniGps::readData() {
+void UniGps::loop() {
   while (Serial2.available())
   {
     char c = Serial2.read();

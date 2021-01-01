@@ -6,11 +6,11 @@
 UniSensor::UniSensor(int input)
 {
   _input = input;
+  pinMode(_input, INPUT);
   _last_sensor = blocked();
 }
 
-void UniSensor::setup(void (*interrupt_handler)()) {
-  pinMode(_input, INPUT);
+void UniSensor::setupInterruptHandler(void (*interrupt_handler)()) {
   _interrupt_handler = interrupt_handler;
 }
 

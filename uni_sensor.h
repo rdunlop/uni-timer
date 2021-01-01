@@ -5,7 +5,7 @@ class UniSensor
 {
   public:
     UniSensor(int input);
-    void setup(void (*interrupt_handler)());
+    void setupInterruptHandler(void (*interrupt_handler)());
     void loop();
     bool blocked();
     void attach_interrupt();
