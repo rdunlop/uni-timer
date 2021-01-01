@@ -161,7 +161,6 @@ buzzer.beep();
 
 void date_callback(byte *hour, byte *minute, byte *second) {
   if (gps.current_time(hour, minute, second)) {
-    Serial.println("PPS Tick");
     char value_string[EVT_MAX_STR_LEN];
     snprintf(value_string, EVT_MAX_STR_LEN, "%02d:%02d:%02d", *hour, *minute, *second);
     push_event(EVT_TIME_CHANGE, value_string);

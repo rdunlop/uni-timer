@@ -46,7 +46,6 @@ void sensor_interrupt() {
   unsigned long now = micros();
   // Don't trigger 2x in 0.5 seconds
   if (now - _last_interrupt_micros < 500000) {
-    Serial.println("Ignoring");
     return;
   }
   _interrupt_micros = now;
