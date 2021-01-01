@@ -18,3 +18,14 @@ void register_subscriber(void (*event_callback)(uint8_t event_type, char *event_
   subscribers[num_subscribers] = event_callback;
   num_subscribers += 1;
 }
+
+void unregister_subscriber(void (*event_callback)(uint8_t event_type, char *event_data)) {
+  for (int i = 0; i < num_subscribers; i++) {
+    if (subscribers[i] == event_callback) {
+      // copy last element
+      subscribers[i] = subscribers[num_subscribers - 1];
+      num_subscribers -= 1;
+      break;
+    }
+  }
+}

@@ -189,30 +189,64 @@ void mode0_run() {
   delay(1000);
 }
 
+void (*mode_setup_method)();
+void (*mode_event_handler)(uint8_t event_type, char *event_data);
+void (*mode_teardown_method)();
+
 // listen for mode change, and change our internal mode
-void mode_callback(uint8_t event_type, char *event_data) {
+void mode_change_callback(uint8_t event_type, char *event_data) {
   if (event_type == EVT_MODE_CHANGE) {
-    int previousMode = config.mode();
-    if (previousMode == 4) {
-      mode4_teardown();
-    } else if (previousMode == 5) {
-      mode5_teardown();
-    } else if (previousMode == 6) {
-      mode6_teardown();
+    if (mode_teardown_method != NULL) {
+      mode_teardown_method();
+    }
+    if (mode_event_handler != NULL) {
+      unregister_subscriber(mode_event_handler);
     }
 
     config.setMode(atoi(event_data));
     Serial.println("changing Mode to: ");
     Serial.println(config.mode());
 
-    if (config.mode() == 4) {
-      mode4_setup();
-    } else if (config.mode() == 5) {
-      mode5_setup();
-    } else if(config.mode() == 6) {
-      mode6_setup();
+    switch(config.mode()) {
+      case 1:
+        mode_setup_method = NULL;
+        mode_event_handler = mode1_event_handler;
+        mode_teardown_method = NULL;
+        break;
+      case 2:
+      // no action
+        mode_setup_method = NULL;
+        mode_event_handler = NULL;
+        mode_teardown_method = NULL;
+        break;
+      case 3:
+        mode_setup_method = mode3_setup;
+        mode_event_handler = mode3_event_handler;
+        mode_teardown_method = mode3_teardown;
+        break;
+      case 4:
+        mode_setup_method = mode4_setup;
+        mode_event_handler = mode4_event_handler;
+        mode_teardown_method = mode4_teardown;
+        break;
+      case 5:
+        mode_setup_method = mode5_setup;
+        mode_event_handler = mode5_event_handler;
+        mode_teardown_method = mode5_teardown;
+        break;
+      case 6:
+        mode_setup_method = mode6_setup;
+        mode_event_handler = mode6_event_handler;
+        mode_teardown_method = mode6_teardown;
+        break;
     }
 
+    if (mode_setup_method != NULL) {
+      mode_setup_method();
+    }
+    if (mode_event_handler != NULL) {
+      register_subscriber(mode_event_handler);
+    }
   }
 }
 #ifdef ENABLE_BLE
@@ -237,7 +271,7 @@ void setup() {
   register_subscriber(&bt_notify_callback);
 #endif
 
-  register_subscriber(&mode_callback);
+  register_subscriber(&mode_change_callback);
   register_subscriber(&publish_time_recorded);
 }
 
@@ -273,23 +307,6 @@ void loop() {
   char event_data[EVT_MAX_STR_LEN];
   bool new_event = pop_event(&event_type, event_data);
   if (new_event) {
-    switch(config.mode()) {
-      case 1:
-        mode1_event_handler(event_type, event_data);
-        break;
-      case 3:
-        mode3_event_handler(event_type, event_data);
-        break;
-      case 4:
-        mode4_event_handler(event_type, event_data);
-        break;
-      case 5:
-        mode5_event_handler(event_type, event_data);
-        break;
-      case 6:
-        mode6_event_handler(event_type, event_data);
-        break;
-    }
     notify_subscribers(event_type, event_data);
   }
 #ifdef ENABLE_BLE

@@ -25,8 +25,6 @@ void UniBuzzer::setup() {
 
 void UniBuzzer::loop() {
   bool buzzerShouldBeOn = false;
-  // Serial.print("num scheduled");
-  // Serial.println(num_scheduled);
   removeExpiredEntries();
   // Determine if ANY of the entries are activating the buzzer
   for (int i = 0; i < num_scheduled; i++) {
@@ -53,7 +51,6 @@ void UniBuzzer::loop() {
 }
 
 void UniBuzzer::clear() {
-  Serial.println("clearing buzzer");
   ledcWriteTone(_channel, 0);
   _buzzerOn = false;
   num_scheduled = 0;
@@ -66,8 +63,8 @@ void UniBuzzer::removeExpiredEntries() {
     if (entry->endTime < millis()) {
       // copy the last entry onto the current entry, if there is more than 1
       memcpy(entry, &scheduled_entries[num_scheduled - 1], sizeof(BuzzerEntry));
-      Serial.print("removed ");
-      Serial.println(num_scheduled);
+      // Serial.print("removed ");
+      // Serial.println(num_scheduled);
       num_scheduled--;
       // restart our search from 0 by setting the iterator to -1
       i = -1;
@@ -88,7 +85,7 @@ void UniBuzzer::beep(int duration) {
 
 bool UniBuzzer::schedule(unsigned long start, unsigned long end, void (*interrupt_handler)()) {
   if (num_scheduled >= MAX_SCHEDULED_BEEPS) {
-    Serial.println("Too many scheduled beeps");
+    // Serial.println("Too many scheduled beeps");
     return false;
   }
   BuzzerEntry *next_entry = &scheduled_entries[num_scheduled];
@@ -97,7 +94,7 @@ bool UniBuzzer::schedule(unsigned long start, unsigned long end, void (*interrup
   next_entry->callbackAtEventStart = interrupt_handler;
   next_entry->callbackCalled = false;
   num_scheduled++;
-  Serial.println("Scheduled beep");
+  // Serial.println("Scheduled beep");
 
   return true;
 }

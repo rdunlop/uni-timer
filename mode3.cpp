@@ -15,7 +15,6 @@ void mode3_setup() {
 }
 
 void mode3_event_handler(uint8_t event_type, char *event_data) {
-  Serial.println("Mode 3 event handler");
   switch(event_type) {
     case EVT_SENSOR_CHANGE:
       if (strcmp(event_data, "1")) {

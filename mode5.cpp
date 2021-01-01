@@ -47,6 +47,7 @@ void sensor_triggered(char *event_data) {
   }
 
   clear_racer_number();
+  Serial.println("DONE SENSOR TRIGGERED");
 }
 
 void mode5_setup() {
