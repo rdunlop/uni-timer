@@ -28,9 +28,8 @@
 #define SENSOR_UUID         "beb5483e-36e1-4688-b7f5-ea07361b26a2" // R
 // Read the current time from the GPS (note: notification is only 1/second)
 #define CURRENT_TIME_UUID   "beb5483e-36e1-4688-b7f5-ea07361b26a0" // R
-// Read the number of results ?????
-#define NUM_RESULTS_UUID    "beb5483e-36e1-4688-b7f5-ea07361b26a3" // R
-#define STORE_RESULT_UUID   "beb5483e-36e1-4688-b7f5-ea07361b26a4" // W
+// Read the number of results cached on the device, awaiting Racer #
+#define RESULT_COUNT_UUID   "beb5483e-36e1-4688-b7f5-ea07361b26a3" // R
 #define DELETE_RESULT_UUID  "beb5483e-36e1-4688-b7f5-ea07361b26a5" // W
 #define DUPLICATE_RESULT_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a6" // W
 
@@ -52,11 +51,13 @@ class UniBle
     BLECharacteristic* pBuzzerCharacteristic = NULL;
     BLECharacteristic* pSensorCharacteristic = NULL;
     BLECharacteristic* pCurrentTimeCharacteristic = NULL;
+    BLECharacteristic* pResultCountCharacteristic = NULL;
     void setupSensor(BLEService *pService);
     void setupMode(BLEService *pService);
     void setupBuzzer(BLEService *pService);
     void setupCurrentTime(BLEService *pService);
     void setupRacerNumber(BLEService *pService);
+    void setupResultCount(BLEService *pService);
 };
 
 #endif

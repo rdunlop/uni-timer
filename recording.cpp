@@ -23,6 +23,7 @@ void store_racer_number(int racer_number) {
 // Methods
 void clear_racer_number() {
   _racer_number = 0;
+  push_event(EVT_RACER_NUMBER_CLEARED, "");
 }
 
 int racer_number() {

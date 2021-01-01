@@ -36,13 +36,13 @@
 
 /* ************************* Capabilities flags ******************************************* */
 /* Set these flags to enable certain combinations of components */
-// #define ENABLE_BLE
+#define ENABLE_BLE
 #define ENABLE_GPS
 // #define ENABLE_SD
 #define ENABLE_SENSOR
 #define ENABLE_BUZZER
 #define ENABLE_ACCURATE_TIMING
-// #define DEBUG_GPS
+#define DEBUG_GPS
 
 /* *********************** Includes *********************************** */
 
@@ -125,6 +125,7 @@ void main_setup () {
 #ifdef ENABLE_SENSOR
 #ifdef ENABLE_ACCURATE_TIMING
   sensor.setupInterruptHandler(&sensor_interrupt);
+  sensor.attach_interrupt();
 #endif
 #endif
 
@@ -134,6 +135,8 @@ void main_setup () {
   // GPS
 #ifdef ENABLE_GPS
   gps.setup(&pps_interrupt);
+  // the date_callback will be called on each PPS (1/second).
+  register_date_callback(date_callback);
 #endif
 
 #ifdef ENABLE_BUZZER
@@ -142,21 +145,23 @@ void main_setup () {
 
 #ifdef ENABLE_SD
   sd.setup();
+  if (sd.status()) {
+    Serial.println("SD Card OK");
+    buzzer.success();
+  } else {
+    Serial.println("SD Card Error");
+    buzzer.error();
+  }
+  delay(1000);
 #endif
-buzzer.beep();
 
   if (config.loadedFromDefault()) {
     Serial.println("Config File not found, loaded defaults");
+    buzzer.error();
   } else {
     Serial.println("Config Read Success");
+    buzzer.success();
   }
-  // the date_callback will be called on each PPS (1/second).
-  register_date_callback(date_callback);
-#ifdef ENABLE_SENSOR
-#ifdef ENABLE_ACCURATE_TIMING
-  sensor.attach_interrupt();
-#endif
-#endif
 }
 
 void date_callback(byte *hour, byte *minute, byte *second) {
@@ -165,28 +170,6 @@ void date_callback(byte *hour, byte *minute, byte *second) {
     snprintf(value_string, EVT_MAX_STR_LEN, "%02d:%02d:%02d", *hour, *minute, *second);
     push_event(EVT_TIME_CHANGE, value_string);
   }
-}
-
-// Check systems, and display Good or Bad on the display
-void mode0_run() {
-  bool success = true;
-
-#ifdef ENABLE_SD
-  if (sd.status()) {
-    Serial.println("SD Card OK");
-  } else {
-    Serial.println("SD Card Error");
-    success = false;
-  }
-#endif
-
-  // TODO: Check GPS
-
-
-  // Wait 2 seconds
-  delay(2000);
-
-  delay(1000);
 }
 
 void (*mode_setup_method)();

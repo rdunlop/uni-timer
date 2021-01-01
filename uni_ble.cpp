@@ -63,30 +63,34 @@ void UniBle::setupMode(BLEService *pService) {
   pModeCharacteristic = pService->createCharacteristic(
                                          MODE_UUID,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE |
-                                         BLECharacteristic::PROPERTY_NOTIFY
+                                         BLECharacteristic::PROPERTY_WRITE
                                        );
   pModeCharacteristic->setCallbacks(new ModeCallback());
-  pModeCharacteristic->addDescriptor(new BLE2902());
 }
 
 void UniBle::setupRacerNumber(BLEService *pService) {
   pRacerNumberCharacteristic = pService->createCharacteristic(
                                          RACER_NUMBER_UUID,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE |
-                                         BLECharacteristic::PROPERTY_NOTIFY
+                                         BLECharacteristic::PROPERTY_WRITE
                                        );
   pRacerNumberCharacteristic->setCallbacks(new RacerNumberCallback());
-  pRacerNumberCharacteristic->addDescriptor(new BLE2902());
+}
+
+void UniBle::setupResultCount(BLEService *pService) {
+  pResultCountCharacteristic = pService->createCharacteristic(
+                                         RESULT_COUNT_UUID,
+                                         BLECharacteristic::PROPERTY_READ |
+                                         BLECharacteristic::PROPERTY_NOTIFY
+                                       );
+  pResultCountCharacteristic->addDescriptor(new BLE2902());
 }
 
 void UniBle::setupCurrentTime(BLEService *pService) {
   pCurrentTimeCharacteristic = pService->createCharacteristic(
                                         CURRENT_TIME_UUID,
                                         BLECharacteristic::PROPERTY_READ |
-                                        BLECharacteristic::PROPERTY_NOTIFY |
-                                        BLECharacteristic::PROPERTY_INDICATE
+                                        BLECharacteristic::PROPERTY_NOTIFY
                                        );
   pCurrentTimeCharacteristic->addDescriptor(new BLE2902());
 }
@@ -97,13 +101,17 @@ void UniBle::setupBuzzer(BLEService *pService) {
                                          BLECharacteristic::PROPERTY_READ |
                                          BLECharacteristic::PROPERTY_NOTIFY
                                        );
-  pCurrentTimeCharacteristic->addDescriptor(new BLE2902());
+  pBuzzerCharacteristic->addDescriptor(new BLE2902());
 }
 
 // Callback method which listens to events, and publishes them to the BT data connection
 // if they are relevant
 void UniBle::bt_notify_callback(uint8_t event_type, char *event_data) {
     switch(event_type) {
+    case EVT_SENSOR_CHANGE:
+      pSensorCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
+      pSensorCharacteristic->notify();
+      break;
     case EVT_BUZZER_CHANGE:
       pBuzzerCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
       pBuzzerCharacteristic->notify();
@@ -117,11 +125,13 @@ void UniBle::bt_notify_callback(uint8_t event_type, char *event_data) {
       pModeCharacteristic->notify();
       break;
     case EVT_RACER_NUMBER_ENTERED:
+    case EVT_RACER_NUMBER_CLEARED:
       pRacerNumberCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
       pRacerNumberCharacteristic->notify();
       break;
     case EVT_CACHED_TIME_COUNT:
-      // inform the UI that a cached entry exists
+      pResultCountCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
+      pResultCountCharacteristic->notify();
       break;
     }
 }
@@ -140,6 +150,7 @@ void UniBle::setup() {
   setupBuzzer(pService);
   setupCurrentTime(pService);
   setupRacerNumber(pService);
+  setupResultCount(pService);
 
 //  pBatteryCharacteristic->setValue("Hello World says Neil");
 
