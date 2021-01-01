@@ -36,14 +36,11 @@
 
 /* ************************* Capabilities flags ******************************************* */
 /* Set these flags to enable certain combinations of components */
+#define UNIT_TESTS
 #define ENABLE_GPS
 #define ENABLE_SD
 #define ENABLE_SENSOR
 #define ENABLE_BUZZER
-#include <BLEDevice.h>
-#include <BLEUtils.h>
-#include <BLEServer.h>
-#include <BLE2902.h>
 #include "event_queue.h"
 #include "subscribers.h"
 
@@ -69,6 +66,7 @@
 #include "recording.h"
 #include "uni_config.h"
 #include "accurate_timing.h"
+#include "uni_ble.h"
 
 /* *************************** (Defining Global Variables) ************************** */
 // - SENSOR
@@ -110,6 +108,9 @@ UniSensor sensor(SENSOR_DIGITAL_INPUT);
 // GLOBAL STATE MANAGEMENT
 UniConfig config; // No arguments for constructor, no parentheses
 Config _config;
+
+// BLE management
+UniBle ble;
 
 // NEW HEADER FILE
 void date_callback(byte *hour, byte *minute, byte *second);
@@ -188,157 +189,6 @@ void mode0_run() {
   delay(1000);
 }
 
-
-/*
-    Based on Neil Kolban example for IDF: https://github.com/nkolban/esp32-snippets/blob/master/cpp_utils/tests/BLE%20Tests/SampleServer.cpp
-    Ported to Arduino ESP32 by Evandro Copercini
-    updates by chegewara
-*/
-
-// BLE Library Documentation: https://github.com/nkolban/esp32-snippets/blob/master/Documentation/BLE%20C%2B%2B%20Guide.pdf
-
-
-// See the following for generating UUIDs:
-// https://www.uuidgenerator.net/
-
-// This is the Service that we advertise to the BLE application
-#define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-
-// Characteristics
-
-// Which configuration mode are we in, and allow the user to change the mode
-#define MODE_UUID           "beb5483e-36e1-4688-b7f5-ea07361b26a9" // R/W
-// Read or write the active racer number
-#define RACER_NUMBER_UUID   "beb5483e-36e1-4688-b7f5-ea07361b26aa" // R/W
-// Read or write the filename to write the results
-#define FILENAME_UUID       "beb5483e-36e1-4688-b7f5-ea07361b26a8" // R/W
-// Read the state of the buzzer
-#define BUZZER_UUID         "beb5483e-36e1-4688-b7f5-ea07361b26a1" // R
-// Read the state of the sensor
-#define SENSOR_UUID         "beb5483e-36e1-4688-b7f5-ea07361b26a2" // R
-// Read the current time from the GPS (note: notification is only 1/second)
-#define CURRENT_TIME_UUID   "beb5483e-36e1-4688-b7f5-ea07361b26a0" // R
-// Read the number of results ?????
-#define NUM_RESULTS_UUID    "beb5483e-36e1-4688-b7f5-ea07361b26a3" // R
-#define STORE_RESULT_UUID   "beb5483e-36e1-4688-b7f5-ea07361b26a4" // W
-#define DELETE_RESULT_UUID  "beb5483e-36e1-4688-b7f5-ea07361b26a5" // W
-#define DUPLICATE_RESULT_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a6" // W
-
-BLEServer* pServer = NULL;
-BLECharacteristic* pModeCharacteristic = NULL;
-BLECharacteristic* pRacerNumberCharacteristic = NULL;
-BLECharacteristic* pFilenameCharacteristic = NULL;
-BLECharacteristic* pBuzzerCharacteristic = NULL;
-BLECharacteristic* pSensorCharacteristic = NULL;
-BLECharacteristic* pCurrentTimeCharacteristic = NULL;
-
-// header
-// header
-
-bool deviceConnected = true;
-bool oldDeviceConnected = false;
-
-#include <string.h>
-
-class ModeCallback: public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic *pCharacteristic) {
-    // do something because a new value was written.
-    Serial.println("Mode Written");
-    std::string os;
-    os = pCharacteristic->getValue();
-    Serial.write(os.c_str());
-    Serial.println();
-    int num = atoi(os.c_str());
-    Serial.print("New Mode: ");
-    Serial.println(num);
-    push_event(EVT_MODE_CHANGE, os.c_str());
-  }
-};
-
-
-class RacerNumberCallback: public BLECharacteristicCallbacks {
-  void onWrite(BLECharacteristic *pCharacteristic) {
-    // do something because a new value was written.
-    Serial.println("Racer Number Written");
-    std::string os;
-    os = pCharacteristic->getValue();
-    Serial.write(os.c_str());
-    Serial.println();
-    int num = atoi(os.c_str());
-    Serial.print("Racer Number: ");
-    Serial.println(num);
-    push_event(EVT_RACER_NUMBER_ENTERED, os.c_str());
-  }
-};
-
-void setupSensor(BLEService *pService) {
-  pSensorCharacteristic = pService->createCharacteristic(
-                                         SENSOR_UUID,
-                                         BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_NOTIFY |
-                                         BLECharacteristic::PROPERTY_INDICATE
-                                       );
-  // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
-  // Create a BLE Descriptor to allow subscribing to this characteristic (to support NOTIFY/INDICATE flagging)
-  pSensorCharacteristic->addDescriptor(new BLE2902());
-}
-
-void setupMode(BLEService *pService) {
-  pModeCharacteristic = pService->createCharacteristic(
-                                         MODE_UUID,
-                                         BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
-                                       );
-  pModeCharacteristic->setCallbacks(new ModeCallback());
-}
-
-void setupRacerNumber(BLEService *pService) {
-  pRacerNumberCharacteristic = pService->createCharacteristic(
-                                         RACER_NUMBER_UUID,
-                                         BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
-                                       );
-  pRacerNumberCharacteristic->setCallbacks(new RacerNumberCallback());
-}
-
-void setupCurrentTime(BLEService *pService) {
-  pCurrentTimeCharacteristic = pService->createCharacteristic(
-                                        CURRENT_TIME_UUID,
-                                        BLECharacteristic::PROPERTY_READ |
-                                        BLECharacteristic::PROPERTY_NOTIFY |
-                                        BLECharacteristic::PROPERTY_INDICATE
-                                       );
-  // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
-  // Create a BLE Descriptor to allow subscribing to this characteristic (to support NOTIFY/INDICATE flagging)
-  pCurrentTimeCharacteristic->addDescriptor(new BLE2902());
-}
-
-void setupBuzzer(BLEService *pService) {
-  pBuzzerCharacteristic = pService->createCharacteristic(
-                                         BUZZER_UUID,
-                                         BLECharacteristic::PROPERTY_READ
-                                       );
-}
-
-// Callback method which listens to events, and publishes them to the BT data connection
-// if they are relevant
-void bt_notify_callback(uint8_t event_type, char *event_data) {
-    switch(event_type) {
-    case EVT_BUZZER_CHANGE:
-      pBuzzerCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
-      pBuzzerCharacteristic->notify();
-      break;
-    case EVT_TIME_CHANGE:
-      pCurrentTimeCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
-      pCurrentTimeCharacteristic->notify();
-      break;
-    case EVT_MODE_CHANGE:
-      pModeCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
-      pModeCharacteristic->notify();
-      break;
-    }
-}
-
 // listen for mode change, and change our internal mode
 void mode_callback(uint8_t event_type, char *event_data) {
   if (event_type == EVT_MODE_CHANGE) {
@@ -366,6 +216,11 @@ void mode_callback(uint8_t event_type, char *event_data) {
 
   }
 }
+// pass-through method to pass the callback to the
+// one-and-only ble object
+void bt_notify_callback(uint8_t event_type, char *event_data) {
+  ble.bt_notify_callback(event_type, event_data);
+}
 
 // This method is run once-and-only-once when the device
 // is first powered on.
@@ -376,32 +231,7 @@ void setup() {
   Serial.begin(115200);
   main_setup();
 
-  // Extract BLE SETUP *******************************************************
-  Serial.println("Starting BLE work!");
-
-  BLEDevice::init("ESP32");
-  pServer = BLEDevice::createServer();
-  BLEService *pService = pServer->createService(SERVICE_UUID);
-
-  // set up BLE characteristics
-  setupSensor(pService);
-  setupMode(pService);
-  setupBuzzer(pService);
-  setupCurrentTime(pService);
-  setupRacerNumber(pService);
-
-//  pBatteryCharacteristic->setValue("Hello World says Neil");
-
-  pService->start();
-  BLEAdvertising *pAdvertising = BLEDevice::getAdvertising();
-  pAdvertising->addServiceUUID(SERVICE_UUID); // necessary so that the App can identify this device without first connecting
-  pAdvertising->setScanResponse(true);
-  pAdvertising->setMinPreferred(0x06);  // functions that help with iPhone connections issue
-  pAdvertising->setMinPreferred(0x12);
-  BLEDevice::startAdvertising();
-  // BLE SETUP *******************************************************
-
-  Serial.println("Startup Complete!");
+  ble.setup();
 
   register_subscriber(&bt_notify_callback);
   register_subscriber(&mode_callback);
@@ -457,17 +287,5 @@ void loop() {
     notify_subscribers(event_type, event_data);
   }
 
-  // disconnecting
-  if (!deviceConnected && oldDeviceConnected) {
-    delay(500); // give the bluetooth stack the chance to get things ready
-    pServer->startAdvertising(); // restart advertising
-    Serial.println("start advertising");
-    oldDeviceConnected = deviceConnected;
-  }
-  // connecting
-  if (deviceConnected && !oldDeviceConnected) {
-    // do stuff here on connecting
-    Serial.println("Connecting BLE device");
-    oldDeviceConnected = deviceConnected;
-  }
+  ble.loop();
 }
