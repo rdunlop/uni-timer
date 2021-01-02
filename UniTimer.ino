@@ -76,6 +76,7 @@
 #define GPS_PPS_DIGITAL_INPUT 15
 #define GPS_DIGITAL_OUTPUT 16 // hardware serial #2
 #define GPS_DIGITAL_INPUT 17 // hardware serial #2
+#define GPS_FIX 2
 // - SD Card
 #define SD_SPI_CHIP_SELECT_OUTPUT 5
 #define SD_SPI_MOSI_INPUT 23 // The SD library defaults to this set of pins on this board
@@ -120,6 +121,7 @@ void main_setup () {
   // Common
   Serial.begin(115200);
   pinMode (LED_BUILTIN, OUTPUT);
+  pinMode (GPS_FIX, INPUT);
 
   // SENSOR
 #ifdef ENABLE_SENSOR

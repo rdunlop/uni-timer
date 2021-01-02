@@ -2,10 +2,8 @@
 #include "uni_config.h"
 #include <string.h>
 
-#ifdef ENABLE_SD
 #include "uni_sd.h"
 extern UniSd sd;
-#endif
 
 #define CONFIG_FILENAME "/config.txt"
 
@@ -61,7 +59,6 @@ char *UniConfig::value(const char *str, const char *prefix)
 
 // Read the config, return true on success
 bool UniConfig::readConfig() {
-#ifdef ENABLE_SD
   int max_config_string = 100;
   char data_string[max_config_string];
   if (sd.readFile(CONFIG_FILENAME, data_string, max_config_string)) {
@@ -81,16 +78,12 @@ bool UniConfig::readConfig() {
   } else {
     return false;
   }
-#else
-  return false;
-#endif
 }
 
 // Writes the configuration to the SD Card
 // the format is:
 // config_name|configuration value
 bool UniConfig::writeConfig() {
-#ifdef ENABLE_SD
   int max_config_string = 100;
   char data_string[max_config_string];
   snprintf(data_string, max_config_string,
@@ -106,7 +99,4 @@ bool UniConfig::writeConfig() {
     Serial.println("Failed to write config file");
     return false;
   }
-#else
-  return true;
-#endif
 }
