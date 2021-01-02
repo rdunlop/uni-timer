@@ -174,7 +174,9 @@ void UniBle::setup() {
   Serial.println("Starting BLE work!");
 
   BLEDevice::init("ESP32");
-  // BLEDevice::setMTU(100);
+  // Attempt to use PIN for security fails on 1.0.5-rc4. Hopefully the ESP32 1.0.5 build will work.
+  // BLESecurity *security = new BLESecurity();
+  // security->setStaticPIN(1234);
   pServer = BLEDevice::createServer();
   // Increasing the num_handles to 30 allows for more characteristics
   // the default value (15) https://github.com/espressif/arduino-esp32/blob/master/libraries/BLE/src/BLEServer.h#L67

@@ -148,7 +148,8 @@ In order to program the device, you need:
 
 Add the necessary board to Arduino software
 - Arduino -> Preferences -> Additional Board manager URLs.
-  - If you already have something here, add a comma, and then: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+  - If you already have something here, add a comma, and then: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json (see NOTE on next line)
+  - NOTE: In order to get Security/StaticPIN [support](https://github.com/espressif/arduino-esp32/pull/4078), I tried to install version 1.0.5-rc4 of the ESP32 board by adding instead: https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_dev_index.json. This did not work (the build does not run)
 - Tools -> Board -> Board Manager
   - Add the esp32 from Espressif Systems
 - Tools -> Board -> Choose "ESP32 Arduino" -> "ESP32 Dev Module"
