@@ -4,9 +4,10 @@
 // NOTE: Adjustments to this structure MUST ALSO
 // be reflected in the readConfig and writeConfig methods
 // or else the config won't persist/parse properly
+#define FILENAME_MAX_LENGTH 100
 typedef struct {
   int mode;
-  char filename[40];
+  char filename[FILENAME_MAX_LENGTH];
 } Config;
 
 class UniConfig

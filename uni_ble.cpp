@@ -41,6 +41,21 @@ class RacerNumberCallback: public BLECharacteristicCallbacks {
   }
 };
 
+class FilenameCallback: public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic *pCharacteristic) {
+    // do something because a new value was written.
+    Serial.println("Filename Written");
+    std::string os;
+    os = pCharacteristic->getValue();
+    Serial.write(os.c_str());
+    Serial.println();
+    int num = atoi(os.c_str());
+    Serial.print("Filname: ");
+    Serial.println(num);
+    push_event(EVT_FILENAME_ENTERED, os.c_str());
+  }
+};
+
 // empty constructor
 UniBle::UniBle()
 {
@@ -104,6 +119,15 @@ void UniBle::setupBuzzer(BLEService *pService) {
   pBuzzerCharacteristic->addDescriptor(new BLE2902());
 }
 
+void UniBle::setupFilename(BLEService *pService) {
+  pFilenameCharacteristic = pService->createCharacteristic(
+                                         FILENAME_UUID,
+                                         BLECharacteristic::PROPERTY_READ |
+                                         BLECharacteristic::PROPERTY_WRITE
+                                       );
+  pFilenameCharacteristic->setCallbacks(new FilenameCallback());
+}
+
 // Callback method which listens to events, and publishes them to the BT data connection
 // if they are relevant
 void UniBle::bt_notify_callback(uint8_t event_type, char *event_data) {
@@ -141,12 +165,17 @@ void UniBle::setup() {
   Serial.println("Starting BLE work!");
 
   BLEDevice::init("ESP32");
+  // BLEDevice::setMTU(100);
   pServer = BLEDevice::createServer();
-  BLEService *pService = pServer->createService(SERVICE_UUID);
+  // Increasing the num_handles to 30 allows for more characteristics
+  // the default value (15) https://github.com/espressif/arduino-esp32/blob/master/libraries/BLE/src/BLEServer.h#L67
+  // prevents > ~5 characteristics from appearing when advertising
+  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID), 30);
 
   // set up BLE characteristics
   setupSensor(pService);
   setupMode(pService);
+  setupFilename(pService);
   setupBuzzer(pService);
   setupCurrentTime(pService);
   setupRacerNumber(pService);

@@ -54,6 +54,7 @@ class UniBle
     BLECharacteristic* pResultCountCharacteristic = NULL;
     void setupSensor(BLEService *pService);
     void setupMode(BLEService *pService);
+    void setupFilename(BLEService *pService);
     void setupBuzzer(BLEService *pService);
     void setupCurrentTime(BLEService *pService);
     void setupRacerNumber(BLEService *pService);

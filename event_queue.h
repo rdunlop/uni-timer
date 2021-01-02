@@ -27,6 +27,8 @@
 #define EVT_CACHED_TIME_COUNT 11
 // we have cleared the racer number
 #define EVT_RACER_NUMBER_CLEARED 12
+// User has entered a new filename
+#define EVT_FILENAME_ENTERED 13
 
 // Useful constants
 #define EVENT_STACK_SIZE 10

@@ -16,7 +16,7 @@ UniConfig::UniConfig()
     _loadedFromDefault = true;
     // Default Config, as the config file is not found
     _config.mode = 1;
-    strncpy(_config.filename, "/results.txt", 40);
+    strncpy(_config.filename, "/results.txt", FILENAME_MAX_LENGTH);
   } else {
     _loadedFromDefault = false;
   }
@@ -32,7 +32,7 @@ char *UniConfig::filename() {
 }
 
 void UniConfig::setFilename(char *filename) {
-  strcpy(_config.filename, filename);
+  strncpy(_config.filename, filename, FILENAME_MAX_LENGTH);
   writeConfig();
 }
 
