@@ -49,9 +49,8 @@ class FilenameCallback: public BLECharacteristicCallbacks {
     os = pCharacteristic->getValue();
     Serial.write(os.c_str());
     Serial.println();
-    int num = atoi(os.c_str());
-    Serial.print("Filname: ");
-    Serial.println(num);
+    Serial.print("Filename: ");
+    Serial.println(os.c_str());
     push_event(EVT_FILENAME_ENTERED, os.c_str());
   }
 };
