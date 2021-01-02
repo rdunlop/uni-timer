@@ -9,6 +9,10 @@ extern UniSd sd;
 
 UniConfig::UniConfig()
 {
+
+}
+
+void UniConfig::setup() {
   // read Config
   if (!readConfig()) {
     _loadedFromDefault = true;

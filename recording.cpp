@@ -4,13 +4,9 @@
 #include "uni_config.h"
 #include "uni_sd.h"
 
-#ifdef ENABLE_SD
 extern UniSd sd;
-#endif
 
-#ifdef ENABLE_BUZZER
 extern UniBuzzer buzzer;
-#endif
 
 extern UniConfig config;
 
@@ -40,23 +36,13 @@ void push_racer_number(int racer_number, char *data) {
 }
 
 void publish_time_recorded(uint8_t event_type, char *event_data) {
-  bool success;
   switch(event_type) {
     case EVT_TIME_RECORD:
       Serial.println("Recording Racer");
       Serial.println(event_data);
-      success = false;
-#ifdef ENABLE_SD
-      success = sd.writeFile(config.filename(), event_data);
-#else
-      success = true;
-#endif
-
-#ifdef ENABLE_BUZZER
-      if (!success) {
+      if (!sd.writeFile(config.filename(), event_data)) {
         buzzer.error();
       }
-#endif
       push_event(EVT_TIME_STORED, event_data);
       break;
     case EVT_FILENAME_ENTERED:

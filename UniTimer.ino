@@ -157,6 +157,7 @@ void main_setup () {
   delay(1000);
 #endif
 
+  config.setup();
   if (config.loadedFromDefault()) {
     Serial.println("Config File not found, loaded defaults");
     buzzer.error();

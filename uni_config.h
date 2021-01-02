@@ -15,6 +15,7 @@ class UniConfig
 
   public:
     UniConfig();
+    void setup();
     bool loadedFromDefault();
     char *filename();
     void setFilename(char *filename);
