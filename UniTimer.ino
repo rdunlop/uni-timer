@@ -38,7 +38,7 @@
 /* Set these flags to enable certain combinations of components */
 #define ENABLE_BLE
 #define ENABLE_GPS
-// #define ENABLE_SD
+#define ENABLE_SD
 #define ENABLE_SENSOR
 #define ENABLE_BUZZER
 #define ENABLE_ACCURATE_TIMING

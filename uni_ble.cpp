@@ -71,6 +71,7 @@ void UniBle::setupSensor(BLEService *pService) {
   // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
   // Create a BLE Descriptor to allow subscribing to this characteristic (to support NOTIFY/INDICATE flagging)
   pSensorCharacteristic->addDescriptor(new BLE2902());
+  addNameDescriptor(pSensorCharacteristic, "Sensor");
 }
 
 void UniBle::setupMode(BLEService *pService) {
@@ -80,6 +81,8 @@ void UniBle::setupMode(BLEService *pService) {
                                          BLECharacteristic::PROPERTY_WRITE
                                        );
   pModeCharacteristic->setCallbacks(new ModeCallback());
+  addUtf8Descriptor(pModeCharacteristic);
+  addNameDescriptor(pModeCharacteristic, "Mode");
 }
 
 void UniBle::setupRacerNumber(BLEService *pService) {
@@ -89,6 +92,8 @@ void UniBle::setupRacerNumber(BLEService *pService) {
                                          BLECharacteristic::PROPERTY_WRITE
                                        );
   pRacerNumberCharacteristic->setCallbacks(new RacerNumberCallback());
+  addUtf8Descriptor(pRacerNumberCharacteristic);
+  addNameDescriptor(pRacerNumberCharacteristic, "Racer Number");
 }
 
 void UniBle::setupResultCount(BLEService *pService) {
@@ -98,6 +103,7 @@ void UniBle::setupResultCount(BLEService *pService) {
                                          BLECharacteristic::PROPERTY_NOTIFY
                                        );
   pResultCountCharacteristic->addDescriptor(new BLE2902());
+  addNameDescriptor(pResultCountCharacteristic, "Cached Result Count");
 }
 
 void UniBle::setupCurrentTime(BLEService *pService) {
@@ -107,6 +113,7 @@ void UniBle::setupCurrentTime(BLEService *pService) {
                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
   pCurrentTimeCharacteristic->addDescriptor(new BLE2902());
+  addNameDescriptor(pCurrentTimeCharacteristic, "Current Clock Time");
 }
 
 void UniBle::setupBuzzer(BLEService *pService) {
@@ -116,6 +123,7 @@ void UniBle::setupBuzzer(BLEService *pService) {
                                          BLECharacteristic::PROPERTY_NOTIFY
                                        );
   pBuzzerCharacteristic->addDescriptor(new BLE2902());
+  addNameDescriptor(pBuzzerCharacteristic, "Buzzer");
 }
 
 void UniBle::setupFilename(BLEService *pService) {
@@ -125,6 +133,8 @@ void UniBle::setupFilename(BLEService *pService) {
                                          BLECharacteristic::PROPERTY_WRITE
                                        );
   pFilenameCharacteristic->setCallbacks(new FilenameCallback());
+  addUtf8Descriptor(pFilenameCharacteristic);
+  addNameDescriptor(pFilenameCharacteristic, "Filename");
 }
 
 // Callback method which listens to events, and publishes them to the BT data connection
@@ -208,4 +218,16 @@ void UniBle::loop() {
     Serial.println("Connecting BLE device");
     oldDeviceConnected = deviceConnected;
   }
+}
+
+void UniBle::addUtf8Descriptor(BLECharacteristic *characteristic) {
+  BLE2904 *format = new BLE2904();
+  format->setFormat(BLE2904::FORMAT_UTF8);
+  characteristic->addDescriptor(format);
+}
+
+void UniBle::addNameDescriptor(BLECharacteristic *characteristic, char *name) {
+  BLEDescriptor *nameDescr = new BLEDescriptor(BLEUUID((uint16_t) 0x2901));
+  nameDescr->setValue(name);
+  characteristic->addDescriptor(nameDescr);
 }

@@ -2,7 +2,7 @@
 // - This file assumes that the GPS is connected on Serial2
 
 #include "uni_gps.h"
-//#define GPSECHO
+// #define GPSECHO
 
 UniGps::UniGps(int pps_signal_input)
 {

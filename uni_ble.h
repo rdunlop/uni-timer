@@ -5,6 +5,7 @@
 #include <BLEUtils.h>
 #include <BLEServer.h>
 #include <BLE2902.h>
+#include <BLE2904.h>
 
 #include <string.h>
 
@@ -59,6 +60,9 @@ class UniBle
     void setupCurrentTime(BLEService *pService);
     void setupRacerNumber(BLEService *pService);
     void setupResultCount(BLEService *pService);
+
+    void addUtf8Descriptor(BLECharacteristic *characteristic);
+    void addNameDescriptor(BLECharacteristic *characteristic, char *name);
 };
 
 #endif
