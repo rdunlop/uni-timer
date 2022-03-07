@@ -5,16 +5,12 @@
 // on an SD card as well as displays to a 7-segment display
 //
 // Expected Hardware Components
-// - SENSOR - Sensor
+// - SENSOR - 10v hardware optical Sensor
 // - GPS - GPS Sensor, for setting accurate time signal
 // - DISPLAY - 7 Segment display
-// - KEYPAD_EXPANSION - I2C expansion board, with keypad connected to it
 // - BUZZER - Piezo buzzer
-// - BUTTON - Input button
 // - SD - MicroSD Storage card
 //
-// Needed Libraries
-// - Download and provide https://github.com/adafruit/SD in the SD folder. (this replaces the SD library included by the GPS library
 //
 // NOTES:
 // [1] The GPS is used to know the absolute time.
@@ -69,7 +65,6 @@
 #ifdef ENABLE_SENSOR
 #include "uni_sensor.h"
 #endif
-// - BUTTON
 
 #include "modes.h"
 #include "recording.h"
@@ -100,8 +95,6 @@
 #define SD_SPI_CLK_OUTPUT 13
 // - BUZZER
 #define BUZZER_DIGITAL_OUTPUT 4
-// - BUTTON
-#define BUTTON_DIGITAL_INPUT 25 // unused
 
 #define MODE_OFFSET 100
 #define MODE_1 101
