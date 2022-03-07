@@ -1,7 +1,6 @@
 #include "uni_keypad.h"
 #include "uni_gps.h"
 #include "uni_display.h"
-#include "uni_printer.h"
 #include "uni_sd.h"
 #include "uni_buzzer.h"
 #include "uni_sensor.h"
@@ -12,7 +11,6 @@
 extern UniKeypad keypad;
 extern UniGps gps;
 extern UniDisplay display;
-extern UniPrinter printer;
 extern UniSd sd;
 extern UniSensor sensor;
 extern UniBuzzer buzzer;
@@ -27,7 +25,7 @@ extern UniBuzzer buzzer;
 //  - If you have 2 times recorded, it will beep twice periodically, etc.
 //- when you press number keys, display the numbers on the display.
 //- If you enter more than 3 digits, it will beep and clear
-//- If you press "A", it will accept the input, and display the time and the racer number to printer/SD
+//- If you press "A", it will accept the input, and display the time and the racer number to SD
 //- If you press "D", it will clear the display
 //- If you press "B", it will duplicate the last time, and create E2 (only available from initial mode)
 //- If you press C+* it will clear the last entry
@@ -157,7 +155,6 @@ void mode6_fsm_setup() {
 }
 
 void mode6_setup() { 
-  print_filename();
   display.clear(); 
   sensor.attach_interrupt(); 
 }
@@ -196,7 +193,6 @@ void mode6_store_result() {
   buzzer.beep();
   TimeResult data;
   if (retrieve_data(&data)) {
-    print_racer_data_to_printer(racer_number(), data);
     print_racer_data_to_sd(racer_number(), data);
     clear_racer_number();  
   }

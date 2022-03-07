@@ -1,8 +1,8 @@
 /* ****************************************************************************************** */
 // UniTimer
 //
-// This application interacts with an optical sensor device, and prints the results
-// to a thermal printer as well as displays to a 7-segment display
+// This application interacts with an optical sensor device, and stores the results
+// on an SD card as well as displays to a 7-segment display
 //
 // Expected Hardware Components
 // - SENSOR - Sensor
@@ -41,7 +41,6 @@
 #define ENABLE_GPS
 #define ENABLE_DISPLAY
 #define ENABLE_KEYPAD
-#define ENABLE_PRINTER
 #define ENABLE_SD
 #define ENABLE_SENSOR
 #define ENABLE_BUZZER
@@ -58,10 +57,6 @@
 // - KEYPAD
 #ifdef ENABLE_KEYPAD
 #include "uni_keypad.h"
-#endif
-// - PRINTER
-#ifdef ENABLE_PRINTER
-#include "uni_printer.h"
 #endif
 // - SD Card
 #ifdef ENABLE_SD
@@ -98,9 +93,6 @@
 #define KEYPAD_ROW_WIRE_2 16
 #define KEYPAD_ROW_WIRE_3 15
 #define KEYPAD_ROW_WIRE_4 14
-// - PRINTER
-#define PRINTER_DIGITAL_OUTPUT 8 // Arduino transmit  YELLOW WIRE  labeled RX on printer
-#define PRINTER_DIGITAL_INPUT 7 // Arduino receive   GREEN WIRE   labeled TX on printer
 // - SD Card
 #define SD_SPI_CHIP_SELECT_OUTPUT 6
 #define SD_SPI_MOSI_INPUT 11
@@ -143,11 +135,6 @@ UniKeypad modeKeypad(
   KEYPAD_COLUMN_WIRE_3,
   KEYPAD_COLUMN_WIRE_4
 );
-#endif
-
-// PRINTER -------------------------------------
-#ifdef ENABLE_PRINTER
-UniPrinter printer(PRINTER_DIGITAL_INPUT, PRINTER_DIGITAL_OUTPUT);
 #endif
 
 // SD
@@ -224,11 +211,6 @@ void setup () {
   gps.setup(&pps_interrupt);
 #endif
 
-  // PRINTER
-#ifdef ENABLE_PRINTER
-  printer.setup();
-#endif
-
 #ifdef ENABLE_BUZZER
   buzzer.setup();
 #endif
@@ -289,15 +271,6 @@ void mode0_run() {
 
   // Show 88:88
   display.all();
-
-#ifdef ENABLE_PRINTER
-  if (printer.hasPaper()) {
-    Serial.println("printer has paper");
-  } else {
-    Serial.println("printer has no paper");
-    success = false;
-  }
-#endif
 
 #ifdef ENABLE_SD
   if (sd.status()) {

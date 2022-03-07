@@ -1,7 +1,6 @@
 #include "uni_keypad.h"
 #include "uni_gps.h"
 #include "uni_display.h"
-#include "uni_printer.h"
 #include "uni_sd.h"
 #include "uni_buzzer.h"
 #include "uni_sensor.h"
@@ -12,7 +11,6 @@
 extern UniKeypad keypad;
 extern UniGps gps;
 extern UniDisplay display;
-extern UniPrinter printer;
 extern UniSd sd;
 extern UniSensor sensor;
 extern UniBuzzer buzzer;
@@ -29,7 +27,7 @@ extern UniBuzzer buzzer;
 //- If you press D, it clears the number and leaves "Accepted" mode
 //- When in Accepted state:
 //  - If the sensor is crossed
-//    - write the current time to the SD and the printer
+//    - write the current time to the SD
 //    - display 5En5 on the display for 2 seconds and beep for 2 seconds.
 //- When NOT in Accepted State:
 //  - If the sensor is crossed
@@ -129,7 +127,6 @@ void sensor_triggered() {
   
   TimeResult data;
   currentTime(&data);
-  print_racer_data_to_printer(racer_number(), data);
   print_racer_data_to_sd(racer_number(), data);
   
   clear_racer_number();
@@ -171,8 +168,6 @@ void mode5_fsm_setup() {
 }
 
 void mode5_setup() {
-  print_filename();
-  
   display.clear();
   sensor.attach_interrupt();
   // States:

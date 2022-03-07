@@ -1,12 +1,10 @@
 #include "uni_display.h"
 #include "uni_keypad.h"
-#include "uni_printer.h"
 #include "uni_sd.h"
 #include "recording.h"
 
 extern UniDisplay display;
 extern UniKeypad keypad;
-extern UniPrinter printer;
 extern UniSd sd;
 
 int _racer_number = 0;
@@ -51,17 +49,6 @@ void build_race_filename(char *filename, const int max_length) {
   snprintf(filename, max_length, "%s_%s_%s_%d", _config.difficulty == 0 ? "Beginner" : _config.difficulty == 1 ? "Advanced" : "Expert", _config.up ? "Up" : "Down", _config.start ? "Start" : "Finish", _config.number);
 }
 
-void print_racer_data_to_printer(int racer_number, TimeResult data) {
-  #define MAX_RACER_DATA 35
-  char full_string[MAX_RACER_DATA];
-  char data_string[MAX_RACER_DATA];
-  snprintf(data_string, MAX_RACER_DATA, "%02d:%02d:%02d.%03d", data.hour, data.minute, data.second, data.millisecond);
-  snprintf(full_string, MAX_RACER_DATA, "RACER %d - %s", racer_number, data_string);
-  Serial.println(full_string);
-  printer.print(full_string);
-  Serial.println("Done Printing");
-}
-
 void print_racer_data_to_sd(int racer_number, TimeResult data) {
 #define FILENAME_LENGTH 35
   char filename[FILENAME_LENGTH];
@@ -77,7 +64,6 @@ void print_racer_data_to_sd(int racer_number, TimeResult data) {
   build_race_filename(filename, FILENAME_LENGTH);
   sd.writeFile(filename, full_string);
   // temporary
-  printer.print(full_string);
   Serial.println(full_string);
 }
 
@@ -90,13 +76,5 @@ void clear_previous_entry() {
 
   snprintf(message, MAX_MESSAGE, "CLEAR_PREVIOUS");
   Serial.println("Clear previous entry");
-  printer.print(message);
   sd.writeFile(filename, message);
-}
-
-void print_filename() {
-  char filename[MAX_FILENAME];
-  build_race_filename(filename, MAX_FILENAME);
-  printer.print(filename);
-  printer.feed();
 }

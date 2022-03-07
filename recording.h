@@ -8,10 +8,8 @@ bool three_digits_racer_number();
 
 // ****************
 void build_race_filename(char *filename, const int max_length);
-void print_racer_data_to_printer(int racer_number, TimeResult data);
 void print_racer_data_to_sd(int racer_number, TimeResult data);
 void clear_previous_entry();
-void print_filename();
 
 typedef struct {
   bool start;
