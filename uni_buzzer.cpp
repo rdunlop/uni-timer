@@ -1,5 +1,6 @@
 // BUZZER
 #include "uni_buzzer.h"
+#include <Arduino.h>
 
 UniBuzzer::UniBuzzer(int output)
 {

@@ -289,20 +289,24 @@ void mode0_run() {
 
   // Show 88:88
   display.all();
-  
+
+#ifdef ENABLE_PRINTER
   if (printer.hasPaper()) {
     Serial.println("printer has paper");
   } else {
     Serial.println("printer has no paper");
     success = false;
   }
+#endif
 
+#ifdef ENABLE_SD
   if (sd.status()) {
     Serial.println("SD Card OK");
   } else {
     Serial.println("SD Card Error");
     success = false;
   }
+#endif
 
   // TODO: Check GPS
 
