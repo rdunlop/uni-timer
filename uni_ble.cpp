@@ -10,6 +10,21 @@
 // BLE Library Documentation: https://github.com/nkolban/esp32-snippets/blob/master/Documentation/BLE%20C%2B%2B%20Guide.pdf
 
 
+bool deviceConnected = false;
+bool oldDeviceConnected = false;
+
+class MyServerCallbacks: public BLEServerCallbacks {
+  void onConnect(BLEServer* pServer) {
+    Serial.println("Connected!");
+    deviceConnected = true;
+  };
+
+  void onDisconnect(BLEServer* pServer) {
+    Serial.println("Disconnected!");
+    deviceConnected = false;
+  }
+};
+
 class ModeCallback: public BLECharacteristicCallbacks {
   void onWrite(BLECharacteristic *pCharacteristic) {
     // do something because a new value was written.
@@ -65,8 +80,7 @@ void UniBle::setupSensor(BLEService *pService) {
   pSensorCharacteristic = pService->createCharacteristic(
                                          SENSOR_UUID,
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_NOTIFY |
-                                         BLECharacteristic::PROPERTY_INDICATE
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
   // https://www.bluetooth.com/specifications/gatt/viewer?attributeXmlFile=org.bluetooth.descriptor.gatt.client_characteristic_configuration.xml
   // Create a BLE Descriptor to allow subscribing to this characteristic (to support NOTIFY/INDICATE flagging)
@@ -77,10 +91,12 @@ void UniBle::setupSensor(BLEService *pService) {
 void UniBle::setupMode(BLEService *pService) {
   pModeCharacteristic = pService->createCharacteristic(
                                          MODE_UUID,
+                                         BLECharacteristic::PROPERTY_WRITE |
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
   pModeCharacteristic->setCallbacks(new ModeCallback());
+  pModeCharacteristic->addDescriptor(new BLE2902());
   addUtf8Descriptor(pModeCharacteristic);
   addNameDescriptor(pModeCharacteristic, "Mode");
 }
@@ -88,10 +104,12 @@ void UniBle::setupMode(BLEService *pService) {
 void UniBle::setupRacerNumber(BLEService *pService) {
   pRacerNumberCharacteristic = pService->createCharacteristic(
                                          RACER_NUMBER_UUID,
+                                         BLECharacteristic::PROPERTY_WRITE |
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
   pRacerNumberCharacteristic->setCallbacks(new RacerNumberCallback());
+  pRacerNumberCharacteristic->addDescriptor(new BLE2902());
   addUtf8Descriptor(pRacerNumberCharacteristic);
   addNameDescriptor(pRacerNumberCharacteristic, "Racer Number");
 }
@@ -129,10 +147,12 @@ void UniBle::setupBuzzer(BLEService *pService) {
 void UniBle::setupFilename(BLEService *pService) {
   pFilenameCharacteristic = pService->createCharacteristic(
                                          FILENAME_UUID,
+                                         BLECharacteristic::PROPERTY_WRITE |
                                          BLECharacteristic::PROPERTY_READ |
-                                         BLECharacteristic::PROPERTY_WRITE
+                                         BLECharacteristic::PROPERTY_NOTIFY
                                        );
   pFilenameCharacteristic->setCallbacks(new FilenameCallback());
+  pFilenameCharacteristic->addDescriptor(new BLE2902());
   addUtf8Descriptor(pFilenameCharacteristic);
   addNameDescriptor(pFilenameCharacteristic, "Filename");
 }
@@ -142,27 +162,33 @@ void UniBle::setupFilename(BLEService *pService) {
 void UniBle::bt_notify_callback(uint8_t event_type, char *event_data) {
     switch(event_type) {
     case EVT_SENSOR_CHANGE:
+      Serial.println("Sending Sensor Notification");
       pSensorCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
       pSensorCharacteristic->notify();
       break;
     case EVT_BUZZER_CHANGE:
+      Serial.println("Sending Buzzer Notification");
       pBuzzerCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
       pBuzzerCharacteristic->notify();
       break;
     case EVT_TIME_CHANGE:
+      Serial.println("Sending Time Notification");
       pCurrentTimeCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
       pCurrentTimeCharacteristic->notify();
       break;
     case EVT_MODE_CHANGE:
+      Serial.println("Sending Mode Notification");
       pModeCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
       pModeCharacteristic->notify();
       break;
     case EVT_RACER_NUMBER_ENTERED:
     case EVT_RACER_NUMBER_CLEARED:
+      Serial.println("Sending Racer Number Notification");
       pRacerNumberCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
       pRacerNumberCharacteristic->notify();
       break;
     case EVT_CACHED_TIME_COUNT:
+      Serial.println("Sending Result Count Notification");
       pResultCountCharacteristic->setValue((uint8_t*)event_data, strlen(event_data));
       pResultCountCharacteristic->notify();
       break;
@@ -178,10 +204,11 @@ void UniBle::setup() {
   // BLESecurity *security = new BLESecurity();
   // security->setStaticPIN(1234);
   pServer = BLEDevice::createServer();
-  // Increasing the num_handles to 30 allows for more characteristics
+  pServer->setCallbacks(new MyServerCallbacks());
+  // Increasing the num_handles to 50 allows for more characteristics
   // the default value (15) https://github.com/espressif/arduino-esp32/blob/master/libraries/BLE/src/BLEServer.h#L67
   // prevents > ~5 characteristics from appearing when advertising
-  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID), 30);
+  BLEService *pService = pServer->createService(BLEUUID(SERVICE_UUID), 50);
 
   // set up BLE characteristics
   setupSensor(pService);
@@ -213,6 +240,7 @@ void UniBle::loop() {
     pServer->startAdvertising(); // restart advertising
     Serial.println("start advertising");
     oldDeviceConnected = deviceConnected;
+    // NOTIFY ALL Characteristics? Probably cannot because client hasn't read/subscribed yet.
   }
   // connecting
   if (deviceConnected && !oldDeviceConnected) {

@@ -43,8 +43,6 @@ class UniBle
     void setup();
     void loop();
   private:
-    bool deviceConnected = true;
-    bool oldDeviceConnected = false;
     BLEServer* pServer = NULL;
     BLECharacteristic* pModeCharacteristic = NULL;
     BLECharacteristic* pRacerNumberCharacteristic = NULL;

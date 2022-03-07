@@ -173,3 +173,9 @@ You may need to press the "Boot" button on the arduino if it fails to connect (w
 ## Monitoring
 
 The software provides a serial port at 115200 Baud
+
+
+# TODO
+
+When we lose gps lock, and then regain it, how much drift have we had?
+make the buzzer sounds more than 1 pitch.
