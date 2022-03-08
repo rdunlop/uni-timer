@@ -90,9 +90,9 @@
 #define KEYPAD_ROW_WIRE_4 14
 // - SD Card
 #define SD_SPI_CHIP_SELECT_OUTPUT 6
-#define SD_SPI_MOSI_INPUT 11
-#define SD_SPI_MISO_INPUT 12
-#define SD_SPI_CLK_OUTPUT 13
+// #define SD_SPI_MOSI_INPUT 11 // unused
+// #define SD_SPI_MISO_INPUT 12
+// #define SD_SPI_CLK_OUTPUT 13
 // - BUZZER
 #define BUZZER_DIGITAL_OUTPUT 4
 
@@ -133,11 +133,7 @@ UniKeypad modeKeypad(
 
 // SD
 #ifdef ENABLE_SD
-UniSd sd(
-  SD_SPI_CHIP_SELECT_OUTPUT,
-  SD_SPI_MOSI_INPUT,
-  SD_SPI_MISO_INPUT,
-  SD_SPI_CLK_OUTPUT);
+UniSd sd(SD_SPI_CHIP_SELECT_OUTPUT);
 #endif
 
 #ifdef ENABLE_DISPLAY
@@ -155,6 +151,9 @@ UniBuzzer buzzer(BUZZER_DIGITAL_OUTPUT);
 #ifdef ENABLE_SENSOR
 UniSensor sensor(SENSOR_DIGITAL_INPUT);
 #endif
+
+// CONFIG MANAGEMENT
+UniConfig config; // No arguments for constructor, hence, no parentheses
 
 // NEW HEADER FILE
 void clear_display();
@@ -212,8 +211,17 @@ void setup () {
 #endif
 
 #ifdef ENABLE_SD
-  // sd.setup();
+  sd.setup();
 #endif
+
+  config.setup();
+  if (config.loadedFromDefault()) {
+    Serial.println("Config File not found, loaded defaults");
+    buzzer.failure();
+  } else {
+    Serial.println("Config Read Success");
+    buzzer.success();
+  }
 
   register_date_callback(date_callback);
   setup_fsm();

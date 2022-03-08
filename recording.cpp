@@ -2,10 +2,12 @@
 #include "uni_keypad.h"
 #include "uni_sd.h"
 #include "recording.h"
+#include "uni_config.h"
 
 extern UniDisplay display;
 extern UniKeypad keypad;
 extern UniSd sd;
+extern UniConfig config;
 
 int _racer_number = 0;
 
@@ -39,16 +41,6 @@ bool three_digits_racer_number() {
 
 // **((((((((( NEW FILE )))))))))))))))))
 
-Config _config = {true, 0, true, 1};
-
-Config *getConfig() {
-  return &_config;
-}
-
-void build_race_filename(char *filename, const int max_length) {
-  snprintf(filename, max_length, "%s_%s_%s_%d", _config.difficulty == 0 ? "Beginner" : _config.difficulty == 1 ? "Advanced" : "Expert", _config.up ? "Up" : "Down", _config.start ? "Start" : "Finish", _config.number);
-}
-
 void print_racer_data_to_sd(int racer_number, TimeResult data) {
 #define FILENAME_LENGTH 35
   char filename[FILENAME_LENGTH];
@@ -61,7 +53,7 @@ void print_racer_data_to_sd(int racer_number, TimeResult data) {
   Serial.println(racer_number);
   snprintf(full_string, FILENAME_LENGTH, "%d,%s", racer_number, data_string);
 
-  build_race_filename(filename, FILENAME_LENGTH);
+  strncpy(filename, config.filename(), FILENAME_LENGTH);
   sd.writeFile(filename, full_string);
   // temporary
   Serial.println(full_string);
@@ -72,7 +64,7 @@ void clear_previous_entry() {
   #define MAX_MESSAGE 20
   char filename[MAX_FILENAME];
   char message[MAX_MESSAGE];
-  build_race_filename(filename, MAX_FILENAME);
+  strncpy(filename, config.filename(), MAX_FILENAME);
 
   snprintf(message, MAX_MESSAGE, "CLEAR_PREVIOUS");
   Serial.println("Clear previous entry");

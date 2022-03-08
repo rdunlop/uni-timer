@@ -27,6 +27,9 @@ void mode_resume_loop() {
   gps.readData();
   if (gps.lock()) {
     // mode_fsm.trigger(MODE_5);
+  } else {
+    display.waiting(false);
+    delay(1000);
   }
 }
 

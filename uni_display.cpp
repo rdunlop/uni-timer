@@ -28,6 +28,7 @@ UniDisplay::UniDisplay(int i2c_addr)
 {
   _i2c_addr = i2c_addr;
   _display = Adafruit_7segment();
+  _wait_state = 0;
 }
 
 
@@ -149,6 +150,14 @@ void UniDisplay::showEntriesRemaining(int x) {
 void UniDisplay::clear() {
   _display.clear();
   _display.writeDisplay();
+}
+
+// Display a moving indicator, around the circle of digit 1
+void UniDisplay::waiting(bool center) {
+  _display.clear();
+  _display.writeDigitRaw(0, 1 << _wait_state);
+  _display.writeDisplay();
+  _wait_state = (_wait_state + 1) % 6;
 }
 
 uint8_t difficulty_to_letter_code(uint8_t difficulty) {

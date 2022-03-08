@@ -1,12 +1,9 @@
 // - SD
 #include "uni_sd.h"
 
-UniSd::UniSd(int cs, int mosi, int miso, int clk)
+UniSd::UniSd(int cs)
 {
   _cs = cs;
-  _mosi = mosi;
-  _miso = miso;
-  _clk = clk;
 }
 
 void UniSd::setup() {
@@ -29,7 +26,7 @@ bool UniSd::status() {
 //  readFile("testfile.txt");
 }
 
-void UniSd::writeFile(char *filename, char *text) {
+bool UniSd::writeFile(const char *filename, char *text) {
 // open the file. note that only one file can be open at a time,
   // so you have to close this one before opening another.
   myFile = SD.open(filename, FILE_WRITE);
@@ -44,28 +41,38 @@ void UniSd::writeFile(char *filename, char *text) {
     // close the file:
     myFile.close();
     Serial.println("done.");
+    return true;
   } else {
     // if the file didn't open, print an error:
     Serial.print("error opening ");
     Serial.println(filename);
+    return false;
   }
 }
 
-void UniSd::readFile(char *filename) {
+bool UniSd::readFile(const char *filename, char *result, int max_result) {
   // re-open the file for reading:
   myFile = SD.open(filename);
   if (myFile) {
     Serial.println(filename);
 
     // read from the file until there's nothing else in it:
+    int current_position = 0;
     while (myFile.available()) {
-      Serial.write(myFile.read());
+      char character = myFile.read();
+      if (current_position < max_result) {
+        result[current_position++] = character;
+      }
+
+      Serial.write(character);
     }
     // close the file:
     myFile.close();
+    return true;
   } else {
     // if the file didn't open, print an error:
     Serial.print("error opening ");
     Serial.println(filename);
+    return false;
   }
 }

@@ -80,12 +80,9 @@ void initial_check() {
 }
 
 void digit_check() {
-  #define MAX_FILENAME_LENGTH 35
   // - 0-9 -> TWO_DIGITS_ENTERED or THREE_DIGITS_ENTERED
   // - A -> ACCEPTING
   // - C -> INITIAL
-  char filename[MAX_FILENAME_LENGTH];
-  build_race_filename(filename, MAX_FILENAME_LENGTH);
   char last_key_pressed = keypad.readChar();
   if (keypad.isDigit(last_key_pressed)) {
     if (three_digits_racer_number()) {

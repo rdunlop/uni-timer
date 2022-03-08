@@ -20,8 +20,10 @@ class UniDisplay
     void showNumber(int, int);
     void showEntriesRemaining(int);
     void clear();
+    void waiting(bool);
   private:
     int _i2c_addr;
     Adafruit_7segment _display;
+    int _wait_state;
 };
 #endif

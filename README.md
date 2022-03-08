@@ -137,8 +137,7 @@ Changes are automatically Saved.
 
 Defaults to 3 digits for a racer number.
 
-- If you press A, 3 digits
-- If you press B, 4 digits
+- If you press A, toggle between 3 and 4 digits
 
 #### Mode 4.3 (Press 3) - Start Line Mode
 
