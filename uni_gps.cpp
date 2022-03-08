@@ -67,6 +67,12 @@ void UniGps::printPeriodically() {
   }
 }
 
+// Have we got GPS Lock, and accurate time?
+bool UniGps::lock() {
+  // TBD
+  return newData;
+}
+
 int UniGps::getHourMinuteSecond(int *hour, int *minute, int *second) {
   int year;
   byte month, day, new_hour, new_minute, new_second, hundredths;

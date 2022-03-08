@@ -44,6 +44,7 @@ void mode6_store_result();
 
 State mode6_initial(&mode6_initial_entry, &mode6_initial_check, &mode6_initial_exit);
 State mode6_digits_entered(NULL, &mode6_digit_check, NULL);
+bool fsm_6_transition_setup_complete = false;
 
 Fsm mode6_fsm(&mode6_initial);
 #define MAX_RESULTS 10
@@ -155,6 +156,10 @@ void mode6_fsm_setup() {
 }
 
 void mode6_setup() { 
+  if (!fsm_6_transition_setup_complete)  {
+    mode6_fsm_setup();
+    fsm_6_transition_setup_complete = true;
+  }
   display.clear(); 
   sensor.attach_interrupt(); 
 }

@@ -19,6 +19,7 @@
 #define LETTER_E 0x79
 #define LETTER_N 0x54
 #define LETTER_O 0x5C
+#define LETTER_P 0x73
 #define LETTER_U 0x3E
 
 uint8_t difficulty_to_letter_code(uint8_t difficulty);
@@ -57,6 +58,21 @@ void UniDisplay::bad() {
   _display.writeDigitNum(1, 0xb);
   _display.writeDigitNum(3, 0xa);
   _display.writeDigitNum(4, 0xd);
+  _display.writeDisplay();
+}
+
+void UniDisplay::sd() {
+  _display.clear();
+  _display.writeDigitNum(3, 0x5);
+  _display.writeDigitNum(4, 0xd);
+  _display.writeDisplay();
+}
+
+void UniDisplay::gps() {
+  _display.clear();
+  _display.writeDigitNum(1, 0x9);
+  _display.writeDigitRaw(3, LETTER_P);
+  _display.writeDigitNum(4, 0x5);
   _display.writeDisplay();
 }
 

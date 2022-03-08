@@ -54,6 +54,7 @@ void sensor_exit();
 State initial(NULL, &initial_check, NULL);
 State digits_entered(NULL, &digit_check, NULL);
 State ready_for_sensor(&sensor_entry, &sensor_check, &sensor_exit);
+bool fsm_5_transition_setup_complete = false;
 
 Fsm mode5_fsm(&initial);
 
@@ -168,6 +169,10 @@ void mode5_fsm_setup() {
 }
 
 void mode5_setup() {
+  if (!fsm_5_transition_setup_complete) {
+    mode5_fsm_setup();
+    fsm_5_transition_setup_complete = true;
+  }
   display.clear();
   sensor.attach_interrupt();
   // States:

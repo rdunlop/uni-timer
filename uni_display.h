@@ -11,6 +11,8 @@ class UniDisplay
     void good();
     void bad();
     void sens();
+    void sd();
+    void gps();
     void setBlink(bool blink);
     void showConfiguration(bool start, uint8_t difficulty, bool up, uint8_t number);
     void show(char);

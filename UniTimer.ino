@@ -103,6 +103,7 @@
 #define MODE_4 104
 #define MODE_5 105
 #define MODE_6 106
+#define MODE_RESUME 107
 
 /* ************************** Initialization ******************* */
 
@@ -170,6 +171,8 @@ State mode3(&clear_display, &mode3_loop, NULL);
 State mode4(&mode4_setup, &mode4_loop, NULL);
 State mode5(&mode5_setup, &mode5_loop, &mode5_teardown);
 State mode6(&mode6_setup, &mode6_loop, &mode6_teardown);
+State mode_resume(&mode_resume_setup, &mode_resume_loop, &mode_resume_teardown);
+
 
 Fsm mode_fsm(&mode0);
 // *******************************************************************
@@ -209,13 +212,11 @@ void setup () {
 #endif
 
 #ifdef ENABLE_SD
-  sd.setup();
+  // sd.setup();
 #endif
 
   register_date_callback(date_callback);
   setup_fsm();
-  mode5_fsm_setup();
-  mode6_fsm_setup();
 }
 
 void date_callback(byte *hour, byte *minute, byte *second) {
@@ -237,16 +238,21 @@ void loop() {
 
 
 void setup_fsm() {
-  mode_fsm.add_timed_transition(&mode0, &mode1, 1000, NULL); // Go to Mode 1 after 1 second
+  mode_fsm.add_transition(&mode0, &mode_resume, MODE_RESUME, NULL); // Able to go to RESUME mode from POST
+  mode_fsm.add_transition(&mode0, &mode1, MODE_1, NULL); // Able to go to MODE 1 mode from POST
 
   // Set up transitions between each possible state and each other state, based on MODE_1, MODE_2, etc triggers.
-  State *mode_states[] = { &mode1, &mode2, &mode3, &mode4, &mode5, &mode6};
+  State *mode_states[] = { &mode1, &mode2, &mode3, &mode4, &mode_resume};
   for (int i = 0; i < 6; i++) {
     for (int j = 0; j < 6; j++) {
       if (j == i) continue; // Don't need to transition from state to same state.
       mode_fsm.add_transition(mode_states[i], mode_states[j], MODE_OFFSET + j + 1, NULL);
     }
   }
+  /* Can transition from RESUME to 1, 5 or 6 */
+  mode_fsm.add_transition(&mode_resume, &mode1, MODE_1, NULL);
+  mode_fsm.add_transition(&mode_resume, &mode5, MODE_5, NULL);
+  mode_fsm.add_transition(&mode_resume, &mode6, MODE_6, NULL);
 }
 
 void clear_display() { 
@@ -258,37 +264,52 @@ void clear_display() {
 int _mode = 1;
 int _new_mode = -1;
 
-// Check systems, and display Good or Bad on the display
+// POST - Check systems, and display Good or Bad on the display
 void mode0_run() {
   bool success = true;
 
+  buzzer.beep();
   // Show 88:88
   display.all();
+  delay(1000);
 
 #ifdef ENABLE_SD
+  display.sd();
+  delay(1000);
   if (sd.status()) {
     Serial.println("SD Card OK");
+    display.good();
+    buzzer.success();
   } else {
     Serial.println("SD Card Error");
     success = false;
+    display.bad();
+    buzzer.failure();
   }
+  delay(1000);
 #endif
 
   // TODO: Check GPS
-
-
-  // Wait 2 seconds
-  delay(2000);
+  display.gps();
+  delay(1000);
+  gps.readData();
+  // Any better option?
+  buzzer.success();
+  delay(1000);
 
   if (success) {
     Serial.println("All systems Good");
     display.good();
+    delay(1000);
+    mode_fsm.trigger(MODE_RESUME);
+    _new_mode = 7; // simulate user transition to Mode Resume
   } else {
     Serial.println("*************** Init Problem");
     display.bad();
+    delay(1000);
+    mode_fsm.trigger(MODE_1);
+    _new_mode = 1; // simulate user transition to Mode 1
   }
-  // wait 1 second
-  delay(1000);
 }
 
 /************************************* (main program) ********* *****************************/
@@ -305,6 +326,7 @@ void checkForModeSelection() {
     _mode = _new_mode;
   }
   
+  // Detect star AND number 1-6 pressed at same time
   if (modeKeypad.newKeyPressed()) {
     Serial.println("NEW KEY");
     if (modeKeypad.keyPressed('*')) {

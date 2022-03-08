@@ -18,3 +18,7 @@ void mode6_fsm_setup();
 void mode6_setup();
 void mode6_loop();
 void mode6_teardown();
+
+void mode_resume_setup();
+void mode_resume_loop();
+void mode_resume_teardown();

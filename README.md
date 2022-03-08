@@ -280,6 +280,7 @@ This project requires the following Arduino libraries:
 ## Other Libraries
 
 - [SDFat 1.1.4](https://github.com/greiman/SdFat)  **NOTE: version 1.1.4 recommended at this time**
+- [arduino-fsm](https://github.com/jonblack/arduino-fsm)
 
 ## Programming with Arduino
 

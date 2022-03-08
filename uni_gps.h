@@ -12,6 +12,7 @@ class UniGps
     int getHourMinuteSecond(int *, int *, int *);
     bool current_time(byte *hour, byte *minute, byte *second);
     void printGPSDate();
+    bool lock();
   private:
     bool newData;
     uint32_t last_gps_print_time;
