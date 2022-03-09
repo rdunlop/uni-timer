@@ -199,6 +199,7 @@ bool UniConfig::writeConfig() {
     "SPACING:", _config.finish_line_spacing,
     "MODE:", _config.mode
     );
+  sd.clearFile(CONFIG_FILENAME);
   if (sd.writeFile(CONFIG_FILENAME, data_string)) {
     Serial.println("Write File");
     Serial.println(data_string);

@@ -1,7 +1,6 @@
 #include "uni_keypad.h"
 #include "uni_gps.h"
 #include "uni_display.h"
-#include "uni_sd.h"
 #include "uni_buzzer.h"
 #include "uni_sensor.h"
 #include "modes.h"
@@ -11,7 +10,6 @@
 extern UniKeypad keypad;
 extern UniGps gps;
 extern UniDisplay display;
-extern UniSd sd;
 extern UniSensor sensor;
 extern UniBuzzer buzzer;
 

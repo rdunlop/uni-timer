@@ -154,6 +154,9 @@ void UniDisplay::clear() {
 
 // Display a moving indicator, around the circle of digit 1
 void UniDisplay::waiting(bool center) {
+  // Turn this into an FSM so that we can call it on loop()
+  // and eliminate the delay...and then we can use this
+  // in mode5/mode6 also.
   _display.clear();
   _display.writeDigitRaw(0, 1 << _wait_state);
   _display.writeDisplay();

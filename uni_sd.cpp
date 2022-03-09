@@ -26,6 +26,7 @@ bool UniSd::status() {
 //  readFile("testfile.txt");
 }
 
+// append the given text to the file, as well as finish with a newline character (ie: println)
 bool UniSd::writeFile(const char *filename, char *text) {
 // open the file. note that only one file can be open at a time,
   // so you have to close this one before opening another.
@@ -75,4 +76,8 @@ bool UniSd::readFile(const char *filename, char *result, int max_result) {
     Serial.println(filename);
     return false;
   }
+}
+
+bool UniSd::clearFile(const char *filename) {
+  return sd.remove(filename);
 }

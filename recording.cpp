@@ -70,3 +70,8 @@ void clear_previous_entry() {
   Serial.println("Clear previous entry");
   sd.writeFile(filename, message);
 }
+
+#define LOG_FILE "log.txt"
+void log(char *message) {
+  sd.writeFile(LOG_FILE, message);
+}

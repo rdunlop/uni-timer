@@ -10,6 +10,7 @@ class UniSd
     void setup();
     void loop();
     bool status();
+    bool clearFile(const char *filename);
     bool writeFile(const char *filename, char *text);
     bool readFile(const char *filename, char *result, int max_result);
   private:
