@@ -113,7 +113,8 @@ To see the current mode, press and release the * button.
 
 ### Mode 2 - GPS/SD Test
 
-- If you press A, it will show the GPS time, and beep positively.
+- If you press A, it will show the GPS time (if GPS signal found), otherwise it will wait for lock, and beep positively.
+- If you press B, it will display the # chars received from GPS
 - If you press C, it will test writing/reading from the SD card, and display either 6ood or bAd
 
 ### Mode 3 - Sensor Tuning

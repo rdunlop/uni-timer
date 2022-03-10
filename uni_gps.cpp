@@ -126,6 +126,12 @@ void UniGps::printGPS() {
     Serial.println("** No characters received from GPS: check wiring **");
 }
 
+unsigned long UniGps::charactersReceived() {
+  unsigned long chars;
+  gps.stats(&chars, NULL, NULL);
+  return chars;
+}
+
 void UniGps::printGPSDate() {
   int year;
   byte month, day, hour, minute, second, hundredths;
