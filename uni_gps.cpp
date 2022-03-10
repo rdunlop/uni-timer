@@ -73,13 +73,10 @@ bool UniGps::lock() {
   unsigned long fix_age; // returns +- latitude/longitude in degrees
   gps.f_get_position(&flat, &flon, &fix_age);
   if (fix_age == TinyGPS::GPS_INVALID_AGE) {
-    Serial.println("No fix detected");
     return false;
   } else if (fix_age > 5000) {
-    Serial.println("Warning: possible stale data!");
     return false;
   } else {
-    Serial.println("Data is current.");
     return true;
   }
 }

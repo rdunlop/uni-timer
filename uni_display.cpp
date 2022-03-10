@@ -152,15 +152,45 @@ void UniDisplay::clear() {
   _display.writeDisplay();
 }
 
+// create a wait-indicator movement
+// ----------------------------- move elsewhere?
+#include <Fsm.h>
+
+extern UniDisplay display;
+void display0() { display.showWaiting(false, 0); }
+void display1() { display.showWaiting(false, 1); }
+void display2() { display.showWaiting(false, 2); }
+void display3() { display.showWaiting(false, 3); }
+void display4() { display.showWaiting(false, 4); }
+void display5() { display.showWaiting(false, 5); }
+State segment0(&display0, NULL, NULL);
+State segment1(&display1, NULL, NULL);
+State segment2(&display2, NULL, NULL);
+State segment3(&display3, NULL, NULL);
+State segment4(&display4, NULL, NULL);
+State segment5(&display5, NULL, NULL);
+
+Fsm waiting_fsm(&segment0);
+
+
 // Display a moving indicator, around the circle of digit 1
-void UniDisplay::waiting(bool center) {
-  // Turn this into an FSM so that we can call it on loop()
-  // and eliminate the delay...and then we can use this
-  // in mode5/mode6 also.
+void UniDisplay::showWaiting(bool center, int segment) {
   _display.clear();
-  _display.writeDigitRaw(0, 1 << _wait_state);
+  _display.writeDigitRaw(0, 1 << segment);
   _display.writeDisplay();
-  _wait_state = (_wait_state + 1) % 6;
+}
+
+void UniDisplay::waiting(bool center) {
+  if (_wait_state == 0) {
+    waiting_fsm.add_timed_transition(&segment0, &segment1, 1000, NULL);
+    waiting_fsm.add_timed_transition(&segment1, &segment2, 1000, NULL);
+    waiting_fsm.add_timed_transition(&segment2, &segment3, 1000, NULL);
+    waiting_fsm.add_timed_transition(&segment3, &segment4, 1000, NULL);
+    waiting_fsm.add_timed_transition(&segment4, &segment5, 1000, NULL);
+    waiting_fsm.add_timed_transition(&segment5, &segment0, 1000, NULL);
+    _wait_state = 1;
+  }
+  waiting_fsm.run_machine();
 }
 
 uint8_t difficulty_to_letter_code(uint8_t difficulty) {

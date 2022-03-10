@@ -21,6 +21,7 @@ class UniDisplay
     void showEntriesRemaining(int);
     void clear();
     void waiting(bool);
+    void showWaiting(bool, int segment);
   private:
     int _i2c_addr;
     Adafruit_7segment _display;

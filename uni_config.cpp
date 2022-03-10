@@ -115,7 +115,6 @@ int UniConfig::mode() {
 
 void UniConfig::setMode(int mode) {
   _config.mode = mode;
-  writeConfig();
 }
 
 /* ******************* PRIVATE METHODS ******************* */

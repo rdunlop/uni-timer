@@ -69,6 +69,10 @@ void mode4_loop() {
   
 }
 
+void mode4_teardown() {
+  config.writeConfig();
+}
+
 void racer_digits_config(char key) {
   switch(key) {
     case 'A':

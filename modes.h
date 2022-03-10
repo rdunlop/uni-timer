@@ -8,6 +8,7 @@ void mode3_loop();
 
 void mode4_setup();
 void mode4_loop();
+void mode4_teardown();
 
 void mode5_fsm_setup();
 void mode5_setup();

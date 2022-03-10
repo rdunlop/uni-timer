@@ -29,7 +29,6 @@ void mode_resume_loop() {
     // mode_fsm.trigger(MODE_5);
   } else {
     display.waiting(false);
-    delay(1000);
   }
 }
 

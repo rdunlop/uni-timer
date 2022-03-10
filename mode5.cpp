@@ -130,6 +130,7 @@ void sensor_triggered() {
 }
 
 void sensor_entry() {
+  log("ACCEPTED");
   clear_sensor_interrupt_micros();
   display.setBlink(true);
 }

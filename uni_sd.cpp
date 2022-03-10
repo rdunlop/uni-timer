@@ -79,5 +79,5 @@ bool UniSd::readFile(const char *filename, char *result, int max_result) {
 }
 
 bool UniSd::clearFile(const char *filename) {
-  return sd.remove(filename);
+  return SD.remove(filename);
 }

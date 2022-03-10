@@ -167,7 +167,7 @@ State mode0(&mode0_run, NULL, NULL);
 State mode1(&clear_display, &mode1_loop, NULL);
 State mode2(&clear_display, &mode2_loop, NULL);
 State mode3(&clear_display, &mode3_loop, NULL);
-State mode4(&mode4_setup, &mode4_loop, NULL);
+State mode4(&mode4_setup, &mode4_loop, &mode4_teardown);
 State mode5(&mode5_setup, &mode5_loop, &mode5_teardown);
 State mode6(&mode6_setup, &mode6_loop, &mode6_teardown);
 State mode_resume(&mode_resume_setup, &mode_resume_loop, &mode_resume_teardown);
@@ -309,8 +309,14 @@ void mode0_run() {
     Serial.println("All systems Good");
     display.good();
     delay(1000);
-    mode_fsm.trigger(MODE_RESUME);
-    _new_mode = 7; // simulate user transition to Mode Resume
+    int target_mode = MODE_OFFSET + config.mode();
+    if (target_mode == MODE_5 || target_mode == MODE_6) {
+      mode_fsm.trigger(MODE_RESUME);
+      _new_mode = 7; // simulate user transition to Mode Resume
+    } else {
+      mode_fsm.trigger(target_mode);
+      _new_mode = config.mode();
+    }
   } else {
     Serial.println("*************** Init Problem");
     display.bad();
@@ -330,6 +336,7 @@ void checkForModeSelection() {
   if (_new_mode != _mode && !modeKeypad.anyKeyPressed()) {
     Serial.print("new mode: ");
     Serial.println(_new_mode);
+    config.setMode(_new_mode);
     mode_fsm.trigger(MODE_OFFSET + _new_mode); // trigger MODE_1, MODE_2, etc
     _mode = _new_mode;
   }
