@@ -41,6 +41,24 @@
 #define ENABLE_SENSOR
 #define ENABLE_BUZZER
 
+#ifdef __arm__
+// should use uinstd.h to define sbrk but Due causes a conflict
+extern "C" char* sbrk(int incr);
+#else  // __ARM__
+extern char *__brkval;
+#endif  // __arm__
+
+int freeMemory() {
+  char top;
+#ifdef __arm__
+  return &top - reinterpret_cast<char*>(sbrk(0));
+#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
+  return &top - __brkval;
+#else  // __arm__
+  return __brkval ? &top - __brkval : &top - __malloc_heap_start;
+#endif  // __arm__
+}
+
 /* *********************** Includes *********************************** */
 // - SENSOR
 // - DISPLAY
@@ -67,6 +85,7 @@
 #endif
 
 #include "modes.h"
+#include "mode_fsm.h"
 #include "recording.h"
 #include "accurate_timing.h"
 
@@ -96,14 +115,6 @@
 // - BUZZER
 #define BUZZER_DIGITAL_OUTPUT 4
 
-#define MODE_OFFSET 100
-#define MODE_1 101
-#define MODE_2 102
-#define MODE_3 103
-#define MODE_4 104
-#define MODE_5 105
-#define MODE_6 106
-#define MODE_RESUME 107
 
 /* ************************** Initialization ******************* */
 
@@ -170,7 +181,8 @@ State mode3(&clear_display, &mode3_loop, NULL);
 State mode4(&mode4_setup, &mode4_loop, &mode4_teardown);
 State mode5(&mode5_setup, &mode5_loop, &mode5_teardown);
 State mode6(&mode6_setup, &mode6_loop, &mode6_teardown);
-State mode_resume(&mode_resume_setup, &mode_resume_loop, &mode_resume_teardown);
+State mode_resume_5(&mode_resume_setup, &mode_resume_loop, &mode_resume_teardown);
+State mode_resume_6(&mode_resume_setup, &mode_resume_loop, &mode_resume_teardown);
 
 
 Fsm mode_fsm(&mode0);
@@ -178,9 +190,12 @@ Fsm mode_fsm(&mode0);
 
 /******** ***********************************(set up)*** *************** **********************/
 void setup () {
+  pinMode (LED_BUILTIN, OUTPUT);
+
   // Common
   Serial.begin(115200);
-  pinMode (LED_BUILTIN, OUTPUT);
+  delay(2000); // wait for serial to connect before starting
+  Serial.println("Starting");
 
   // SENSOR
 #ifdef ENABLE_SENSOR
@@ -191,9 +206,6 @@ void setup () {
 #ifdef ENABLE_DISPLAY
   display.setup();
 #endif
-
-  delay(2000); // wait for serial to connect before starting
-  Serial.println("Starting");
 
   // KEYPAD
 #ifdef ENABLE_KEYPAD
@@ -244,23 +256,22 @@ void loop() {
   checkForModeSelection();
 }
 
-
 void setup_fsm() {
-  mode_fsm.add_transition(&mode0, &mode_resume, MODE_RESUME, NULL); // Able to go to RESUME mode from POST
+  // Able to go to RESUME mode from POST
+  mode_fsm.add_transition(&mode0, &mode_resume_5, MODE_RESUME_5, NULL);
+  mode_fsm.add_transition(&mode0, &mode_resume_6, MODE_RESUME_6, NULL);
   mode_fsm.add_transition(&mode0, &mode1, MODE_1, NULL); // Able to go to MODE 1 mode from POST
 
-  // Set up transitions between each possible state and each other state, based on MODE_1, MODE_2, etc triggers.
-  State *mode_states[] = { &mode1, &mode2, &mode3, &mode4, &mode_resume};
-  for (int i = 0; i < 6; i++) {
-    for (int j = 0; j < 6; j++) {
-      if (j == i) continue; // Don't need to transition from state to same state.
-      mode_fsm.add_transition(mode_states[i], mode_states[j], MODE_OFFSET + j + 1, NULL);
-    }
+  // Set up transitions between mode1 and all other possible states
+  State *mode_states[] = { &mode2, &mode3, &mode4, &mode_resume_5, &mode_resume_6};
+  for (int i = 0; i < 5; i++) {
+    mode_fsm.add_transition(&mode1, mode_states[i], MODE_OFFSET + i + 2, NULL);
+    mode_fsm.add_transition(mode_states[i], &mode1, MODE_1, NULL);
   }
-  /* Can transition from RESUME to 1, 5 or 6 */
-  mode_fsm.add_transition(&mode_resume, &mode1, MODE_1, NULL);
-  mode_fsm.add_transition(&mode_resume, &mode5, MODE_5, NULL);
-  mode_fsm.add_transition(&mode_resume, &mode6, MODE_6, NULL);
+  /* Can transition from RESUME_5 to 5 */
+  mode_fsm.add_transition(&mode_resume_5, &mode5, MODE_GPS_LOCK, NULL);
+  /* Can transition from RESUME_6 to 6 */
+  mode_fsm.add_transition(&mode_resume_6, &mode6, MODE_GPS_LOCK, NULL);
 }
 
 void clear_display() { 
@@ -310,13 +321,21 @@ void mode0_run() {
     display.good();
     delay(1000);
     int target_mode = MODE_OFFSET + config.mode();
-    if (target_mode == MODE_5 || target_mode == MODE_6) {
-      mode_fsm.trigger(MODE_RESUME);
+    if (target_mode == MODE_5) {
+      mode_fsm.trigger(MODE_1);
+      mode_fsm.trigger(MODE_RESUME_5);
+      _new_mode = 7; // simulate user transition to Mode Resume
+    } else if (target_mode == MODE_6) {
+      mode_fsm.trigger(MODE_1);
+      mode_fsm.trigger(MODE_RESUME_6);
       _new_mode = 7; // simulate user transition to Mode Resume
     } else {
+      mode_fsm.trigger(MODE_1);
       mode_fsm.trigger(target_mode);
       _new_mode = config.mode();
     }
+    Serial.println("Resuming");
+    Serial.println(_new_mode);
   } else {
     Serial.println("*************** Init Problem");
     display.bad();

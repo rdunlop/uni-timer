@@ -154,7 +154,7 @@ void sensor_exit() {
  */
 
 void mode5_fsm_setup() {
-   mode5_fsm.add_transition(&initial, &digits_entered, NUMBER_PRESSED, &store_racer_number);
+  mode5_fsm.add_transition(&initial, &digits_entered, NUMBER_PRESSED, &store_racer_number);
   
   mode5_fsm.add_transition(&digits_entered, &initial, DELETE, &clear_racer_number);
   mode5_fsm.add_transition(&digits_entered, &digits_entered, NUMBER_PRESSED, &store_racer_number);

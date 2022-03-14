@@ -155,6 +155,7 @@ void mode6_fsm_setup() {
 
 void mode6_setup() { 
   if (!fsm_6_transition_setup_complete)  {
+    Serial.println("Mode6 Setup complete");
     mode6_fsm_setup();
     fsm_6_transition_setup_complete = true;
   }

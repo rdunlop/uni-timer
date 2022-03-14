@@ -52,6 +52,7 @@ Before using the UniTimer, we recommend the following additional hardware
 * Keep-alive USB Dongle
   * Some USB power packs will go to sleep if they don't detect a high enough load
   * The UniTimer doesn't draw a lot of power, so we may need a USB Keep-alive dongle to fool the power pack
+* Tighten the bolts holding the optical sensor to the posts, they come loose over time.
 
 # System Start-up
 

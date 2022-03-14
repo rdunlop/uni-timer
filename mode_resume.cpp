@@ -9,7 +9,9 @@ extern UniGps gps;
 extern UniDisplay display;
 
 #include <Fsm.h>
+#include "mode_fsm.h"
 
+extern Fsm mode_fsm;
 /*********************************************************************************** */
 //### Mode Resume - GPS lock requirement before entering Mode 5 or Mode 6
 //
@@ -26,7 +28,7 @@ void mode_resume_setup() {
 void mode_resume_loop() {
   gps.readData();
   if (gps.lock()) {
-    // mode_fsm.trigger(MODE_5);
+    mode_fsm.trigger(MODE_GPS_LOCK);
   } else {
     display.waiting(false);
   }
