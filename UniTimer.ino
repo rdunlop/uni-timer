@@ -247,6 +247,19 @@ void date_callback(byte *hour, byte *minute, byte *second) {
   }
 }
 
+uint32_t last_memory_output_time = 0;
+
+void printMemoryPeriodically() {
+  // if millis() or timer wraps around, we'll just reset it
+  if (last_memory_output_time > millis())  last_memory_output_time = millis();
+  // approximately every 2 seconds or so, print out the current GPS stats
+  if (millis() - last_memory_output_time > 10000) {
+    last_memory_output_time = millis(); // reset the timer
+
+    Serial.println(F("Memory Free"));
+    Serial.println(freeMemory());
+  }
+}
 
 // MODE Selection FSM
 void loop() {
@@ -254,6 +267,7 @@ void loop() {
   
   gps.readData();
   checkForModeSelection();
+  printMemoryPeriodically();
 }
 
 void setup_fsm() {
@@ -356,6 +370,7 @@ void checkForModeSelection() {
     Serial.print("new mode: ");
     Serial.println(_new_mode);
     config.setMode(_new_mode);
+    mode_fsm.trigger(MODE_1); // go to mode 1 before any other mode
     mode_fsm.trigger(MODE_OFFSET + _new_mode); // trigger MODE_1, MODE_2, etc
     _mode = _new_mode;
   }
