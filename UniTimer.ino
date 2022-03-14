@@ -284,8 +284,10 @@ void setup_fsm() {
   }
   /* Can transition from RESUME_5 to 5 */
   mode_fsm.add_transition(&mode_resume_5, &mode5, MODE_GPS_LOCK, NULL);
+  mode_fsm.add_transition(&mode5, &mode1, MODE_1, NULL);
   /* Can transition from RESUME_6 to 6 */
   mode_fsm.add_transition(&mode_resume_6, &mode6, MODE_GPS_LOCK, NULL);
+  mode_fsm.add_transition(&mode6, &mode1, MODE_1, NULL);
 }
 
 void clear_display() { 
@@ -338,11 +340,11 @@ void mode0_run() {
     if (target_mode == MODE_5) {
       mode_fsm.trigger(MODE_1);
       mode_fsm.trigger(MODE_RESUME_5);
-      _new_mode = 7; // simulate user transition to Mode Resume
+      _new_mode = MODE_RESUME_5 - MODE_OFFSET; // simulate user transition to Mode Resume
     } else if (target_mode == MODE_6) {
       mode_fsm.trigger(MODE_1);
       mode_fsm.trigger(MODE_RESUME_6);
-      _new_mode = 7; // simulate user transition to Mode Resume
+      _new_mode = MODE_RESUME_6 - MODE_OFFSET; // simulate user transition to Mode Resume
     } else {
       mode_fsm.trigger(MODE_1);
       mode_fsm.trigger(target_mode);
