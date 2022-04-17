@@ -230,7 +230,7 @@ The '-' indicates GPS lock, and the moving around the 0 indicates the sensor has
 - If you press "C", it will clear the display
 - If you press "B", it will duplicate the last time, and create E2
   - Programmer Note: this is written to the event log
-- If you press D+* it will clear the last entry
+- If you press D+# it will clear the last entry
   - Programmer Note: this is written to the event log
 
 ### GPS Lock Mode

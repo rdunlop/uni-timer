@@ -111,8 +111,7 @@ void sensor_check() {
     mode5_fsm.trigger(DELETE);
   } else if (sensor_has_triggered()) {
     mode5_fsm.trigger(SENSOR);
-  }
-  if (config.get_start_line_countdown()) {
+  } else if (config.get_start_line_countdown()) {
     // In Countdown mode
     countdown();
   }
@@ -131,6 +130,7 @@ uint8_t countdown_step = 0;
 void countdown() {
   if (countdown_start_time == 0) {
     // start the countdown
+    Serial.println("Restarting countdown");
     countdown_start_time = millis();
     buzzer.pre_beep(); // beep for 0.5 second for each tone
     countdown_step = 1;
@@ -195,6 +195,7 @@ void sensor_entry() {
 }
 
 void sensor_exit() {
+  Serial.println("exiting");
   display.setBlink(false);
   countdown_start_time = 0;
 }
