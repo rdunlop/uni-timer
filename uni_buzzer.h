@@ -8,6 +8,8 @@ class UniBuzzer
     void setup();
     void loop();
     void beep();
+    void pre_beep();
+    void start_beep();
     void success();
     void failure();
   private:

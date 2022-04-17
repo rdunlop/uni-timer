@@ -32,11 +32,15 @@ void pps_interrupt() {
   current_gps_time.second = gps_second;
 }
 
+#include "uni_config.h"
+extern UniConfig config;
+
 void sensor_interrupt() {
   unsigned long now = micros();
-  // Don't trigger 2x in 0.5 seconds
-  if (now - _last_interrupt_micros < 500000) {
-    Serial.println("Ignoring");
+  // Don't trigger 2x in 0.5 seconds (by default 500ms)
+  unsigned long required_spacing = config.get_finish_line_spacing() * 1000;
+  if (now - _last_interrupt_micros < required_spacing) {
+    Serial.println("Ignoring as too close to previous crossing");
     return;
   }
   _interrupt_micros = now;
@@ -59,10 +63,18 @@ void clear_sensor_interrupt_micros() {
   _interrupt_micros = 0;
 }
 
-bool currentTime(TimeResult *output) {
+bool lastSensorTime(TimeResult *output) {
   output->hour = last_sensor_time.hour;
   output->minute = last_sensor_time.minute;
   output->second = last_sensor_time.second;
   output->millisecond = last_sensor_time.millisecond;
+  return true;
+}
+
+bool currentTime(TimeResult *output) {
+  output->hour = current_gps_time.hour;
+  output->minute = current_gps_time.minute;
+  output->second = current_gps_time.second;
+  output->millisecond = (micros() - _pps_start_micros) / 1000;
   return true;
 }

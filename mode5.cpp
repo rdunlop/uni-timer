@@ -3,6 +3,7 @@
 #include "uni_display.h"
 #include "uni_buzzer.h"
 #include "uni_sensor.h"
+#include "uni_config.h"
 #include "modes.h"
 #include "recording.h"
 #include "accurate_timing.h"
@@ -12,6 +13,7 @@ extern UniGps gps;
 extern UniDisplay display;
 extern UniSensor sensor;
 extern UniBuzzer buzzer;
+extern UniConfig config;
 
 #include <Fsm.h>
 
@@ -61,6 +63,7 @@ Fsm mode5_fsm(&initial);
 #define ACCEPT 3
 #define CANCEL 4
 #define SENSOR 5
+#define START 6
 
 void initial_check() {
   char last_key_pressed = keypad.readChar();
@@ -83,7 +86,7 @@ void digit_check() {
   // - C -> INITIAL
   char last_key_pressed = keypad.readChar();
   if (keypad.isDigit(last_key_pressed)) {
-    if (three_digits_racer_number()) {
+    if (maximum_digits_racer_number()) {
       mode5_fsm.trigger(DELETE);
     } else {
       mode5_fsm.trigger(NUMBER_PRESSED);
@@ -101,29 +104,85 @@ void digit_check() {
 #endif
 }
 
+void countdown(); // forward declaration
+
 void sensor_check() {
   if (keypad.newKeyPressed() && keypad.keyPressed('C')) {
     mode5_fsm.trigger(DELETE);
   } else if (sensor_has_triggered()) {
     mode5_fsm.trigger(SENSOR);
   }
+  if (config.get_start_line_countdown()) {
+    // In Countdown mode
+    countdown();
+  }
 #ifdef FSM_DEBUG
   Serial.println("Sensor Check");
 #endif
 }
 
+uint32_t countdown_start_time = 0;
+uint8_t countdown_step = 0;
+
+// Perform countdown beep, beep, beep, beep, beep, BEEP
+// If someone crosses the line before the BEEP starts
+// triggers a FAULT event (after the SENSOR event caused by the user)
+// Otherwise, triggers a FINAL_BEEP event (before the SENSOR event caused by the user)
+void countdown() {
+  if (countdown_start_time == 0) {
+    // start the countdown
+    countdown_start_time = millis();
+    buzzer.pre_beep(); // beep for 0.5 second for each tone
+    countdown_step = 1;
+  }
+  // there are 4 additional pre-beeps (5 total pre-beeps)
+
+  // Second tone occurs at 3 seconds
+  if (countdown_step < 5 && countdown_start_time + (1000 * countdown_step) < millis()) {
+    buzzer.pre_beep();
+    countdown_step += 1;
+  }
+
+  // last (ie: START) tone occurs at 7 seconds
+  if (countdown_step == 5 && countdown_start_time + (1000 * countdown_step) < millis()) {
+    mode5_fsm.trigger(START);
+    buzzer.start_beep();
+    countdown_step += 1;
+  }
+}
+
+// the final BEEP has triggered, and the sensor has not been crossed
+// THUS we store the current time, no fault
+void start_beeped() {
+  Serial.println("START BEEPED");
+  Serial.println(micros());
+  TimeResult data;
+  currentTime(&data);
+
+  print_racer_data_to_sd(racer_number(), data);
+
+  clear_racer_number();
+  clear_sensor_interrupt_micros();
+}
+
 // This is the FSM action which occurs after
 // we notice that the sensor interrupt has fired.
 void sensor_triggered() {
-  Serial.println("SENSOR TRIGGERED");
+  Serial.println("SENSOR TRIGGERED 5");
   Serial.println(sensor_interrupt_micros());
   
-  buzzer.beep();
   display.sens();
   
   TimeResult data;
-  currentTime(&data);
-  print_racer_data_to_sd(racer_number(), data);
+  lastSensorTime(&data);
+  // QUESTION: If someone faults, what time should be recorded? Their ACTUAL start time + penalty, right?
+  if (config.get_start_line_countdown()) {
+    print_racer_data_to_sd(racer_number(), data, true); // log fault
+    buzzer.failure();
+  } else {
+    print_racer_data_to_sd(racer_number(), data);
+    buzzer.beep();
+  }
   
   clear_racer_number();
   clear_sensor_interrupt_micros();
@@ -137,6 +196,7 @@ void sensor_entry() {
 
 void sensor_exit() {
   display.setBlink(false);
+  countdown_start_time = 0;
 }
 
 /*
@@ -161,6 +221,7 @@ void mode5_fsm_setup() {
   mode5_fsm.add_transition(&digits_entered, &ready_for_sensor, ACCEPT, NULL);
 
   mode5_fsm.add_transition(&ready_for_sensor, &initial, SENSOR, &sensor_triggered);
+  mode5_fsm.add_transition(&ready_for_sensor, &initial, START, &start_beeped);
   mode5_fsm.add_transition(&ready_for_sensor, &initial, DELETE, &clear_racer_number);
 }
 
@@ -169,6 +230,7 @@ void mode5_setup() {
     mode5_fsm_setup();
     fsm_5_transition_setup_complete = true;
   }
+  Serial.println("starting mode 5");
   display.clear();
   sensor.attach_interrupt();
   // States:

@@ -102,7 +102,7 @@ void store_timing_data() {
   buzzer.beep();
 //  display.sens();
   TimeResult data;
-  currentTime(&data);
+  lastSensorTime(&data);
   store_data_result(&data);
   
   clear_sensor_interrupt_micros();
@@ -159,6 +159,7 @@ void mode6_setup() {
     mode6_fsm_setup();
     fsm_6_transition_setup_complete = true;
   }
+  Serial.println("starting mode 6");
   display.clear(); 
   sensor.attach_interrupt(); 
 }
@@ -175,7 +176,7 @@ void mode6_digit_check() {
   
   char last_key_pressed = keypad.readChar();
   if (keypad.isDigit(last_key_pressed)) {
-    if (three_digits_racer_number()) {
+    if (maximum_digits_racer_number()) {
       mode6_fsm.trigger(DELETE);
     } else {
       mode6_fsm.trigger(NUMBER_PRESSED);

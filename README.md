@@ -76,6 +76,23 @@ The following files may exist on the SD Card:
 - race_*.txt - various racer files, named differently based on the configuration, storing the results for a race.
 - log.txt - the global event log, which stores every significant event.
 
+## File format
+
+The race_*.txt files contain the following format:
+%d,%2d,%02d,%03d
+or
+%d,%2d,%02d,%03d,FAULT
+
+with the numbers meaning:
+- racer number (1-4 digits)
+- minute-of-day (0-1439) (hour + minutes, based on GPS)
+- second-of-minute (00-59)
+- millisecond-of-minute (000-999)
+- FAULT - was this an early-start (on a count-down-based start config)
+
+There may also be entries:
+- CLEAR_PREVIOUS - indicates that the start judge deemed an incorrect triggering of the sensor, and that the previous result should be discarded.
+
 ## Modes
 
 * GPS Lock Wait - Transition mode before moving into Mode 5 or Mode 6
@@ -105,7 +122,7 @@ To see the current mode, press and release the * button.
 
 ### Mode 1 - Keypad/Sensor Input Test
 
-- If you press a Key, it will Beep for 100ms, and display the number on the display.
+- If you press a Key, it will display the number on the display.
 - If you press A, it will display A
 - If you press B, it will display b
 - If you press C, it will display C
@@ -115,7 +132,7 @@ To see the current mode, press and release the * button.
 ### Mode 2 - GPS/SD Test
 
 - If you press A, it will show the GPS time (if GPS signal found), otherwise it will wait for lock, and beep positively.
-- If you press B, it will display the # chars received from GPS
+- If you press B, it will display the # chars received from GPS (this number should increment if it can see any GPS signals)
 - If you press C, it will test writing/reading from the SD card, and display either 6ood or bAd
 
 ### Mode 3 - Sensor Tuning
@@ -134,10 +151,9 @@ Changes are automatically Saved.
 - If you press C, toggle between U/D on digit 3 (indicates up or down)
 - If you press D, toggle between 1..9 on digit 4.
 
-
 #### Mode 4.2 (Press 2) - Maximum Racer digits
 
-Defaults to 3 digits for a racer number.
+Defaults to 3 digits for a racer number (e.g. if you enter more than 3 digits, it discards the racer number and you enter it again).
 
 - If you press A, toggle between 3 and 4 digits
 
@@ -145,8 +161,10 @@ Defaults to 3 digits for a racer number.
 
 Should the start mode be at-will, or beep-start?
 
-- If you press A, once the racer's number is entered, the timer will start when they cross the start line
-- If you press B, once the racer's number is entered, the timer will count down with the standard beep-start (beep, beep, beep, BEEP)
+- If you press A, toggle between Start Line Type 1 and Start Line Type 2
+
+Start Line Type 1: once the racer's number is entered, the timer will start when they cross the start line
+Start Line Type 2: once the racer's number is entered, the timer will count down with the standard beep-start (beep, beep, beep, beep, beep, BEEP)
 
 #### Mode 4.4 (Press 4) - Finish Line - Racer Spacing
 

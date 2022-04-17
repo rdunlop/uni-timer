@@ -31,17 +31,21 @@ int racer_number() {
   return _racer_number;
 }
 
-// Is the racer number already 3 digits long?
+// Is the racer number already maximum-digits long?
 // if so, another digit will be "too long"
-bool three_digits_racer_number() {
-  return racer_number() > 99;
+bool maximum_digits_racer_number() {
+  if (config.get_bib_number_length() == 3) {
+    return racer_number() > 99;
+  } else {
+    return racer_number() > 999;
+  }
 }
 
 
 
 // **((((((((( NEW FILE )))))))))))))))))
 
-void print_racer_data_to_sd(int racer_number, TimeResult data) {
+void print_racer_data_to_sd(int racer_number, TimeResult data, bool fault) {
 #define FILENAME_LENGTH 35
   char filename[FILENAME_LENGTH];
   char full_string[FILENAME_LENGTH];
@@ -51,7 +55,11 @@ void print_racer_data_to_sd(int racer_number, TimeResult data) {
   Serial.println(data_string);
   Serial.println("racer_number");
   Serial.println(racer_number);
-  snprintf(full_string, FILENAME_LENGTH, "%d,%s", racer_number, data_string);
+  if (fault) {
+    snprintf(full_string, FILENAME_LENGTH, "%d,%s,FAULT", racer_number, data_string);
+  } else {
+    snprintf(full_string, FILENAME_LENGTH, "%d,%s", racer_number, data_string);
+  }
 
   strncpy(filename, config.filename(), FILENAME_LENGTH);
   sd.writeFile(filename, full_string);
