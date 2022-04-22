@@ -155,21 +155,21 @@ void countdown() {
 // THUS we store the current time, no fault
 void start_beeped() {
   Serial.println("START BEEPED");
-  Serial.println(micros());
+  Serial.println(millis());
   TimeResult data;
   currentTime(&data);
 
   print_racer_data_to_sd(racer_number(), data);
 
   clear_racer_number();
-  clear_sensor_interrupt_micros();
+  clear_sensor_interrupt_millis();
 }
 
 // This is the FSM action which occurs after
 // we notice that the sensor interrupt has fired.
 void sensor_triggered() {
   Serial.println("SENSOR TRIGGERED 5");
-  Serial.println(sensor_interrupt_micros());
+  Serial.println(sensor_interrupt_millis());
   
   display.sens();
   
@@ -185,12 +185,12 @@ void sensor_triggered() {
   }
   
   clear_racer_number();
-  clear_sensor_interrupt_micros();
+  clear_sensor_interrupt_millis();
 }
 
 void sensor_entry() {
   log("ACCEPTED");
-  clear_sensor_interrupt_micros();
+  clear_sensor_interrupt_millis();
   display.setBlink(true);
 }
 

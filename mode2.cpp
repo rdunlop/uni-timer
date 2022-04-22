@@ -25,7 +25,7 @@ void mode2_loop() {
       // A - show GPS date, if locked
       if (gps.lock()) {
         TimeResult time;
-        gps.current_time(&time, micros());
+        gps.current_time(&time, millis());
         display.showNumber((time.minute * 100) + time.second, DEC);
       } else {
         // no lock

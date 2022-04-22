@@ -97,7 +97,7 @@ void drop_last_entry() {
 
 void store_timing_data() {
   Serial.println("SENSOR TRIGGERED");
-  Serial.println(sensor_interrupt_micros());
+  Serial.println(sensor_interrupt_millis());
   
   buzzer.beep();
 //  display.sens();
@@ -105,7 +105,7 @@ void store_timing_data() {
   lastSensorTime(&data);
   store_data_result(&data);
   
-  clear_sensor_interrupt_micros();
+  clear_sensor_interrupt_millis();
 }
 
 bool deleting = false;

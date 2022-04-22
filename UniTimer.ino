@@ -15,7 +15,7 @@
 // NOTES:
 // [1] The GPS is used to know the absolute time.
 //     Based on https://wyolum.com/syncing-arduino-with-gps-time/.
-//     Whenever we have GPS lock, we keep track of the offset from micros() for the GPS time
+//     Whenever we have GPS lock, we keep track of the offset from millis() for the GPS time
 //     and we use that offset whenever we are printing the time.
 // [2] Modified the Keypad_I2C library so that it provides the hardware address of the wire bus.
 //     I had to change the Keypad_I2C.h file:

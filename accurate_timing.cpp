@@ -1,7 +1,7 @@
 #include "accurate_timing.h"
 
-unsigned long _interrupt_micros; // this value is cleared once the sensor trip is handled.
-unsigned long _last_interrupt_micros; // this value is not cleared after the sensor trip is handled
+unsigned long _interrupt_millis; // this value is cleared once the sensor trip is handled.
+unsigned long _last_interrupt_millis; // this value is not cleared after the sensor trip is handled
 
 // LAST SENSOR DATE/TIME
 TimeResult last_sensor_time;
@@ -17,7 +17,7 @@ extern UniGps gps;
 // we can determine the current time accurately.
 // NOTE: The GPS PPS signal will ONLY fire when there is GPS lock.
 void pps_interrupt() {
-  unsigned long now = micros();
+  unsigned long now = millis();
 
   gps.synchronizeClocks(now);
 }
@@ -26,28 +26,28 @@ void pps_interrupt() {
 extern UniConfig config;
 
 void sensor_interrupt() {
-  unsigned long now = micros();
+  unsigned long now = millis();
   // Don't trigger 2x in 0.5 seconds (by default 500ms)
   unsigned long required_spacing = config.get_finish_line_spacing() * 1000;
-  if (now - _last_interrupt_micros < required_spacing) {
+  if (now - _last_interrupt_millis < required_spacing) {
     Serial.println("Ignoring as too close to previous crossing");
     return;
   }
-  _interrupt_micros = now;
-  _last_interrupt_micros = now;
+  _interrupt_millis = now;
+  _last_interrupt_millis = now;
   gps.current_time(&last_sensor_time, now);
 }
 
 bool sensor_has_triggered() {
-  return _interrupt_micros != 0;
+  return _interrupt_millis != 0;
 }
 
-unsigned long sensor_interrupt_micros() {
-  return _interrupt_micros;
+unsigned long sensor_interrupt_millis() {
+  return _interrupt_millis;
 }
 
-void clear_sensor_interrupt_micros() {
-  _interrupt_micros = 0;
+void clear_sensor_interrupt_millis() {
+  _interrupt_millis = 0;
 }
 
 bool lastSensorTime(TimeResult *output) {
@@ -59,6 +59,6 @@ bool lastSensorTime(TimeResult *output) {
 }
 
 bool currentTime(TimeResult *output) {
-  gps.current_time(output, micros());
+  gps.current_time(output, millis());
   return true;
 }
