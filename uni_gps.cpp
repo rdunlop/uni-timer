@@ -23,22 +23,36 @@ void UniGps::setup(void (*interrupt_handler)()) {
   Serial.println("GPS Done init");
 }
 
+// this method is triggered whenever we have GPS Lock and PPS
+// This means that this method is called exactly on the second
+// But not necessarily on EVERY second
+bool UniGps::synchronizeClocks(unsigned long current_micros) {
+  _last_pps_micros = current_micros;
+  // time is returned as hhmmsscc
+  unsigned long time;
+  unsigned long age; // I think that we can do something smart with `age` to deal with loss of lock...maybe?
+  gps.get_datetime(NULL, &time, &age);
+  byte hour = time / 1000000;
+  byte minute = (time / 10000) % 100;
+  byte second = (time / 100) % 100;
+  _last_gps_time_in_seconds = (hour * 3600) + (minute * 60) + second;
+  return true;
+}
+
 // return true on success
 // return false on error
 // return the current hour/minute in GPS time, including milliseconds from
 // the PPS pulse
-bool UniGps::current_time(byte *hour, byte *minute, byte *second) {
-  int year;
-  byte month, day, new_hour, new_minute, new_second, hundredths;
-  unsigned long age;
-  gps.crack_datetime(&year, &month, &day, &new_hour, &new_minute, &new_second, &hundredths, &age);
-  if (age == TinyGPS::GPS_INVALID_AGE) {
-    return false;
-  }
-  *hour = new_hour;
-  *minute = new_minute;
-  *second = new_second;
-  
+bool UniGps::current_time(TimeResult *output, unsigned long current_micros) {
+  unsigned long offset_milliseconds = (current_micros - _last_pps_micros) / 1000;
+  output->millisecond = offset_milliseconds % 1000;
+
+  unsigned long current_seconds = _last_gps_time_in_seconds + (offset_milliseconds / 1000);
+
+  output->second = current_seconds % 60;
+  output->minute = (current_seconds / 60) % 60;
+  output->hour = (current_seconds / 3600) % 24;
+
   return true;
 }
 
@@ -79,18 +93,6 @@ bool UniGps::lock() {
   } else {
     return true;
   }
-}
-
-int UniGps::getHourMinuteSecond(int *hour, int *minute, int *second) {
-  int year;
-  byte month, day, new_hour, new_minute, new_second, hundredths;
-  unsigned long age;
-  gps.crack_datetime(&year, &month, &day, &new_hour, &new_minute, &new_second, &hundredths, &age);
-  *hour = new_hour;
-  *minute = new_minute;
-  *second = new_second;
-  
-  return 1;
 }
 
 void UniGps::printGPS() {

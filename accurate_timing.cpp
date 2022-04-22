@@ -1,20 +1,15 @@
 #include "accurate_timing.h"
 
-unsigned long _pps_start_micros;
 unsigned long _interrupt_micros; // this value is cleared once the sensor trip is handled.
 unsigned long _last_interrupt_micros; // this value is not cleared after the sensor trip is handled
-
-// CURRENT GPS Date/Time (based on PPS)
-TimeResult current_gps_time;
-void (*_date_fetch_callback)(byte *, byte *, byte *);
 
 // LAST SENSOR DATE/TIME
 TimeResult last_sensor_time;
 
 // Method which we can use in order to get the current year/date/time.
-void register_date_callback(void (*date_fetch_callback)(byte *, byte *, byte *)) {
-  _date_fetch_callback = date_fetch_callback;
-}
+
+#include "uni_gps.h"
+extern UniGps gps;
 
 // A pulse-per-second (PPS) signal occurs every 1 second,
 // And we want to use this to synchronize our clock
@@ -23,13 +18,8 @@ void register_date_callback(void (*date_fetch_callback)(byte *, byte *, byte *))
 // NOTE: The GPS PPS signal will ONLY fire when there is GPS lock.
 void pps_interrupt() {
   unsigned long now = micros();
-  _pps_start_micros = now;
 
-  byte gps_hour, gps_minute, gps_second;
-  _date_fetch_callback(&gps_hour, &gps_minute, &gps_second);
-  current_gps_time.hour = gps_hour;
-  current_gps_time.minute = gps_minute;
-  current_gps_time.second = gps_second;
+  gps.synchronizeClocks(now);
 }
 
 #include "uni_config.h"
@@ -45,10 +35,7 @@ void sensor_interrupt() {
   }
   _interrupt_micros = now;
   _last_interrupt_micros = now;
-  last_sensor_time.hour = current_gps_time.hour;
-  last_sensor_time.minute = current_gps_time.minute;
-  last_sensor_time.second = current_gps_time.second;
-  last_sensor_time.millisecond = (_interrupt_micros - _pps_start_micros) / 1000;
+  gps.current_time(&last_sensor_time, now);
 }
 
 bool sensor_has_triggered() {
@@ -72,9 +59,6 @@ bool lastSensorTime(TimeResult *output) {
 }
 
 bool currentTime(TimeResult *output) {
-  output->hour = current_gps_time.hour;
-  output->minute = current_gps_time.minute;
-  output->second = current_gps_time.second;
-  output->millisecond = (micros() - _pps_start_micros) / 1000;
+  gps.current_time(output, micros());
   return true;
 }

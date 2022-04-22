@@ -1,15 +1,8 @@
 #pragma once
 
 #include <Arduino.h>
+#include "uni_gps.h"
 
-typedef struct {
-  byte hour;
-  byte minute;
-  byte second;
-  int millisecond;
-} TimeResult;
-
-void register_date_callback(void (*date_fetch_callback)(byte *, byte *, byte *));
 void pps_interrupt();
 void sensor_interrupt();
 bool sensor_has_triggered();

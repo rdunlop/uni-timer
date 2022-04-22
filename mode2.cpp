@@ -24,9 +24,9 @@ void mode2_loop() {
     if (subMode == 1) {
       // A - show GPS date, if locked
       if (gps.lock()) {
-        int hour, minute, second;
-        gps.getHourMinuteSecond(&hour, &minute, &second);
-        display.showNumber((minute * 100) + second, DEC);
+        TimeResult time;
+        gps.current_time(&time, micros());
+        display.showNumber((time.minute * 100) + time.second, DEC);
       } else {
         // no lock
         display.waiting(false);
@@ -40,6 +40,8 @@ void mode2_loop() {
       char stuff[100];
       sprintf(stuff, "Outputting %d", chars);
       Serial.println(stuff);
+    } else if (subMode == 3) {
+      // C - show SD Good/bad (TBD)
     }
     gps_millis = millis();
 
@@ -65,19 +67,6 @@ void mode2_loop() {
         } else {
           display.bad();
         }
-      }
-      if (keynum == 20) {
-        // D
-        subMode = 4;
-        byte hour, minute, second;
-        int millisecond = 0;
-    
-        bool res = gps.current_time(&hour, &minute, &second);
-        Serial.print("Res: ");
-        Serial.println(res);
-        char data[20];
-        snprintf(data, 20, "%02d:%02d:%02d:%03d", hour, minute, second, millisecond);
-        Serial.println(data);
       }
     }
   }   

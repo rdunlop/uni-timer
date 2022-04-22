@@ -168,7 +168,6 @@ UniConfig config; // No arguments for constructor, hence, no parentheses
 
 // NEW HEADER FILE
 void clear_display();
-void date_callback(byte *hour, byte *minute, byte *second);
 
 // ****************** MODE FSM ***************************
 #include <Fsm.h>
@@ -235,16 +234,7 @@ void setup () {
     buzzer.success();
   }
 
-  register_date_callback(date_callback);
   setup_fsm();
-}
-
-void date_callback(byte *hour, byte *minute, byte *second) {
-  if (gps.current_time(hour, minute, second)) {
-    Serial.println("OK");
-  } else {
-    Serial.println("Not OK");
-  }
 }
 
 uint32_t last_memory_output_time = 0;
