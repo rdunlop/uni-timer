@@ -53,6 +53,9 @@ Before using the UniTimer, we recommend the following additional hardware
   * Some USB power packs will go to sleep if they don't detect a high enough load
   * The UniTimer doesn't draw a lot of power, so we may need a USB Keep-alive dongle to fool the power pack
 * Tighten the bolts holding the optical sensor to the posts, they come loose over time.
+* Box made with laser cutter, plans included. Sourced from https://www.festi.info/boxes.py/UniversalBox?language=en
+  * Expected to be cut out of 3mm thick material
+  * Display dimensions: https://learn.adafruit.com/assets/108791
 
 # System Start-up
 

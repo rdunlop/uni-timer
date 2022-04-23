@@ -19,6 +19,11 @@ Each box requires the following hardware:
 * Eight M1.6 x 12mm bolts (pan machine screw)
 * Eight M1.6 hex nuts
 
+* Seven M4x0.70x12mm bolts (14mm-15mm preferred)
+* Seven M4-0.70 hex nuts
+* Nine M1.6 x 12mm bolts (pan machine screw)
+* Nine M1.6 hex nuts
+
 # Equipment settings
 
 These files have been created with the goal of using an Epilog Mini Laser Cutter.
@@ -27,6 +32,8 @@ It has a bed dimension of 24" x 12".
 We have been cutting with the following settings:
 - Raster (engraving): 300dpi, Speed 100 / Power 100%
 - Vector (cutting): Speed 15 / Power 100% / Freq. 5000
+
+*Note* When using the Epilog Mini Laser Cutter, I've been told that the "first cut of the day" has a problem in which it misses the first half-inch of cutting. To resolve this issue, once the cut is complete, start it again, and then stop it after the first half-inch is cut.
 
 # Editing the file
 
