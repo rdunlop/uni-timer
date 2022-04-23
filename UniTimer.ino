@@ -371,6 +371,13 @@ void checkForModeSelection() {
   if (modeKeypad.newKeyPressed()) {
     Serial.println("NEW KEY");
     if (modeKeypad.keyPressed('*')) {
+      TimeResult data;
+      lastSensorTime(&data);
+      // display the ssmm (2 seconds, and 2 digits of milliseconds)
+      // display.showNumber((data.second * 100) + (data.millisecond /10));
+      // display the milliseconds
+      display.showNumber(data.millisecond);
+
       Serial.println("* is pressed");
       if (modeKeypad.keyPressed('1')) _new_mode = 1;
       if (modeKeypad.keyPressed('2')) _new_mode = 2;

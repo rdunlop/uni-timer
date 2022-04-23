@@ -28,7 +28,7 @@ extern UniConfig config;
 void sensor_interrupt() {
   unsigned long now = millis();
   // Don't trigger 2x in 0.5 seconds (by default 500ms)
-  unsigned long required_spacing = config.get_finish_line_spacing() * 1000;
+  unsigned long required_spacing = config.get_finish_line_spacing();
   if (now - _last_interrupt_millis < required_spacing) {
     Serial.println("Ignoring as too close to previous crossing");
     return;
