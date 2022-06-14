@@ -1,27 +1,50 @@
 #include "uni_keypad.h"
 #include "uni_gps.h"
 #include "uni_display.h"
-#include "uni_printer.h"
 #include "uni_sd.h"
 #include "modes.h"
 
 extern UniKeypad keypad;
 extern UniGps gps;
 extern UniDisplay display;
-extern UniPrinter printer;
 extern UniSd sd;
 
-//### Mode 2 - GPS/Printer/SD Test
+//### Mode 2 - GPS/SD Test
 //
 //- If you press A, it will show the GPS time, and beep positively.
-//- If you press B, it will show print a test line on the printer.
+// - If you press B, it will display the # chars received from GPS
+// - If you press A, it will show the GPS time (if GPS signal found), otherwise it will wait for lock, and beep positively.
 //- If you press C, it will test writing/reading from the SD card, and display either 6ood or bAd
 unsigned long gps_millis = 0;
 char last_key2 = NO_KEY;
+int subMode = 0;
 void mode2_loop() {
-  if (gps_millis == 0 || (millis() - gps_millis > 100)) {
+  if (gps_millis == 0 || (millis() - gps_millis > 1000)) {
+    // Run inner loop periodically
+    if (subMode == 1) {
+      // A - show GPS date, if locked
+      if (gps.lock()) {
+        TimeResult time;
+        gps.current_time(&time, millis());
+        display.showNumber((time.minute * 100) + time.second, DEC);
+      } else {
+        // no lock
+        display.waiting(false);
+        gps.printPeriodically();
+      }
+    } else if (subMode == 2) {
+      // B
+      // B - show # chars from GPS
+      long chars = gps.charactersReceived();
+      display.showNumber(chars % 10000, DEC);
+      char stuff[100];
+      sprintf(stuff, "Outputting %d", chars);
+      Serial.println(stuff);
+    } else if (subMode == 3) {
+      // C - show SD Good/bad (TBD)
+    }
     gps_millis = millis();
-    gps.printGPSDate();
+
   }
   char key = keypad.readChar();
   if (key != NO_KEY) {
@@ -30,34 +53,20 @@ void mode2_loop() {
       int keynum = keypad.intFromChar(key);
       if (keynum == 17) {
         // A
-        int hour, minute, second;
-        gps.printPeriodically();
-        gps.getHourMinuteSecond(&hour, &minute, &second);
-        display.showNumber((minute * 100) + second, DEC);  
+        subMode = 1;
       }
       if (keynum == 18) {
         // B
-        char test_string[] = "PRINTER TEST STRING";
-        printer.print(test_string);
+        subMode = 2;
       }
       if (keynum == 19) {
         // C
+        subMode = 3;
         if (sd.status()) {
           display.good();
         } else {
           display.bad();
         }
-      }
-      if (keynum == 20) {
-        byte hour, minute, second;
-        int millisecond = 0;
-    
-        bool res = gps.current_time(&hour, &minute, &second);
-        Serial.print("Res: ");
-        Serial.println(res);
-        char data[20];
-        snprintf(data, 20, "%02d:%02d:%02d:%03d", hour, minute, second, millisecond);
-        Serial.println(data);
       }
     }
   }   

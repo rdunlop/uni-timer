@@ -6,14 +6,15 @@
 class UniSd
 {
   public:
-    UniSd(int, int, int, int);
+    UniSd(int);
     void setup();
     void loop();
     bool status();
-    void writeFile(char *filename, char *text);
-    void readFile(char *filename);
+    bool clearFile(const char *filename);
+    bool writeFile(const char *filename, char *text);
+    bool readFile(const char *filename, char *result, int max_result);
   private:
-    int _cs, _mosi, _miso, _clk;
+    int _cs;
     bool _status;
     SdFat SD;
     File myFile;

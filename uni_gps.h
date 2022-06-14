@@ -2,6 +2,13 @@
 #define UNI_GPS_H
 #include <TinyGPS.h>
 
+typedef struct {
+  byte hour;
+  byte minute;
+  byte second;
+  int millisecond;
+} TimeResult;
+
 class UniGps
 {
   public:
@@ -9,12 +16,16 @@ class UniGps
     void setup(void (*interrupt_handler)());
     void readData();
     void printPeriodically();
-    int getHourMinuteSecond(int *, int *, int *);
-    bool current_time(byte *hour, byte *minute, byte *second);
+    bool current_time(TimeResult *, unsigned long current_millis);
     void printGPSDate();
+    bool lock();
+    unsigned long charactersReceived();
+    bool synchronizeClocks(unsigned long current_millis);
   private:
     bool newData;
     uint32_t last_gps_print_time;
+    unsigned long _last_pps_millis;
+    unsigned long _last_gps_time_in_seconds;
     int _pps_signal_input;
     TinyGPS gps;
     void printGPS();

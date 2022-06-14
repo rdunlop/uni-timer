@@ -1,20 +1,15 @@
 #include "accurate_timing.h"
 
-unsigned long _pps_start_micros;
-unsigned long _interrupt_micros; // this value is cleared once the sensor trip is handled.
-unsigned long _last_interrupt_micros; // this value is not cleared after the sensor trip is handled
-
-// CURRENT GPS Date/Time (based on PPS)
-TimeResult current_gps_time;
-void (*_date_fetch_callback)(byte *, byte *, byte *);
+unsigned long _interrupt_millis; // this value is cleared once the sensor trip is handled.
+unsigned long _last_interrupt_millis; // this value is not cleared after the sensor trip is handled
 
 // LAST SENSOR DATE/TIME
 TimeResult last_sensor_time;
 
 // Method which we can use in order to get the current year/date/time.
-void register_date_callback(void (*date_fetch_callback)(byte *, byte *, byte *)) {
-  _date_fetch_callback = date_fetch_callback;
-}
+
+#include "uni_gps.h"
+extern UniGps gps;
 
 // A pulse-per-second (PPS) signal occurs every 1 second,
 // And we want to use this to synchronize our clock
@@ -22,47 +17,48 @@ void register_date_callback(void (*date_fetch_callback)(byte *, byte *, byte *))
 // we can determine the current time accurately.
 // NOTE: The GPS PPS signal will ONLY fire when there is GPS lock.
 void pps_interrupt() {
-  unsigned long now = micros();
-  _pps_start_micros = now;
+  unsigned long now = millis();
 
-  byte gps_hour, gps_minute, gps_second;
-  _date_fetch_callback(&gps_hour, &gps_minute, &gps_second);
-  current_gps_time.hour = gps_hour;
-  current_gps_time.minute = gps_minute;
-  current_gps_time.second = gps_second;
+  gps.synchronizeClocks(now);
 }
 
+#include "uni_config.h"
+extern UniConfig config;
+
 void sensor_interrupt() {
-  unsigned long now = micros();
-  // Don't trigger 2x in 0.5 seconds
-  if (now - _last_interrupt_micros < 500000) {
-    Serial.println("Ignoring");
+  unsigned long now = millis();
+  // Don't trigger 2x in 0.5 seconds (by default 500ms)
+  unsigned long required_spacing = config.get_finish_line_spacing();
+  if (now - _last_interrupt_millis < required_spacing) {
+    Serial.println("Ignoring as too close to previous crossing");
     return;
   }
-  _interrupt_micros = now;
-  _last_interrupt_micros = now;
-  last_sensor_time.hour = current_gps_time.hour;
-  last_sensor_time.minute = current_gps_time.minute;
-  last_sensor_time.second = current_gps_time.second;
-  last_sensor_time.millisecond = (_interrupt_micros - _pps_start_micros) / 1000;
+  _interrupt_millis = now;
+  _last_interrupt_millis = now;
+  gps.current_time(&last_sensor_time, now);
 }
 
 bool sensor_has_triggered() {
-  return _interrupt_micros != 0;
+  return _interrupt_millis != 0;
 }
 
-unsigned long sensor_interrupt_micros() {
-  return _interrupt_micros;
+unsigned long sensor_interrupt_millis() {
+  return _interrupt_millis;
 }
 
-void clear_sensor_interrupt_micros() {
-  _interrupt_micros = 0;
+void clear_sensor_interrupt_millis() {
+  _interrupt_millis = 0;
 }
 
-bool currentTime(TimeResult *output) {
+bool lastSensorTime(TimeResult *output) {
   output->hour = last_sensor_time.hour;
   output->minute = last_sensor_time.minute;
   output->second = last_sensor_time.second;
   output->millisecond = last_sensor_time.millisecond;
+  return true;
+}
+
+bool currentTime(TimeResult *output) {
+  gps.current_time(output, millis());
   return true;
 }
