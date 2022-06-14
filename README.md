@@ -9,6 +9,55 @@ The UniTimer system provides the following capabilities:
 - SD-Card written results log
 - Buzzer for audio feedback
 
+# What are the parts of the UniTimer?
+
+## Front
+
+![Front Face](images/FrontFace.jpg)
+
+This is where you can see the time, racer number, and interact with the UniTimer
+
+## USB cable and PhotoSensor
+
+![External Parts](images/ExternalParts.jpg)
+
+The USB Cable must be plugged in to a power supply (usually a power-brick) to operate.
+The Photo Sensor must be pointed at a reflector in order to operate.
+
+## Inside
+
+![Inside](images/Inside.jpg)
+
+The UniTimer is made up of a number of modules which work in concern to operate.
+
+![Inside Annotated](images/InsideAnnotated.jpg)
+
+Inside the box, are:
+
+* A small arduino computer
+* A Buzzer
+* A power adapter to provide the necessary 10V for the photo sensor
+* A GPS device (which provides very accurate time-of-day)
+* An SD Card
+
+## How does it work (overview)
+
+When the system is turned on, the GPS seeks a signal, and once it has a singal, it has very accurate (< 2ms in my testing) time-of-day.
+There is a keypad, which is used for choosing the mode, and for entering the racer number.
+
+The Arduino uses physical hardware interrupts to do the most-accurate timing of the gps and the photo sensor.
+
+When in "Start mode" the racer number is entered, and then the time that they cross the line is recorded on the SD card. (alternatively, there is a beep-start, which does the prescribed 5 beeps, and records the time that the 5th beep happened, or the time that they crossed)
+
+When in "Finish mode", the system records when the line is crossed, and the judge can enter the racer number after-the-fact (ie: seconds later, when they know the racer's number).
+
+For more details, the code/documentation is found https://github.com/rdunlop/uni-timer/
+
+## Design considerations
+
+Will it work in the mountains? Yes. As long as it can get GPS lock (and ideally, keep GPS lock, to prevent drift), it can work.
+It's battery powered, and in my tests, it ran for 36 hours on a small USB-battery-bank.
+
 # How to Use: Instructions
 
 See [This guide](https://docs.google.com/document/d/1nne7qRZOfiDiIRNzK-UGaBbXwPN-JUJtM4CR8g83vfM/edit#heading=h.ewxxmpbs2731) for basic use instructions.
