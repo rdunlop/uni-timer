@@ -2,7 +2,7 @@
 
 The "Box Source.svg" contains the various cuts needed to make a plastic box for the UniTimer. This file is simpler to make changes in, because every side is positioned at 0,0 on the x/y grid.
 
-The "Laid Out For Cutting.svg" (and PDF) is the ready-for-the-printer set of files. (If you make changes to the design, be sure you update Box Source too).
+The "Laid out for Cutting.svg" (and "Laid out for CuttingTextToPaths.pdf") is the ready-for-the-printer set of files. (If you make changes to the design, be sure you update "Box Source.svg" too).
 
 # Supplies
 
@@ -29,6 +29,7 @@ We have been cutting with the following settings:
 - Vector (cutting): Speed 15 / Power 100% / Freq. 5000
 
 *Note* The Raster speed of 50 is slower than the "recommended speed", because otherwise the UniTimer engraving doesn't appear dark enough.
+*Note* I've found that it's best if we do the Vector first, by itself, and then remove the plastic film on the acrylic before doing the Raster printing.
 *Note* When using the Epilog Mini Laser Cutter, I've been told that the "first cut of the day" has a problem in which it misses the first half-inch of cutting. To resolve this issue, once the cut is complete, start it again, and then stop it after the first half-inch is cut.
 
 # Editing the file
@@ -38,6 +39,11 @@ When opening the SVG in Inkscape, initially you will see almost nothing of the d
 To see the designs you must:
 * Make the desired layer "visible"
 * Change the "View"->"Display Mode"->"Outline"
+
+## Troubleshooting the file
+
+If you're having trouble where the SVG looks good in Inkscape, but the Laser print job queue is not showing all of the edges, you may be able to fix it
+by using the "Filters"->"Remove Filters".
 
 # Vector file notes
 
