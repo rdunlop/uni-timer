@@ -29,7 +29,9 @@ We have been cutting with the following settings:
 - Vector (cutting): Speed 15 / Power 100% / Freq. 5000
 
 *Note* The Raster speed of 50 is slower than the "recommended speed", because otherwise the UniTimer engraving doesn't appear dark enough.
+
 *Note* I've found that it's best if we do the Vector first, by itself, and then remove the plastic film on the acrylic before doing the Raster printing.
+
 *Note* When using the Epilog Mini Laser Cutter, I've been told that the "first cut of the day" has a problem in which it misses the first half-inch of cutting. To resolve this issue, once the cut is complete, start it again, and then stop it after the first half-inch is cut.
 
 # Editing the file
