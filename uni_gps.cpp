@@ -7,6 +7,7 @@
 UniGps::UniGps(int pps_signal_input)
 {
   _pps_signal_input = pps_signal_input;
+  _last_hour = 0;
 }
 
 // Setup function, for initializin Per-second-interrupt singal, and monitoring for GPS data
@@ -33,6 +34,15 @@ bool UniGps::synchronizeClocks(unsigned long current_millis) {
   unsigned long age; // I think that we can do something smart with `age` to deal with loss of lock...maybe?
   gps.get_datetime(NULL, &time, &age);
   byte hour = time / 1000000;
+
+  // Prevent hour from resetting, and causing the result data to be 'negative time'
+  if (hour < _last_hour) {
+    hour = hour + 24;
+  }
+  if (hour > _last_hour) {
+    _last_hour = hour;
+  }
+
   byte minute = (time / 10000) % 100;
   byte second = (time / 100) % 100;
   _last_gps_time_in_seconds = (hour * 3600) + (minute * 60) + second;
