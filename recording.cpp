@@ -78,6 +78,7 @@ void clear_previous_entry() {
   snprintf(message, MAX_MESSAGE, "CLEAR_PREVIOUS");
   Serial.println("Clear previous entry");
   sd.writeFile(filename, message);
+  log("Clear Previous entry");
 }
 
 #define LOG_FILE "log.txt"

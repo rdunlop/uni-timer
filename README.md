@@ -251,11 +251,11 @@ The '-' indicates GPS lock, and the moving around the 0 indicates the sensor has
       - write the current time to the SD
       - display 5En5 on the display for 2 seconds and beep for 2 seconds.
   - **Countdown Start Mode**
-    - Start a Beep countdown: beep, beep, beep, BEEP
+    - Start a Beep countdown: beep, beep, beep, beep, beep, BEEP
     - If the sensor is crossed BEFORE the final beep starts
       - display F on the display for 2 seconds, and beep-beep-beep.
       - Write the scheduled start time to the SD, indicate a fault also occurred
-      - Progremmer note: Write the crossed-line time to the event-log
+      - Programmer note: Write the crossed-line time to the event-log
 - When NOT in Accepted State:
   - If the sensor is crossed
     - display Err and beep

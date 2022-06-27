@@ -144,9 +144,15 @@ void UniDisplay::showNumber(int x, int y = DEC) {
 void UniDisplay::showEntriesRemaining(int x) {
   _display.clear();
   _display.writeDigitRaw(0, LETTER_E);
-  _display.writeDigitNum(1, x);
+  if (x >= 10) {
+    _display.writeDigitNum(1, x / 10);
+    _display.writeDigitNum(3, x % 10);
+  } else {
+    _display.writeDigitNum(1, x);
+  }
   _display.writeDisplay();
 }
+
 void UniDisplay::clear() {
   _display.clear();
   _display.writeDisplay();
