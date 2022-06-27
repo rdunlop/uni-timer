@@ -10,6 +10,8 @@ extern UniSd sd;
 extern UniConfig config;
 
 int _racer_number = 0;
+TimeResult recentResult[RECENT_RESULT_COUNT];
+int recentRacer[RECENT_RESULT_COUNT];
 
 // Add a new digit to the current racer number
 void store_racer_number() {
@@ -60,6 +62,17 @@ void print_racer_data_to_sd(int racer_number, TimeResult data, bool fault) {
   } else {
     snprintf(full_string, FILENAME_LENGTH, "%d,%s", racer_number, data_string);
   }
+
+  // Store result for review on the system as desired
+  for (int i = RECENT_RESULT_COUNT; i > 0; i--) {
+    // copy result 8 to result 9,
+    // copy result 7 to result 8, etc.
+    memcpy(&recentResult[i], &recentResult[i - 1], sizeof(TimeResult));
+    recentRacer[i] = recentRacer[i - 1];
+  }
+  // store result in slot 0
+  memcpy(&recentResult[0], &data, sizeof(TimeResult));
+  recentRacer[0] = racer_number;
 
   strncpy(filename, config.filename(), FILENAME_LENGTH);
   sd.writeFile(filename, full_string);
