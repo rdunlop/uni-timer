@@ -25,6 +25,7 @@ void store_racer_number() {
 void clear_racer_number() {
   _racer_number = 0;
   display.clear();
+  log("Clear Racer Number");
 }
 
 int racer_number() {

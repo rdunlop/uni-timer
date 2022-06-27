@@ -317,11 +317,19 @@ void mode0_run() {
   // TODO: Check GPS
   display.gps();
   delay(1000);
-  gps.readData();
-  // Any better option?
-  buzzer.success();
+  if (gps.detected()) {
+    Serial.println("GPS available");
+    display.good();
+    buzzer.success();
+  } else {
+    Serial.println("GPS unavailable");
+    display.bad();
+    buzzer.failure();
+  }
   delay(1000);
 
+  display.all();
+  delay(1000);
   if (success) {
     Serial.println("All systems Good");
     display.good();
