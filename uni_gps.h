@@ -15,6 +15,7 @@ class UniGps
     UniGps(int pps_signal_input);
     void setup(void (*interrupt_handler)());
     void readData();
+    bool detected();
     void printPeriodically();
     bool current_time(TimeResult *, unsigned long current_millis);
     void printGPSDate();

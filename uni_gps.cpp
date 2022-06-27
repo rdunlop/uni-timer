@@ -68,6 +68,10 @@ void UniGps::readData() {
   }
 }
 
+bool UniGps::detected() {
+  return Serial2.available();
+}
+
 void UniGps::printPeriodically() {
   // if millis() or timer wraps around, we'll just reset it
   if (last_gps_print_time > millis())  last_gps_print_time = millis();
