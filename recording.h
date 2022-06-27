@@ -14,5 +14,7 @@ void log(char *message);
 
 #include "uni_config.h"
 Config *getConfig();
-
+#define RECENT_RESULT_COUNT 9
+extern TimeResult recentResult[RECENT_RESULT_COUNT];
+extern int recentRacer[RECENT_RESULT_COUNT];
 // ****************

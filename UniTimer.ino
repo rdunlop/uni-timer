@@ -235,6 +235,8 @@ void setup () {
   }
 
   setup_fsm();
+  memset(recentRacer, 0, sizeof(recentRacer));
+  memset(recentResult, 0, sizeof(recentResult));
 }
 
 uint32_t last_memory_output_time = 0;
@@ -375,17 +377,11 @@ void checkForModeSelection() {
     _mode = _new_mode;
   }
   
-  // Detect star AND number 1-6 pressed at same time
   if (modeKeypad.newKeyPressed()) {
     Serial.println("NEW KEY");
+    // Detect star AND number 1-6 pressed at same time
+    // Switches mode
     if (modeKeypad.keyPressed('*')) {
-      TimeResult data;
-      lastSensorTime(&data);
-      // display the ssmm (2 seconds, and 2 digits of milliseconds)
-      // display.showNumber((data.second * 100) + (data.millisecond /10));
-      // display the milliseconds
-      display.showNumber(data.millisecond);
-
       Serial.println("* is pressed");
       if (modeKeypad.keyPressed('1')) _new_mode = 1;
       if (modeKeypad.keyPressed('2')) _new_mode = 2;
@@ -393,6 +389,37 @@ void checkForModeSelection() {
       if (modeKeypad.keyPressed('4')) _new_mode = 4;
       if (modeKeypad.keyPressed('5')) _new_mode = 5;
       if (modeKeypad.keyPressed('6')) _new_mode = 6;
+    }
+
+    // Detect 0 and number 1-9 pressed at same time
+    // displays recent results
+    if (modeKeypad.keyPressed('0')) {
+      TimeResult *data;
+      int index = -1;
+      // display the ssmm (2 seconds, and 2 digits of milliseconds)
+      // display.showNumber((data.second * 100) + (data.millisecond /10));
+      // display the milliseconds
+
+      Serial.println("0 is pressed");
+      if (modeKeypad.keyPressed('1')) index = 0;
+      if (modeKeypad.keyPressed('2')) index = 1;
+      if (modeKeypad.keyPressed('3')) index = 2;
+      if (modeKeypad.keyPressed('4')) index = 3;
+      if (modeKeypad.keyPressed('5')) index = 4;
+      if (modeKeypad.keyPressed('6')) index = 5;
+      if (modeKeypad.keyPressed('7')) index = 6;
+      if (modeKeypad.keyPressed('8')) index = 7;
+      if (modeKeypad.keyPressed('9')) index = 8;
+
+      if (index != -1) {
+        data = &recentResult[index];
+        display.showNumber(data->minute);
+        delay(500);
+        display.showNumber(data->second);
+        delay(500);
+        display.showNumber(data->millisecond);
+        delay(500);
+      }
     }
   }
 }
