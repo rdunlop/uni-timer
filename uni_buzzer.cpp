@@ -18,11 +18,11 @@ void UniBuzzer::beep() {
 
 // beep when doing countdown
 void UniBuzzer::pre_beep() {
-  tone(_output, 1000, 500);
+  tone(_output, 466, 500);
 }
 
 void UniBuzzer::start_beep() {
-  tone(_output, 5000, 1000);
+  tone(_output, 932, 1000);
 }
 
 void UniBuzzer::success() {
