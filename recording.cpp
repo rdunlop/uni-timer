@@ -48,7 +48,7 @@ bool maximum_digits_racer_number() {
 
 // **((((((((( NEW FILE )))))))))))))))))
 
-void print_racer_data_to_sd(int racer_number, TimeResult data, bool fault) {
+bool print_racer_data_to_sd(int racer_number, TimeResult data, bool fault) {
 #define FILENAME_LENGTH 35
   char filename[FILENAME_LENGTH];
   char full_string[FILENAME_LENGTH];
@@ -76,9 +76,14 @@ void print_racer_data_to_sd(int racer_number, TimeResult data, bool fault) {
   recentRacer[0] = racer_number;
 
   strncpy(filename, config.filename(), FILENAME_LENGTH);
-  sd.writeFile(filename, full_string);
-  // temporary
-  Serial.println(full_string);
+  if (sd.writeFile(filename, full_string)) {
+    return true;
+  } else {
+    // Error writing to SD
+    Serial.println("Error writing to SD");
+    display.sd();
+    return false;
+  }
 }
 
 void clear_previous_entry() {

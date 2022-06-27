@@ -146,7 +146,6 @@ void countdown() {
   // last (ie: START) tone occurs at 7 seconds
   if (countdown_step == 5 && countdown_start_time + (1000 * countdown_step) < millis()) {
     mode5_fsm.trigger(START);
-    buzzer.start_beep();
     countdown_step += 1;
   }
 }
@@ -159,7 +158,12 @@ void start_beeped() {
   TimeResult data;
   currentTime(&data);
 
-  print_racer_data_to_sd(racer_number(), data);
+  if (print_racer_data_to_sd(racer_number(), data)) {
+    buzzer.start_beep();
+  } else {
+    display.sd();
+    buzzer.failure();
+  }
 
   clear_racer_number();
   clear_sensor_interrupt_millis();
@@ -177,11 +181,18 @@ void sensor_triggered() {
   lastSensorTime(&data);
   // QUESTION: If someone faults, what time should be recorded? Their ACTUAL start time + penalty, right?
   if (config.get_start_line_countdown()) {
-    print_racer_data_to_sd(racer_number(), data, true); // log fault
-    buzzer.failure();
+    if (print_racer_data_to_sd(racer_number(), data, true)) {
+      // fault, but let them race
+      buzzer.failure();
+    } else {
+      display.sd();
+    }
   } else {
-    print_racer_data_to_sd(racer_number(), data);
-    buzzer.beep();
+    if (print_racer_data_to_sd(racer_number(), data)) {
+      buzzer.beep();
+    } else {
+      buzzer.failure();
+    }
   }
   
   clear_racer_number();
