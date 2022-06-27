@@ -59,13 +59,20 @@ void store_data_result(TimeResult *data) {
   }
 }
 
-// Are there any results in the buffer, if so,
-// return the oldest one
-bool retrieve_data(TimeResult *data) {
-  // TODO: Pause interrupts during this function?
+// retrieve the last (oldest) result
+bool peek_data(TimeResult *data) {
   if (results_count > 0) {
     *data = results_to_record[0];
+    return true;
+  } else {
+    return false;
+  }
+}
 
+// Are there any results in the buffer, drop the oldest one
+bool drop_data(TimeResult *data) {
+  // TODO: Pause interrupts during this function?
+  if (results_count > 0) {
     // Copy the remaining results up 1 slot
     for (int i = 0; i < (results_count - 1); i++) {
       results_to_record[i] = results_to_record[i + 1];
@@ -195,10 +202,16 @@ void mode6_digit_check() {
 void mode6_store_result() {
   Serial.println("STORE RESULT");
   
-  buzzer.beep();
   TimeResult data;
-  if (retrieve_data(&data)) {
-    print_racer_data_to_sd(racer_number(), data);
-    clear_racer_number();  
+  if (peek_data(&data)) {
+    if (print_racer_data_to_sd(racer_number(), data)) {
+      // drop a result
+      drop_data(&data);
+      buzzer.beep();
+      clear_racer_number();
+    } else {
+      display.sd();
+      buzzer.failure();
+    }
   }
 }
