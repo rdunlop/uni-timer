@@ -38,7 +38,7 @@ void mode2_loop() {
       long chars = gps.charactersReceived();
       display.showNumber(chars % 10000, DEC);
       char stuff[100];
-      sprintf(stuff, "Outputting %d", chars);
+      sprintf(stuff, "Outputting %ld", chars);
       Serial.println(stuff);
     } else if (subMode == 3) {
       // C - show SD Good/bad (TBD)

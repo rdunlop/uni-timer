@@ -45,7 +45,7 @@ State mode6_digits_entered(NULL, &mode6_digit_check, NULL);
 bool fsm_6_transition_setup_complete = false;
 
 Fsm mode6_fsm(&mode6_initial);
-#define MAX_RESULTS 10
+#define MAX_RESULTS 20
 TimeResult results_to_record[MAX_RESULTS];
 int results_count = 0;
 
@@ -160,7 +160,7 @@ void mode6_setup() {
     fsm_6_transition_setup_complete = true;
   }
   Serial.println("starting mode 6");
-  display.clear(); 
+  display.showEntriesRemaining(results_count);
   sensor.attach_interrupt(); 
 }
 
