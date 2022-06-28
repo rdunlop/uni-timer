@@ -73,6 +73,7 @@ void initial_check() {
     buzzer.beep();
     display.sens();
   } else if (keypad.keyPressed('D') && keypad.keyPressed('#')) { // D+#
+    log("Clear previous entry");
     clear_previous_entry();
   }
 #ifdef FSM_DEBUG
@@ -95,7 +96,11 @@ void digit_check() {
     mode5_fsm.trigger(ACCEPT);
   } else if (last_key_pressed == 'C') {
     mode5_fsm.trigger(DELETE);
+    log("CLEARED RACER NUMBER");
   } else if (sensor.blocked()) {
+    TimeResult data;
+    currentTime(&data);
+    print_data_to_log(data);
     buzzer.beep();
     display.sens();
   }
@@ -109,6 +114,7 @@ void countdown(); // forward declaration
 void sensor_check() {
   if (keypad.newKeyPressed() && keypad.keyPressed('C')) {
     mode5_fsm.trigger(DELETE);
+    log("DELETED RACER NUMBER");
   } else if (sensor_has_triggered()) {
     mode5_fsm.trigger(SENSOR);
   } else if (config.get_start_line_countdown()) {
@@ -194,6 +200,7 @@ void sensor_triggered() {
       buzzer.failure();
     }
   }
+  print_data_to_log(data);
   
   clear_racer_number();
   clear_sensor_interrupt_millis();

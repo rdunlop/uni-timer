@@ -132,13 +132,12 @@ The following files may exist on the SD Card:
 ## File format
 
 The race_*.txt files contain the following format:
-%d,,%02d,%02d,%02d,%03d,%d
+%d,,%02d,%02d,%03d,%d
 
 with the fields meaning:
 - racer number (1-4 digits)
 - DQ, DNF, or empty (if valid)
-- hour-of-day (0-48)
-- minute-of-hour (0-59)
+- minute-of-day (0-2880)
 - second-of-minute (00-59)
 - millisecond-of-minute (000-999)
 - penalties (0-1) - was this an early-start (on a count-down-based start config)
