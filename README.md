@@ -68,7 +68,7 @@ See [This guide](https://docs.google.com/document/d/1nne7qRZOfiDiIRNzK-UGaBbXwPN
 * Once it achives GPS lock, it will make a happy beep again, and will stop beeping every 5 seconds.
 * It will then enter the MODE it was last configured to be in (see below).
 
-## Logs
+## Logs (TBD)
 
 If the SD card is available, the device logs all events to a logs.txt
 - Each log entry includes:
@@ -79,9 +79,10 @@ If the SD card is available, the device logs all events to a logs.txt
 
 - It will also log to a race-specific log the racer numeber, and time of crossing.
 
-Format: "%d,%2d,%02d,%03d,-"
+Format (TBD): "%d,%2d,%02d,%03d,-"
 - racer number
-- minutes-of-the-day (ie: hours * 60 + minutes)
+- hour-of-day
+- minutes-of-hour
 - seconds (2 digits)
 - milliseconds (3 digits)
 - fault ("-" or "F")
@@ -131,16 +132,15 @@ The following files may exist on the SD Card:
 ## File format
 
 The race_*.txt files contain the following format:
-%d,%2d,%02d,%03d
-or
-%d,%2d,%02d,%03d,FAULT
+%d,,%02d,%02d,%03d,%d
 
-with the numbers meaning:
+with the fields meaning:
 - racer number (1-4 digits)
-- minute-of-day (0-1439) (hour + minutes, based on GPS)
+- DQ, DNF, or empty (if valid)
+- minute-of-day (0-2880)
 - second-of-minute (00-59)
 - millisecond-of-minute (000-999)
-- FAULT - was this an early-start (on a count-down-based start config)
+- penalties (0-1) - was this an early-start (on a count-down-based start config)
 
 There may also be entries:
 - CLEAR_PREVIOUS - indicates that the start judge deemed an incorrect triggering of the sensor, and that the previous result should be discarded.

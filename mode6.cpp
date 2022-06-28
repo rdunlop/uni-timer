@@ -111,7 +111,7 @@ void store_timing_data() {
   TimeResult data;
   lastSensorTime(&data);
   store_data_result(&data);
-  
+  print_data_to_log(data);
   clear_sensor_interrupt_millis();
 }
 
@@ -128,7 +128,9 @@ void mode6_initial_check() {
     mode6_fsm.trigger(NUMBER_PRESSED);
   } else if (last_key_pressed == 'B') {
     duplicate_entry();
+    log("Duplicate last entry");
   } else if (!deleting && keypad.keyPressed('D') && keypad.keyPressed('#')) { // D+#
+    log("DROP last entry");
     drop_last_entry();
     deleting = true;
   } else if (deleting && !keypad.anyKeyPressed()) {
@@ -190,6 +192,7 @@ void mode6_digit_check() {
     }
   } else if (keypad.keyPressed('C')) {
     mode6_fsm.trigger(DELETE);
+    log("DELETED Racer number");
   } else if (keypad.keyPressed('A')) {
     mode6_fsm.trigger(ACCEPT);
   }
