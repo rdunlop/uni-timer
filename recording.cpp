@@ -53,15 +53,15 @@ bool print_racer_data_to_sd(int racer_number, TimeResult data, bool fault) {
   char filename[FILENAME_LENGTH];
   char full_string[FILENAME_LENGTH];
   char data_string[FILENAME_LENGTH];
-  snprintf(data_string, FILENAME_LENGTH, "%2d,%02d,%03d", (data.hour * 60) + data.minute, data.second, data.millisecond);
+  snprintf(data_string, FILENAME_LENGTH, "%2d,,%02d,%02d,%03d", data.hour, data.minute, data.second, data.millisecond);
   Serial.println("data_string");
   Serial.println(data_string);
   Serial.println("racer_number");
   Serial.println(racer_number);
   if (fault) {
-    snprintf(full_string, FILENAME_LENGTH, "%d,%s,FAULT", racer_number, data_string);
+    snprintf(full_string, FILENAME_LENGTH, "%d,%s,1", racer_number, data_string);
   } else {
-    snprintf(full_string, FILENAME_LENGTH, "%d,%s", racer_number, data_string);
+    snprintf(full_string, FILENAME_LENGTH, "%d,%s,0", racer_number, data_string);
   }
 
   // Store result for review on the system as desired
