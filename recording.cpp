@@ -89,8 +89,6 @@ bool print_racer_data_to_sd(int racer_number, TimeResult data, bool fault) {
 
 void print_data_to_log(TimeResult data, bool fault) {
   #define FILENAME_LENGTH 35
-  char filename[FILENAME_LENGTH];
-  char full_string[FILENAME_LENGTH];
   char data_string[FILENAME_LENGTH];
   snprintf(data_string, FILENAME_LENGTH, "sensor: %2d,%02d,%02d,%03d,%d", data.hour, data.minute, data.second, data.millisecond, fault);
   log(data_string);
