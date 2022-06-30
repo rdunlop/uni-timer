@@ -198,6 +198,8 @@ void sensor_triggered() {
       buzzer.beep();
     } else {
       buzzer.failure();
+      display.sd();
+      delay(2000);
     }
   }
   print_data_to_log(data);

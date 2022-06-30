@@ -20,13 +20,19 @@ void UniSd::setup() {
 
 // Return true on success
 bool UniSd::status() {
-  if (!_status) {
-    // error on sd initialization
-    return false;
-  }
-
   // further test that we can write and read
-  if (writeFile("testfile.txt", "testing Write") && readFile("testfile.txt", NULL, 0)) {
+  return testWrite();
+}
+
+// Write to a file, and read back, to ensure SD card is working
+// return true on success
+bool UniSd::testWrite() {
+  File testFile;
+  bool newstatus = SD.begin(_cs);
+  testFile = SD.open("testfile.txt", FILE_WRITE);
+  int result = testFile.println("testing Write");
+  if (result > 0) {
+    testFile.close();
     return true;
   } else {
     return false;
@@ -35,16 +41,13 @@ bool UniSd::status() {
 
 // append the given text to the file, as well as finish with a newline character (ie: println)
 bool UniSd::writeFile(const char *filename, char *text) {
-// open the file. note that only one file can be open at a time,
+  if (!testWrite()) {
+    return false;
+  }
+
+  // open the file. note that only one file can be open at a time,
   // so you have to close this one before opening another.
   myFile = SD.open(filename, FILE_WRITE);
-
-  // retry if failure
-  // this may happen if the SD card was removed between uses
-  if (!myFile) {
-    setup();
-    myFile = SD.open(filename, FILE_WRITE);
-  }
 
   // if the file opened okay, write to it:
   if (myFile) {
@@ -52,7 +55,10 @@ bool UniSd::writeFile(const char *filename, char *text) {
     Serial.println(text);
     Serial.print(" to ");
     Serial.println(filename);
-    myFile.println(text);
+    if (!myFile.println(text)) {
+      myFile.close();
+      return false;
+    }
     // close the file:
     myFile.close();
     Serial.println("done.");
