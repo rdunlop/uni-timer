@@ -25,7 +25,7 @@ extern UniBuzzer buzzer;
 //- If you enter more than 3 digits, it will beep and clear
 //- If you press "A", it will accept the input, and display the time and the racer number to SD
 //- If you press "D", it will clear the display
-//- If you press "B", it will duplicate the last time, and create E2 (only available from initial mode)
+//- If you press "B", it will duplicate the current (E1) time, and create E2 (only available from initial mode) (if there are more than 1 result, it will push the more recent ones back)
 //- If you press C+* it will clear the last entry
 
 #define NUMBER_PRESSED 1
@@ -84,10 +84,12 @@ bool drop_data(TimeResult *data) {
   return false;
 }
 
-// Create a second entry of the most recently-recorded data
+// Create a second entry of the currently-viewing data
 void duplicate_entry() {
   if (results_count > 0 && (results_count < MAX_RESULTS)) {
-    results_to_record[results_count - 1] = results_to_record[results_count];
+    for (int i = results_count; i > 0; i--) {
+      results_to_record[i] = results_to_record[i - 1];
+    }
     results_count += 1;
     buzzer.beep();
     display.showEntriesRemaining(results_count);
