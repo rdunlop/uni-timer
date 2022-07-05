@@ -24,9 +24,9 @@ extern UniBuzzer buzzer;
 //- when you press number keys, display the numbers on the display.
 //- If you enter more than 3 digits, it will beep and clear
 //- If you press "A", it will accept the input, and display the time and the racer number to SD
-//- If you press "D", it will clear the display
-//- If you press "B", it will duplicate the current (E1) time, and create E2 (only available from initial mode) (if there are more than 1 result, it will push the more recent ones back)
-//- If you press C+* it will clear the last entry
+//- If you press "C", it will clear the display
+//- If you press "B", it will duplicate the last time, and create E2 (only available from initial mode)
+//- If you press D+* it will clear the last entry
 
 #define NUMBER_PRESSED 1
 #define DELETE 2
@@ -59,20 +59,13 @@ void store_data_result(TimeResult *data) {
   }
 }
 
-// retrieve the last (oldest) result
-bool peek_data(TimeResult *data) {
-  if (results_count > 0) {
-    *data = results_to_record[0];
-    return true;
-  } else {
-    return false;
-  }
-}
-
-// Are there any results in the buffer, drop the oldest one
-bool drop_data(TimeResult *data) {
+// Are there any results in the buffer, if so,
+// return the oldest one
+bool retrieve_data(TimeResult *data) {
   // TODO: Pause interrupts during this function?
   if (results_count > 0) {
+    *data = results_to_record[0];
+
     // Copy the remaining results up 1 slot
     for (int i = 0; i < (results_count - 1); i++) {
       results_to_record[i] = results_to_record[i + 1];
@@ -84,12 +77,10 @@ bool drop_data(TimeResult *data) {
   return false;
 }
 
-// Create a second entry of the currently-viewing data
+// Create a second entry of the most recently-recorded data
 void duplicate_entry() {
   if (results_count > 0 && (results_count < MAX_RESULTS)) {
-    for (int i = results_count; i > 0; i--) {
-      results_to_record[i] = results_to_record[i - 1];
-    }
+    results_to_record[results_count - 1] = results_to_record[results_count];
     results_count += 1;
     buzzer.beep();
     display.showEntriesRemaining(results_count);
@@ -113,7 +104,7 @@ void store_timing_data() {
   TimeResult data;
   lastSensorTime(&data);
   store_data_result(&data);
-  print_data_to_log(data);
+
   clear_sensor_interrupt_millis();
 }
 
@@ -130,9 +121,7 @@ void mode6_initial_check() {
     mode6_fsm.trigger(NUMBER_PRESSED);
   } else if (last_key_pressed == 'B') {
     duplicate_entry();
-    log("Duplicate last entry");
   } else if (!deleting && keypad.keyPressed('D') && keypad.keyPressed('#')) { // D+#
-    log("DROP last entry");
     drop_last_entry();
     deleting = true;
   } else if (deleting && !keypad.anyKeyPressed()) {
@@ -171,7 +160,7 @@ void mode6_setup() {
     fsm_6_transition_setup_complete = true;
   }
   Serial.println("starting mode 6");
-  display.showEntriesRemaining(results_count);
+  display.clear();
   sensor.attach_interrupt(); 
 }
 
@@ -194,7 +183,6 @@ void mode6_digit_check() {
     }
   } else if (keypad.keyPressed('C')) {
     mode6_fsm.trigger(DELETE);
-    log("DELETED Racer number");
   } else if (keypad.keyPressed('A')) {
     mode6_fsm.trigger(ACCEPT);
   }
@@ -207,16 +195,10 @@ void mode6_digit_check() {
 void mode6_store_result() {
   Serial.println("STORE RESULT");
   
+  buzzer.beep();
   TimeResult data;
-  if (peek_data(&data)) {
-    if (print_racer_data_to_sd(racer_number(), data)) {
-      // drop a result
-      drop_data(&data);
-      buzzer.beep();
-      clear_racer_number();
-    } else {
-      display.sd();
-      buzzer.failure();
-    }
+  if (retrieve_data(&data)) {
+    print_racer_data_to_sd(racer_number(), data);
+    clear_racer_number();
   }
 }
