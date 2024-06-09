@@ -26,17 +26,18 @@ void mode2_loop() {
       if (gps.lock()) {
         TimeResult time;
         gps.current_time(&time, millis());
-        display.showNumber((time.minute * 100) + time.second, DEC);
+        display.showTimeResult(&time);
       } else {
         // no lock
-        display.waiting(false);
+        display.waitingPattern();
+        display.waitingForGps();
         gps.printPeriodically();
       }
     } else if (subMode == 2) {
       // B
       // B - show # chars from GPS
       long chars = gps.charactersReceived();
-      display.showNumber(chars % 10000, DEC);
+      display.showNumber(chars % 10000);
       char stuff[100];
       sprintf(stuff, "Outputting %ld", chars);
       Serial.println(stuff);
@@ -63,9 +64,9 @@ void mode2_loop() {
         // C
         subMode = 3;
         if (sd.status()) {
-          display.good();
+          display.sdGood();
         } else {
-          display.bad();
+          display.sdBad();
         }
       }
     }

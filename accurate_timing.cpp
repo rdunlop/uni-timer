@@ -24,6 +24,9 @@ void pps_interrupt() {
 
 #include "uni_config.h"
 extern UniConfig config;
+#include "uni_sd.h"
+extern UniSd sd;
+#include "recording.h" // for print_data_to_log
 
 void sensor_interrupt() {
   unsigned long now = millis();
@@ -36,6 +39,7 @@ void sensor_interrupt() {
   _interrupt_millis = now;
   _last_interrupt_millis = now;
   gps.current_time(&last_sensor_time, now);
+  print_data_to_log(last_sensor_time);
 }
 
 bool sensor_has_triggered() {

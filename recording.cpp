@@ -21,6 +21,7 @@ void store_racer_number() {
   Serial.print("Racer #: ");
   Serial.println(_racer_number);
   display.showNumber(_racer_number);
+  sd.logCurrentRacerNumber(_racer_number);
 }
 
 // Methods
@@ -63,10 +64,14 @@ bool print_racer_data_to_sd(int racer_number, TimeResult data, bool fault) {
   } else {
     snprintf(full_string, FILENAME_LENGTH, "%d,,%s,0", racer_number, data_string);
   }
-  log(full_string);
+
+  #define REC_LINE_LENGTH 55
+  char log_string[REC_LINE_LENGTH];
+  snprintf(log_string, REC_LINE_LENGTH, "recording: %s", full_string);
+  log(log_string);
 
   // Store result for review on the system as desired
-  for (int i = RECENT_RESULT_COUNT; i > 0; i--) {
+  for (int i = RECENT_RESULT_COUNT - 1; i > 0; i--) {
     // copy result 8 to result 9,
     // copy result 7 to result 8, etc.
     memcpy(&recentResult[i], &recentResult[i - 1], sizeof(TimeResult));
@@ -76,21 +81,21 @@ bool print_racer_data_to_sd(int racer_number, TimeResult data, bool fault) {
   memcpy(&recentResult[0], &data, sizeof(TimeResult));
   recentRacer[0] = racer_number;
 
-  strncpy(filename, config.filename(), FILENAME_LENGTH);
+  strlcpy(filename, config.filename(), FILENAME_LENGTH);
   if (sd.writeFile(filename, full_string)) {
     return true;
   } else {
     // Error writing to SD
     Serial.println("Error writing to SD");
-    display.sd();
+    display.sdBad();
     return false;
   }
 }
 
 void print_data_to_log(TimeResult data, bool fault) {
-  #define FILENAME_LENGTH 35
-  char data_string[FILENAME_LENGTH];
-  snprintf(data_string, FILENAME_LENGTH, "sensor: %2d,%02d,%02d,%03d,%d", data.hour, data.minute, data.second, data.millisecond, fault);
+  #define LINE_LENGTH 35
+  char data_string[LINE_LENGTH];
+  snprintf(data_string, LINE_LENGTH, "sensor: %2d,%02d,%02d,%03d,%d", data.hour, data.minute, data.second, data.millisecond, fault);
   log(data_string);
 }
 
@@ -99,7 +104,7 @@ void clear_previous_entry() {
   #define MAX_MESSAGE 20
   char filename[MAX_FILENAME];
   char message[MAX_MESSAGE];
-  strncpy(filename, config.filename(), MAX_FILENAME);
+  strlcpy(filename, config.filename(), MAX_FILENAME);
 
   snprintf(message, MAX_MESSAGE, "CLEAR_PREVIOUS");
   Serial.println("Clear previous entry");
@@ -107,7 +112,7 @@ void clear_previous_entry() {
   log("Clear Previous entry");
 }
 
-#define LOG_FILE "log.txt"
-void log(char *message) {
-  sd.writeFile(LOG_FILE, message);
+
+void log(const char *message) {
+  sd.log(message);
 }

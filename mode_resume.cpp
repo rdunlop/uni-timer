@@ -24,15 +24,17 @@ extern Fsm mode_fsm;
 
 void mode_resume_setup() {
   display.clear();
+  display.waitingForGps();
 }
 void mode_resume_loop() {
   gps.readData();
   if (gps.lock()) {
     mode_fsm.trigger(MODE_GPS_LOCK);
   } else {
-    display.waiting(false);
+    display.waitingPattern();
   }
 }
 
 void mode_resume_teardown() {
+  display.doneWaitingForGps();
 }

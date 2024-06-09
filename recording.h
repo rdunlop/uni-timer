@@ -11,7 +11,7 @@ void build_race_filename(char *filename, const int max_length);
 bool print_racer_data_to_sd(int racer_number, TimeResult data, bool fault = false);
 void print_data_to_log(TimeResult data, bool fault = false);
 void clear_previous_entry();
-void log(char *message);
+void log(const char *message);
 
 #include "uni_config.h"
 Config *getConfig();

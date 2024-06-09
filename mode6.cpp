@@ -25,7 +25,7 @@ extern UniBuzzer buzzer;
 //- If you enter more than 3 digits, it will beep and clear
 //- If you press "A", it will accept the input, and display the time and the racer number to SD
 //- If you press "C", it will clear the display
-//- If you press "B", it will duplicate the last time, and create E2 (only available from initial mode)
+//- If you press "B", it will duplicate the last time received, and create E2 (only available when no racer number is entered)
 //- If you press D+* it will clear the last entry
 
 #define NUMBER_PRESSED 1
@@ -46,6 +46,8 @@ bool fsm_6_transition_setup_complete = false;
 
 Fsm mode6_fsm(&mode6_initial);
 #define MAX_RESULTS 20
+// Oldest result is at index 0
+// Newest result is at index [results_count - 1]
 TimeResult results_to_record[MAX_RESULTS];
 int results_count = 0;
 
@@ -77,10 +79,11 @@ bool retrieve_data(TimeResult *data) {
   return false;
 }
 
-// Create a second entry of the most recently-recorded data
+// Create a second entry of the most recently-received data
 void duplicate_entry() {
   if (results_count > 0 && (results_count < MAX_RESULTS)) {
-    results_to_record[results_count - 1] = results_to_record[results_count];
+    log("Duplicate entry");
+    results_to_record[results_count] = results_to_record[results_count - 1];
     results_count += 1;
     buzzer.beep();
     display.showEntriesRemaining(results_count);
@@ -89,6 +92,7 @@ void duplicate_entry() {
 
 // If we want to remove an entry, for example: incorrectly counted 2 crossings.
 void drop_last_entry() {
+  log("drop last entry");
   if (results_count > 0) {
     results_count -= 1;
     display.showEntriesRemaining(results_count);
@@ -100,7 +104,6 @@ void store_timing_data() {
   Serial.println(sensor_interrupt_millis());
   
   buzzer.beep();
-//  display.sens();
   TimeResult data;
   lastSensorTime(&data);
   store_data_result(&data);

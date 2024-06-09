@@ -5,8 +5,6 @@
 #include "uni_sd.h"
 extern UniSd sd;
 
-#define CONFIG_FILENAME "/config.txt"
-
 UniConfig::UniConfig()
 {
 
@@ -115,6 +113,7 @@ int UniConfig::mode() {
 
 void UniConfig::setMode(int mode) {
   _config.mode = mode;
+  writeConfig();
 }
 
 /* ******************* PRIVATE METHODS ******************* */
@@ -143,7 +142,7 @@ char *UniConfig::value(const char *str, const char *prefix)
 bool UniConfig::readConfig() {
   int max_config_string = 100;
   char data_string[max_config_string];
-  if (sd.readFile(CONFIG_FILENAME, data_string, max_config_string)) {
+  if (sd.readConfig(data_string, max_config_string)) {
     char *token;
     token = strtok(data_string, "\n");
     while(token != NULL) {
@@ -170,6 +169,7 @@ bool UniConfig::readConfig() {
     }
     return true;
   } else {
+    Serial.println("Config file not found");
     return false;
   }
 }
@@ -198,8 +198,7 @@ bool UniConfig::writeConfig() {
     "SPACING:", _config.finish_line_spacing,
     "MODE:", _config.mode
     );
-  sd.clearFile(CONFIG_FILENAME);
-  if (sd.writeFile(CONFIG_FILENAME, data_string)) {
+  if (sd.writeConfig(data_string)) {
     Serial.println("Write File");
     Serial.println(data_string);
     return true;

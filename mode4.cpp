@@ -9,7 +9,6 @@ extern UniKeypad keypad;
 extern UniDisplay display;
 extern UniConfig config;
 
-void displayFileConfig();
 void filename_config(char key);
 void racer_digits_config(char key);
 void start_line_config(char key);
@@ -26,6 +25,7 @@ void finish_line_config(char key);
 char last_key4 = NO_KEY;
 
 void mode4_setup() {
+  display.displayConfig(&config);
 }
 
 int config_mode = 1;
@@ -79,7 +79,7 @@ void racer_digits_config(char key) {
       config.toggle_bib_number_length();
       break;
   }
-  display.showNumber(config.get_bib_number_length());
+  display.showRacerDigits(config.get_bib_number_length());
 }
 
 void start_line_config(char key) {
@@ -88,7 +88,7 @@ void start_line_config(char key) {
       config.toggle_start_line_countdown();
       break;
   }
-  display.showNumber(config.get_start_line_countdown() ? 1 : 2);
+  display.startLineCountdown(config.get_start_line_countdown());
 }
 
 void finish_line_config(char key) {
@@ -103,7 +103,7 @@ void finish_line_config(char key) {
       config.increment_finish_line_spacing(100);
       break;
   }
-  display.showNumber(config.get_finish_line_spacing());
+  display.triggerIntervalDelay(config.get_finish_line_spacing());
 }
 
 void filename_config(char key) {
@@ -121,9 +121,6 @@ void filename_config(char key) {
     config.increment_race_number();
     break;
   }
-  displayFileConfig();
-}
 
-void displayFileConfig() {
-  display.showConfiguration(config.get_start(), config.get_difficulty(), config.get_up(), config.get_race_number());
+  display.displayConfig(&config);
 }

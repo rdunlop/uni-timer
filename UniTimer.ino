@@ -40,6 +40,8 @@
 #define ENABLE_SD
 #define ENABLE_SENSOR
 #define ENABLE_BUZZER
+#define ENABLE_RADIO
+//#define WAIT_FOR_SERIAL
 
 #ifdef __arm__
 // should use uinstd.h to define sbrk but Due causes a conflict
@@ -83,6 +85,9 @@ int freeMemory() {
 #ifdef ENABLE_SENSOR
 #include "uni_sensor.h"
 #endif
+#ifdef ENABLE_RADIO
+#include "uni_radio.h"
+#endif
 
 #include "modes.h"
 #include "mode_fsm.h"
@@ -94,10 +99,12 @@ int freeMemory() {
 #define SENSOR_DIGITAL_INPUT 5
 // - GPS
 #define GPS_PPS_DIGITAL_INPUT 2
-#define GPS_DIGITAL_OUTPUT 9 // hardware serial #2
-#define GPS_DIGITAL_INPUT 10 // hardware serial #2
+#define GPS_DIGITAL_OUTPUT 7 // hardware serial #2
+#define GPS_DIGITAL_INPUT 8 // hardware serial #2
+#define GPS_FIX_INPUT 26
 // - DISPLAY
 #define DISPLAY_I2CADDR 0x70
+#define DISPLAY_LCD_I2CADDR 0x20
 // - KEYPAD
 #define KEYPAD_COLUMN_WIRE_1 23
 #define KEYPAD_COLUMN_WIRE_2 22
@@ -112,6 +119,10 @@ int freeMemory() {
 // #define SD_SPI_MOSI_INPUT 11 // unused
 // #define SD_SPI_MISO_INPUT 12
 // #define SD_SPI_CLK_OUTPUT 13
+// - RF
+#define RF_SPI_CHIP_SELECT_OUTPUT 3
+#define RF_RESET 10
+#define RF_INTERRUPT 9
 // - BUZZER
 #define BUZZER_DIGITAL_OUTPUT 4
 
@@ -148,7 +159,7 @@ UniSd sd(SD_SPI_CHIP_SELECT_OUTPUT);
 #endif
 
 #ifdef ENABLE_DISPLAY
-UniDisplay display(DISPLAY_I2CADDR);
+UniDisplay display(DISPLAY_I2CADDR, DISPLAY_LCD_I2CADDR);
 #endif
 
 #ifdef ENABLE_GPS
@@ -161,6 +172,10 @@ UniBuzzer buzzer(BUZZER_DIGITAL_OUTPUT);
 
 #ifdef ENABLE_SENSOR
 UniSensor sensor(SENSOR_DIGITAL_INPUT);
+#endif
+
+#ifdef ENABLE_RADIO
+UniRadio radio(RF_SPI_CHIP_SELECT_OUTPUT, RF_INTERRUPT);
 #endif
 
 // CONFIG MANAGEMENT
@@ -193,7 +208,13 @@ void setup () {
 
   // Common
   Serial.begin(115200);
+#ifdef WAIT_FOR_SERIAL
+  // wait for serial to connect before starting
+  while (!Serial) {
+  }
+#else
   delay(2000); // wait for serial to connect before starting
+#endif
   Serial.println("Starting");
 
   // SENSOR
@@ -225,13 +246,19 @@ void setup () {
   sd.setup();
 #endif
 
+#ifdef ENABLE_RADIO
+  radio.setup();
+#endif
+
   config.setup();
   if (config.loadedFromDefault()) {
     Serial.println("Config File not found, loaded defaults");
     buzzer.failure();
+    display.configNotFound();
   } else {
     Serial.println("Config Read Success");
     buzzer.success();
+    display.configLoaded();
   }
 
   setup_fsm();
@@ -297,44 +324,53 @@ void mode0_run() {
 
   buzzer.beep();
   // Show 88:88
-  display.all();
+  display.displayTest();
   delay(1000);
 
 #ifdef ENABLE_SD
-  display.sd();
-  delay(1000);
   if (sd.status()) {
     Serial.println("SD Card OK");
-    display.good();
+    display.sdGood(true);
     buzzer.success();
   } else {
     Serial.println("SD Card Error");
     success = false;
-    display.bad();
+    display.sdBad(true);
+    buzzer.failure();
+  }
+  delay(1000);
+#endif
+
+#ifdef ENABLE_RADIO
+  if (radio.status()) {
+    Serial.println("Radio OK");
+    display.radioGood(true);
+    buzzer.success();
+  } else {
+    Serial.println("Radio error");
+    success = false;
+    display.radioBad(true);
     buzzer.failure();
   }
   delay(1000);
 #endif
 
   // TODO: Check GPS
-  display.gps();
-  delay(1000);
   if (gps.detected()) {
     Serial.println("GPS available");
-    display.good();
+    display.gpsGood(true);
     buzzer.success();
   } else {
+    success = false;
     Serial.println("GPS unavailable");
-    display.bad();
+    display.gpsBad(true);
     buzzer.failure();
   }
   delay(1000);
 
-  display.all();
-  delay(1000);
   if (success) {
     Serial.println("All systems Good");
-    display.good();
+    display.allGood();
     delay(1000);
     int target_mode = MODE_OFFSET + config.mode();
     if (target_mode == MODE_5) {
@@ -354,7 +390,7 @@ void mode0_run() {
     Serial.println(_new_mode);
   } else {
     Serial.println("*************** Init Problem");
-    display.bad();
+    display.notAllGood();
     delay(1000);
     mode_fsm.trigger(MODE_1);
     _new_mode = 1; // simulate user transition to Mode 1
@@ -413,12 +449,7 @@ void checkForModeSelection() {
 
       if (index != -1) {
         data = &recentResult[index];
-        display.showNumber(data->minute);
-        delay(500);
-        display.showNumber(data->second);
-        delay(500);
-        display.showNumber(data->millisecond);
-        delay(500);
+        display.showTimeResult(data);
       }
     }
   }

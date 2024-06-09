@@ -98,9 +98,6 @@ void digit_check() {
     mode5_fsm.trigger(DELETE);
     log("CLEARED RACER NUMBER");
   } else if (sensor.blocked()) {
-    TimeResult data;
-    currentTime(&data);
-    print_data_to_log(data);
     buzzer.beep();
     display.sens();
   }
@@ -167,7 +164,7 @@ void start_beeped() {
   if (print_racer_data_to_sd(racer_number(), data)) {
     buzzer.start_beep();
   } else {
-    display.sd();
+    display.sdBad();
     buzzer.failure();
   }
 
@@ -191,14 +188,14 @@ void sensor_triggered() {
       // fault, but let them race
       buzzer.failure();
     } else {
-      display.sd();
+      display.sdGood();
     }
   } else {
     if (print_racer_data_to_sd(racer_number(), data)) {
       buzzer.beep();
     } else {
       buzzer.failure();
-      display.sd();
+      display.sdBad();
       delay(2000);
     }
   }
@@ -211,12 +208,12 @@ void sensor_triggered() {
 void sensor_entry() {
   log("ACCEPTED");
   clear_sensor_interrupt_millis();
-  display.setBlink(true);
+  display.waitingForSensor();
 }
 
 void sensor_exit() {
   Serial.println("exiting");
-  display.setBlink(false);
+  display.doneWaitingForSensor();
   countdown_start_time = 0;
 }
 
