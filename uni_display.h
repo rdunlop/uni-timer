@@ -26,6 +26,7 @@ class UniDisplay
     void waitingForSensor();
     void doneWaitingForSensor();
     void show(char);
+    void print(const char *message, const char *message2);
     void showTimeResult(TimeResult *time_result);
     void showNumber(int);
     void displayConfig(UniConfig *config);

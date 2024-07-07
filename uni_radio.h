@@ -14,6 +14,8 @@ class UniRadio
     void setup();
     void loop();
     bool status();
+    bool senderTest(char *, int *);
+    bool receiverTest(char *, int *);
   private:
     bool _status;
     uint8_t _interrupt;

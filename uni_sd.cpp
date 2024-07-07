@@ -36,9 +36,11 @@ void UniSd::setup() {
   } else {
     Serial.println("SD initialization failed!");
   }
-  status();
-
-  _status = internal_status && external_status;
+  if (status()) {
+    Serial.println("BOTH SD write-test passed");
+  } else {
+    Serial.println("Failed performing write-test");
+  }
 }
 
 // Return true when both SD cards are fully functioning
@@ -64,6 +66,7 @@ bool UniSd::initExternalSD() {
 bool UniSd::testWriteExternal() {
   if (!initExternalSD()) {
     Serial.println("SD initialization failed!");
+    return false;
   }
   File testFile = SD.open("testfile.txt", FILE_WRITE);
   int result = testFile.println("testing Write 1");
@@ -79,6 +82,7 @@ bool UniSd::testWriteExternal() {
 bool UniSd::testWriteInternal() {
   if (!initInternalSD()) {
     Serial.println("int SD initialization failed!");
+    return false;
   }
   File testFile = SD.open("inttestfile.txt", FILE_WRITE);
   int result = testFile.println("testing Write 1");
@@ -92,22 +96,23 @@ bool UniSd::testWriteInternal() {
 
 // append the given text to the file, as well as finish with a newline character (ie: println)
 bool UniSd::writeFile(const char *filename, const char *text) {
-  if (!testWriteInternal()) {
-    return false;
-  }
   bool success = true;
 
-  if (!writeFilePrivate(filename, text)) {
+  if (!testWriteInternal()) {
     success = false;
+  } else {
+    if (!writeFilePrivate(filename, text)) {
+      success = false;
+    }
   }
 
   // EXTERNAL SD
   if (!testWriteExternal()) {
-    return false;
-  }
-
-  if (!writeFilePrivate(filename, text)) {
     success = false;
+  } else {
+    if (!writeFilePrivate(filename, text)) {
+      success = false;
+    }
   }
 
   return success;

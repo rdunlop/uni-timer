@@ -25,7 +25,6 @@ class UniSd
     bool testWriteExternal();
   private:
     int _cs;
-    bool _status;
     bool initInternalSD();
     bool initExternalSD();
 };

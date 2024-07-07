@@ -201,7 +201,11 @@ void mode6_store_result() {
   buzzer.beep();
   TimeResult data;
   if (retrieve_data(&data)) {
-    print_racer_data_to_sd(racer_number(), data);
-    clear_racer_number();
+    if (print_racer_data_to_sd(racer_number(), data)) {
+      clear_racer_number();
+    } else {
+      display.sdBad();
+      buzzer.failure();
+    }
   }
 }

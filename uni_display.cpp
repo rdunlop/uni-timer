@@ -30,7 +30,7 @@
 uint8_t difficulty_to_letter_code(uint8_t difficulty);
 
 // If defined, use the 7-segment display, otherwise ignore this, and move faster
-#define SEVEN_SEGMENT_DISPLAY true
+// #define SEVEN_SEGMENT_DISPLAY true
 
 // ***************************
 // API
@@ -275,6 +275,15 @@ void UniDisplay::show(char x) {
   _lcd.home();
   _lcd.print(x);
 }
+
+void UniDisplay::print(const char *message, const char *message2) {
+  _lcd.clear();
+  _lcd.home();
+  _lcd.print(message);
+  _lcd.setCursor(0, 1); // Move to the beginning of the second row
+  _lcd.print(message2);
+}
+
 void UniDisplay::showTimeResult(TimeResult *time_result) {
 #ifdef SEVEN_SEGMENT_DISPLAY
   showNumber(time_result->minute);

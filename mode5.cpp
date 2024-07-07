@@ -188,8 +188,9 @@ void sensor_triggered() {
       // fault, but let them race
       buzzer.failure();
     } else {
-      display.sdGood();
+      display.sdBad();
     }
+    print_data_to_log(data, true);
   } else {
     if (print_racer_data_to_sd(racer_number(), data)) {
       buzzer.beep();
@@ -198,8 +199,8 @@ void sensor_triggered() {
       display.sdBad();
       delay(2000);
     }
+    print_data_to_log(data);
   }
-  print_data_to_log(data);
   
   clear_racer_number();
   clear_sensor_interrupt_millis();

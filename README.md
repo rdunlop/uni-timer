@@ -181,11 +181,13 @@ To see the current mode, press and release the * button.
 - If you press D, it will display d
 - If you block the Sensor, or un-block the sensor, it will display 5En5 and beep for 100ms
 
-### Mode 2 - GPS/SD Test
+### Mode 2 - GPS/SD/Radio Test
 
 - If you press A, it will show the GPS time (if GPS signal found), otherwise it will wait for lock, and beep positively.
 - If you press B, it will display the # chars received from GPS (this number should increment if it can see any GPS signals)
 - If you press C, it will test writing/reading from the SD card, and display either 6ood or bAd
+- If you press D, it will go into Radio Sender Mode, and try to send a message, and wait for a reply.
+- If you press #, it will go into Radio Receiver Mode, and try to listen for a message, and then send a reply.
 
 ### Mode 3 - Sensor Tuning
 

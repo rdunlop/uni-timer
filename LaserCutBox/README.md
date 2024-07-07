@@ -55,15 +55,20 @@ Transfering the SVG to the printing station:
 * Save the file as a PDF (choose "Text Output Option: Convert Text to Paths")
 * Open the file in CorelDraw (used for printing)
 * Print, choose "preferences", and set:
-  * Sheet dimensions
+  * Piece Size: Horizontal 24", Vertical 12"
   * "Send to laser: False" (so that we can preview the design in the laser-engraving software first)
   * DPI: 300
-  * Raster settings (as above)
-  * Vector settings (as above)
+  * Raster settings (as above: 300dpi, Speed 50, Power 100%)
+  * Vector settings (as above: Speed 15, Power 100%, Freq 5000)
 * "Print"
 * Open the "E" engraver program, and see the job
 * Click "edit" to see it in closer detail.
 * When ready, click "Print" to send it to the Epilog.
+
+Physical Setup of the Epilog:
+* Turn on all the 4 switches (Air Compressor, Air Assist (back), Air Assist (front), Epilog)
+* Ensure that the surface is set for cutting flat (not cups)
+* Set the focus by inverting the "Focus Triangle", and then raising the bed until that touches the material.
 
 On the Epilog:
 * If you have the lid open, and you press "Start" it will run, but not use the laser. This is useful for confirming cut locations when doing small pieces.
