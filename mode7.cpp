@@ -149,7 +149,7 @@ int rx_results_count = 0;
 
 // stores start-line data for a racer
 // removing the oldest entry, if needed
-void rxStore(uint16_t racer_number, uint32_t time, uint8_t fault) {
+void rxStore(bool start, uint16_t racer_number, uint32_t time, uint8_t fault) {
   Serial.println("Storing ");
   Serial.println(racer_number);
   Serial.println(" - ");
@@ -157,8 +157,12 @@ void rxStore(uint16_t racer_number, uint32_t time, uint8_t fault) {
   // if this racer number has an entry, update that entry
   for (int i = 0; i < rx_results_count; i++) {
     if (lookup_table[i].racer_number == racer_number) {
-      lookup_table[i].start_millis = time;
-      lookup_table[i].start_fault = fault;
+      if (start) {
+        lookup_table[i].start_millis = time;
+        lookup_table[i].start_fault = fault;
+      } else {
+        lookup_table[i].end_millis = time;
+      }
       return;
     }
   }
@@ -167,8 +171,12 @@ void rxStore(uint16_t racer_number, uint32_t time, uint8_t fault) {
   // if there is free space, store it at the end
   if (rx_results_count < MAX_RECENT_RESULTS) {
     lookup_table[rx_results_count].racer_number = racer_number;
-    lookup_table[rx_results_count].start_millis = time;
-    lookup_table[rx_results_count].start_fault = fault;
+    if (start) {
+      lookup_table[rx_results_count].start_millis = time;
+      lookup_table[rx_results_count].start_fault = fault;
+    } else {
+      lookup_table[rx_results_count].end_millis = time;
+    }
     rx_results_count += 1;
     return;
   }
@@ -178,9 +186,14 @@ void rxStore(uint16_t racer_number, uint32_t time, uint8_t fault) {
   for (int i = 1; i < (MAX_RECENT_RESULTS - 1); i++) {
     memcpy(&lookup_table[i - 1], &lookup_table[i], sizeof(lookup_table[i]));
   }
+  memset(&lookup_table[MAX_RECENT_RESULTS - 1], 0, sizeof(lookup_table[MAX_RECENT_RESULTS - 1]));
   lookup_table[MAX_RECENT_RESULTS - 1].racer_number = racer_number;
-  lookup_table[MAX_RECENT_RESULTS - 1].start_millis = time;
-  lookup_table[MAX_RECENT_RESULTS - 1].start_fault = fault;
+  if (start) {
+    lookup_table[MAX_RECENT_RESULTS - 1].start_millis = time;
+    lookup_table[MAX_RECENT_RESULTS - 1].start_fault = fault;
+  } else {
+    lookup_table[MAX_RECENT_RESULTS - 1].end_millis = time;
+  }
 }
 
 void displayRx() {
@@ -204,7 +217,23 @@ void mode7_display() {
   bool found = false;
   for (int i = 0; i < rx_results_count; i++) {
     if (lookup_table[i].racer_number == racer_number()) {
-      sprintf(line2, "%ld", lookup_table[i].start_millis);
+      if (lookup_table[i].start_millis != 0 && lookup_table[i].end_millis != 0) {
+        // both values exist, do some math
+        if (lookup_table[i].start_millis < lookup_table[i].end_millis) {
+          // valid
+          uint32_t diff =  lookup_table[i].end_millis - lookup_table[i].start_millis;
+          uint16_t min, sec, thou;
+          thou = diff % 1000;
+          sec = (diff / 1000) % 60;
+          min = ((diff / 1000) - sec) / 60;
+          snprintf(line2, 16, "%02hd:%02hd.%03hd", min, sec, thou);
+        } else {
+          // have newer start than end
+          snprintf(line2, 16, "No End data");
+        }
+      } else {
+        snprintf(line2, 16, "Only 1 time");
+      }
       found = true;
       break;
     }
@@ -229,11 +258,12 @@ void mode7_receive_radio() {
     uint16_t racer_number;
     uint16_t min, sec, mil;
     uint8_t fault;
+    char start_or_end;
     // the sscanf format MUST have the correct size of storage (%hhd, vs %hd, vs %d)
-    if (sscanf((char *)buf, "%hd,,%hd,%hd,%hd,%hhd", &racer_number, &min, &sec, &mil, &fault) == 5) {
+    if (sscanf((char *)buf, "%c,%hd,,%hd,%hd,%hd,%hhd", &start_or_end, &racer_number, &min, &sec, &mil, &fault) == 6) {
       // all matched
       Serial.println("Successfully read message");
-      rxStore(racer_number, (((min * 60) + sec) * 1000) + mil, fault);
+      rxStore(start_or_end == 'S', racer_number, (((min * 60) + sec) * 1000) + mil, fault);
     } else {
       Serial.println("Error parsing message");
     }

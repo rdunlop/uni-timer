@@ -18,7 +18,6 @@ class UniRadio
     bool queueToSend(char *message);
     int queueSize();
     void displayQueue();
-    // void displayRx();
     bool status();
     bool senderTest(char *, int *);
     bool receiverTest(char *, int *);

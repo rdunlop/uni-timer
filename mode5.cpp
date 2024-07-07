@@ -171,7 +171,9 @@ void start_beeped() {
   }
   char message[25];
   format_string(racer_number(), data, false, message, 25);
-  radio.queueToSend(message);
+  char full_message[27];
+  snprintf(full_message, 27, "%s,%s", "S", message);
+  radio.queueToSend(full_message);
 
   clear_racer_number();
   clear_sensor_interrupt_millis();
@@ -199,7 +201,9 @@ void sensor_triggered() {
 
     char message[25];
     format_string(racer_number(), data, true, message, 25);
-    radio.queueToSend(message);
+    char full_message[27];
+    snprintf(full_message, 27, "%s,%s", "S", message);
+    radio.queueToSend(full_message);
   } else {
     if (print_racer_data_to_sd(racer_number(), data)) {
       buzzer.beep();
@@ -211,7 +215,9 @@ void sensor_triggered() {
     print_data_to_log(data);
     char message[25];
     format_string(racer_number(), data, false, message, 25);
-    radio.queueToSend(message);
+    char full_message[27];
+    snprintf(full_message, 27, "%s,%s", "S", message);
+    radio.queueToSend(full_message);
   }
   
   clear_racer_number();

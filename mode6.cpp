@@ -3,6 +3,7 @@
 #include "uni_display.h"
 #include "uni_buzzer.h"
 #include "uni_sensor.h"
+#include "uni_radio.h"
 #include "modes.h"
 #include "recording.h"
 #include "accurate_timing.h"
@@ -12,6 +13,7 @@ extern UniGps gps;
 extern UniDisplay display;
 extern UniSensor sensor;
 extern UniBuzzer buzzer;
+extern UniRadio radio;
 
 #include <Fsm.h>
 
@@ -202,6 +204,12 @@ void mode6_store_result() {
   TimeResult data;
   if (retrieve_data(&data)) {
     if (print_racer_data_to_sd(racer_number(), data)) {
+      char message[25];
+      format_string(racer_number(), data, false, message, 25);
+      char full_message[27];
+      snprintf(full_message, 27, "%s,%s", "F", message);
+      radio.queueToSend(full_message);
+
       clear_racer_number();
     } else {
       display.sdBad();
