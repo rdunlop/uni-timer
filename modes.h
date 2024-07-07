@@ -20,6 +20,11 @@ void mode6_setup();
 void mode6_loop();
 void mode6_teardown();
 
+void mode7_fsm_setup();
+void mode7_setup();
+void mode7_loop();
+void mode7_teardown();
+
 void mode_resume_setup();
 void mode_resume_loop();
 void mode_resume_teardown();

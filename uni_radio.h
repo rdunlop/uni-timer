@@ -13,6 +13,12 @@ class UniRadio
     UniRadio(int cs, int interrupt) : _interrupt(interrupt), _rf95(cs, interrupt) {};
     void setup();
     void loop();
+    bool messageAvailable();
+    bool receive(uint8_t *message, uint8_t *message_length);
+    bool queueToSend(char *message);
+    int queueSize();
+    void displayQueue();
+    // void displayRx();
     bool status();
     bool senderTest(char *, int *);
     bool receiverTest(char *, int *);

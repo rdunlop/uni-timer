@@ -4,6 +4,7 @@
 #include "uni_buzzer.h"
 #include "uni_sensor.h"
 #include "uni_config.h"
+#include "uni_radio.h"
 #include "modes.h"
 #include "recording.h"
 #include "accurate_timing.h"
@@ -14,6 +15,7 @@ extern UniDisplay display;
 extern UniSensor sensor;
 extern UniBuzzer buzzer;
 extern UniConfig config;
+extern UniRadio radio;
 
 #include <Fsm.h>
 
@@ -167,6 +169,9 @@ void start_beeped() {
     display.sdBad();
     buzzer.failure();
   }
+  char message[25];
+  format_string(racer_number(), data, false, message, 25);
+  radio.queueToSend(message);
 
   clear_racer_number();
   clear_sensor_interrupt_millis();
@@ -191,6 +196,10 @@ void sensor_triggered() {
       display.sdBad();
     }
     print_data_to_log(data, true);
+
+    char message[25];
+    format_string(racer_number(), data, true, message, 25);
+    radio.queueToSend(message);
   } else {
     if (print_racer_data_to_sd(racer_number(), data)) {
       buzzer.beep();
@@ -200,6 +209,9 @@ void sensor_triggered() {
       delay(2000);
     }
     print_data_to_log(data);
+    char message[25];
+    format_string(racer_number(), data, false, message, 25);
+    radio.queueToSend(message);
   }
   
   clear_racer_number();

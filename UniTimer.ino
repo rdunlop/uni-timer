@@ -195,6 +195,7 @@ State mode3(&clear_display, &mode3_loop, NULL);
 State mode4(&mode4_setup, &mode4_loop, &mode4_teardown);
 State mode5(&mode5_setup, &mode5_loop, &mode5_teardown);
 State mode6(&mode6_setup, &mode6_loop, &mode6_teardown);
+State mode7(&mode7_setup, &mode7_loop, &mode7_teardown);
 State mode_resume_5(&mode_resume_setup, &mode_resume_loop, &mode_resume_teardown);
 State mode_resume_6(&mode_resume_setup, &mode_resume_loop, &mode_resume_teardown);
 
@@ -285,6 +286,9 @@ void loop() {
   mode_fsm.run_machine();
   
   gps.readData();
+  if (radio.status()) {
+    radio.loop();
+  }
   checkForModeSelection();
   printMemoryPeriodically();
 }
@@ -293,11 +297,12 @@ void setup_fsm() {
   // Able to go to RESUME mode from POST
   mode_fsm.add_transition(&mode0, &mode_resume_5, MODE_RESUME_5, NULL);
   mode_fsm.add_transition(&mode0, &mode_resume_6, MODE_RESUME_6, NULL);
+  mode_fsm.add_transition(&mode0, &mode7, MODE_7, NULL);
   mode_fsm.add_transition(&mode0, &mode1, MODE_1, NULL); // Able to go to MODE 1 mode from POST
 
   // Set up transitions between mode1 and all other possible states
-  State *mode_states[] = { &mode2, &mode3, &mode4, &mode_resume_5, &mode_resume_6};
-  for (int i = 0; i < 5; i++) {
+  State *mode_states[] = { &mode2, &mode3, &mode4, &mode_resume_5, &mode_resume_6, &mode7};
+  for (int i = 0; i < 6; i++) {
     mode_fsm.add_transition(&mode1, mode_states[i], MODE_OFFSET + i + 2, NULL);
     mode_fsm.add_transition(mode_states[i], &mode1, MODE_1, NULL);
   }
@@ -415,7 +420,7 @@ void checkForModeSelection() {
   
   if (modeKeypad.newKeyPressed()) {
     Serial.println("NEW KEY");
-    // Detect star AND number 1-6 pressed at same time
+    // Detect star AND number 1-7 pressed at same time
     // Switches mode
     if (modeKeypad.keyPressed('*')) {
       Serial.println("* is pressed");
@@ -425,6 +430,7 @@ void checkForModeSelection() {
       if (modeKeypad.keyPressed('4')) _new_mode = 4;
       if (modeKeypad.keyPressed('5')) _new_mode = 5;
       if (modeKeypad.keyPressed('6')) _new_mode = 6;
+      if (modeKeypad.keyPressed('7')) _new_mode = 7;
     }
 
     // Detect 0 and number 1-9 pressed at same time

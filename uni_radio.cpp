@@ -22,6 +22,10 @@ void UniRadio::setup() {
   }
 
   _rf95.setFrequency(915.0); // TBD
+
+  _rf95.setModemConfig(RH_RF95::ModemConfigChoice::Bw125Cr48Sf4096);
+
+  _rf95.setTxPower(23);
 }
 
 // Returns true on success
@@ -38,7 +42,7 @@ bool UniRadio::senderTest(char *message_received, int *rssi_received) {
   char data[220];
   snprintf(data, 16, "%d HelloWorld", millis());
   log("sending ~20 char message");
-  _rf95.send(data, strlen(data));
+  _rf95.send((uint8_t *)data, strlen(data));
   log("send() complete");
 
   _rf95.waitPacketSent();
@@ -115,36 +119,92 @@ bool UniRadio::receiverTest( char *message_received, int *rssi_received) {
   }
 }
 
+#define MAX_MESSAGES 20
+#define MAX_MESSAGE_LENGTH 25
+// %d,,%02d,%02d,%03d,%d
+
+// - racer number (1-4 digits)
+// - DQ, DNF, or empty (if valid)
+// - minute-of-day (0-2880)
+// - second-of-minute (00-59)
+// - millisecond-of-minute (000-999)
+// - penalties (0-1) - was this an early-start (on a count-down-based start config)
+// max total length: 4 + 1 + 1 + 4 + 1 + 2 + 1 + 3 + 1 + 1 = 19
+
+char results_to_transmit[MAX_MESSAGES][MAX_MESSAGE_LENGTH];
+int tx_results_count = 0;
+// Oldest result is at index 0
+// Newest result is at index [tx_results_count - 1]
+
+// if there is a message to be sent
+// check to see if the radio is available
+// And send the message
 void UniRadio::loop()
 {
-  Serial.println("Sending to rf95_server");
-  // Send a message to rf95_server
-  uint8_t data[] = "Hello World!";
-  _rf95.send(data, sizeof(data));
-
-  _rf95.waitPacketSent();
-  // Now wait for a reply
-  uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
-  uint8_t len = sizeof(buf);
-
-  if (_rf95.waitAvailableTimeout(3000))
-  {
-    // Should be a reply message for us now
-    if (_rf95.recv(buf, &len))
-    {
-      Serial.print("got reply: ");
-      Serial.println((char*)buf);
-      //      Serial.print("RSSI: ");
-      //      Serial.println(rf95.lastRssi(), DEC);
-    }
-    else
-    {
-      Serial.println("recv failed");
+  if (tx_results_count > 0) {
+    // There is a message to send
+    if (_rf95.mode() == RHGenericDriver::RHModeIdle) { // ? should it be != RHModeTx ?
+      // the radio is available
+      log("Sending to radio");
+      if (_rf95.send((uint8_t *)results_to_transmit[0], strlen(results_to_transmit[0]) + 1)) {
+        // send was successful
+        log("Sent to Radio");
+        // Drop the sent entry
+        for (int i = 1; i < (tx_results_count - 1); i++) {
+          memcpy(results_to_transmit[i - 1], results_to_transmit[i], MAX_MESSAGE_LENGTH);
+        }
+        tx_results_count = 0;
+      } else {
+        Serial.println("Error sending via radio");
+      }
     }
   }
-  else
-  {
-    Serial.println("No reply, is rf95_server running?");
+}
+
+// queue a message for sending
+// returns true if queued
+// returns false if full
+bool UniRadio::queueToSend(char *message) {
+  if (tx_results_count >= MAX_MESSAGES) {
+    return false;
   }
-  delay(400);
+
+  strcpy(results_to_transmit[tx_results_count], message);
+  tx_results_count += 1;
+  return true;
+}
+
+int UniRadio::queueSize() {
+  return tx_results_count;
+}
+
+void UniRadio::displayQueue() {
+  Serial.print("TX Queue: ");
+  Serial.print(tx_results_count);
+  Serial.println(" messages");
+  for (int i = 0; i < MAX_MESSAGES; i++) {
+    Serial.print(i);
+    Serial.print(": ");
+    Serial.println(results_to_transmit[i]);
+  }
+}
+
+bool UniRadio::messageAvailable() {
+  return _rf95.available();
+}
+
+bool UniRadio::receive(uint8_t *message, uint8_t *message_length) {
+  if (!_rf95.available()) {
+    return false;
+  }
+  if (_rf95.recv(message, message_length)) {
+    log("received: ");
+    log((char*)message);
+    Serial.print("RSSI: ");
+    Serial.println(_rf95.lastRssi(), DEC);
+    return true;
+  } else {
+    Serial.print("Receive failed");
+    return false;
+  }
 }
