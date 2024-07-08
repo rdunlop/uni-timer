@@ -50,15 +50,13 @@ extern "C" char* sbrk(int incr);
 extern char *__brkval;
 #endif  // __arm__
 
+/* *********** FREE MEM *************** */
+extern unsigned long _heap_start;
+extern unsigned long _heap_end;
+extern char *__brkval;
+
 int freeMemory() {
-  char top;
-#ifdef __arm__
-  return &top - reinterpret_cast<char*>(sbrk(0));
-#elif defined(CORE_TEENSY) || (ARDUINO > 103 && ARDUINO != 151)
-  return &top - __brkval;
-#else  // __arm__
-  return __brkval ? &top - __brkval : &top - __malloc_heap_start;
-#endif  // __arm__
+  return (char *)&_heap_end - __brkval;
 }
 
 /* *********************** Includes *********************************** */

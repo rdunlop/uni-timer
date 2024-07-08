@@ -34,20 +34,16 @@ void sensor_interrupt() {
   unsigned long required_spacing = config.get_finish_line_spacing();
   if (now - _last_interrupt_millis < required_spacing) {
     Serial.println("Ignoring as too close to previous crossing");
-    return;
+  } else {
+    _interrupt_millis = now;
+    _last_interrupt_millis = now;
+    gps.current_time(&last_sensor_time, now);
+    print_data_to_log(last_sensor_time);
   }
-  _interrupt_millis = now;
-  _last_interrupt_millis = now;
-  gps.current_time(&last_sensor_time, now);
-  print_data_to_log(last_sensor_time);
 }
 
 bool sensor_has_triggered() {
   return _interrupt_millis != 0;
-}
-
-unsigned long sensor_interrupt_millis() {
-  return _interrupt_millis;
 }
 
 void clear_sensor_interrupt_millis() {

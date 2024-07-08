@@ -165,6 +165,9 @@ void UniRadio::loop()
 // returns true if queued
 // returns false if full
 bool UniRadio::queueToSend(char *message) {
+  if (!status()) {
+    return false;
+  }
   if (tx_results_count >= MAX_MESSAGES) {
     return false;
   }

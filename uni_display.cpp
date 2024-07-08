@@ -277,11 +277,16 @@ void UniDisplay::show(char x) {
 }
 
 void UniDisplay::print(const char *message, const char *message2) {
+  // always ensure that we aren't exceeding 16 characters
+  char msg1[16 + 1] = {0}; // 1 extra for the final null, if we have 16 char input
+  char msg2[16 + 1] = {0}; // 1 extra for the final null, if we have 16 char input
+  memcpy(msg1, message, 16);
+  memcpy(msg2, message2, 16);
   _lcd.clear();
   _lcd.home();
-  _lcd.print(message);
+  _lcd.print(msg1);
   _lcd.setCursor(0, 1); // Move to the beginning of the second row
-  _lcd.print(message2);
+  _lcd.print(msg2);
 }
 
 void UniDisplay::showTimeResult(TimeResult *time_result) {

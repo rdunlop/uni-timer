@@ -19,6 +19,7 @@ extern UniRadio radio;
 
 #include <Fsm.h>
 
+#define FSM_DEBUG true
 /*********************************************************************************** */
 //### Mode 5 - Race Run (Start Line)
 //
@@ -53,8 +54,32 @@ void sensor_check();
 void sensor_entry();
 void sensor_exit();
 
-State initial(NULL, &initial_check, NULL);
-State digits_entered(NULL, &digit_check, NULL);
+void init_entry() {
+  #ifdef FSM_DEBUG
+  Serial.println("STATE: initial - ENTRY");
+  #endif
+}
+
+void init_exit() {
+  #ifdef FSM_DEBUG
+  Serial.println("STATE: initial - EXIT");
+  #endif
+}
+
+void digit_entry() {
+  #ifdef FSM_DEBUG
+  Serial.println("STATE: digit - ENTRY");
+  #endif
+}
+
+void digit_exit() {
+  #ifdef FSM_DEBUG
+  Serial.println("STATE: digit - EXIT");
+  #endif
+}
+
+State initial(&init_entry, &initial_check, &init_exit);
+State digits_entered(&digit_entry, &digit_check, &digit_exit);
 State ready_for_sensor(&sensor_entry, &sensor_check, &sensor_exit);
 bool fsm_5_transition_setup_complete = false;
 
@@ -78,9 +103,6 @@ void initial_check() {
     log("Clear previous entry");
     clear_previous_entry();
   }
-#ifdef FSM_DEBUG
-  Serial.println("Initial Check ");
-#endif
 }
 
 void digit_check() {
@@ -103,9 +125,6 @@ void digit_check() {
     buzzer.beep();
     display.sens();
   }
-#ifdef FSM_DEBUG
-  Serial.println("Digit Check");
-#endif
 }
 
 void countdown(); // forward declaration
@@ -120,9 +139,6 @@ void sensor_check() {
     // In Countdown mode
     countdown();
   }
-#ifdef FSM_DEBUG
-  Serial.println("Sensor Check");
-#endif
 }
 
 uint32_t countdown_start_time = 0;
@@ -183,7 +199,6 @@ void start_beeped() {
 // we notice that the sensor interrupt has fired.
 void sensor_triggered() {
   Serial.println("SENSOR TRIGGERED 5");
-  Serial.println(sensor_interrupt_millis());
   
   display.sens();
   
@@ -225,12 +240,18 @@ void sensor_triggered() {
 }
 
 void sensor_entry() {
+  #ifdef FSM_DEBUG
+  Serial.println("STATE: sensor_check - ENTRY");
+  #endif
   log("ACCEPTED");
   clear_sensor_interrupt_millis();
   display.waitingForSensor();
 }
 
 void sensor_exit() {
+  #ifdef FSM_DEBUG
+  Serial.println("STATE: sensor_check - EXIT");
+  #endif
   Serial.println("exiting");
   display.doneWaitingForSensor();
   countdown_start_time = 0;
@@ -249,8 +270,25 @@ void sensor_exit() {
  * DIGITS
  * READY
  */
+#define SIMULATE true
+#ifdef SIMULATE
+extern int _racer_number;
+int simulated_racer_number = 1;
+void simulate_racer_number() {
+  _racer_number = simulated_racer_number;
+  char str1[20], str2[20];
+  snprintf(str1, 20, "Uptime: %ld", millis() / 1000);
+  snprintf(str2, 20, "Racer: %d", _racer_number);
+  display.print(str1, str2);
+  simulated_racer_number += 1;
+}
 
+#endif
 void mode5_fsm_setup() {
+  #ifdef SIMULATE
+  mode5_fsm.add_timed_transition(&initial, &ready_for_sensor, 30, &simulate_racer_number);
+  mode5_fsm.add_timed_transition(&ready_for_sensor, &initial, 50, &start_beeped);
+  #endif
   mode5_fsm.add_transition(&initial, &digits_entered, NUMBER_PRESSED, &store_racer_number);
   
   mode5_fsm.add_transition(&digits_entered, &initial, DELETE, &clear_racer_number);

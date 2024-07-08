@@ -183,7 +183,7 @@ void rxStore(bool start, uint16_t racer_number, uint32_t time, uint8_t fault) {
 
   // the racer number was not found, and there is no space
   // copy all entries up, and overwrite the last entry
-  for (int i = 1; i < (MAX_RECENT_RESULTS - 1); i++) {
+  for (int i = 1; i < MAX_RECENT_RESULTS; i++) {
     memcpy(&lookup_table[i - 1], &lookup_table[i], sizeof(lookup_table[i]));
   }
   memset(&lookup_table[MAX_RECENT_RESULTS - 1], 0, sizeof(lookup_table[MAX_RECENT_RESULTS - 1]));
@@ -198,6 +198,8 @@ void rxStore(bool start, uint16_t racer_number, uint32_t time, uint8_t fault) {
 
 void displayRx() {
   Serial.println("RX");
+  Serial.print("Results count: ");
+  Serial.println(rx_results_count);
   for (int i = 0; i < MAX_RECENT_RESULTS; i++) {
     Serial.print(i);
     Serial.print(": ");
@@ -255,6 +257,10 @@ void mode7_receive_radio() {
   uint8_t len = sizeof(buf);
   if (radio.receive(buf, &len))
   {
+    buzzer.pre_beep();
+    // TEMPORARY:
+    display.print("Received", (char *)buf);
+    // END TEMPORARY
     uint16_t racer_number;
     uint16_t min, sec, mil;
     uint8_t fault;
@@ -264,6 +270,7 @@ void mode7_receive_radio() {
       // all matched
       Serial.println("Successfully read message");
       rxStore(start_or_end == 'S', racer_number, (((min * 60) + sec) * 1000) + mil, fault);
+      displayRx();
     } else {
       Serial.println("Error parsing message");
     }

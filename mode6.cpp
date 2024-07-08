@@ -103,7 +103,6 @@ void drop_last_entry() {
 
 void store_timing_data() {
   Serial.println("SENSOR TRIGGERED");
-  Serial.println(sensor_interrupt_millis());
   
   buzzer.beep();
   TimeResult data;
