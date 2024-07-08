@@ -150,10 +150,11 @@ void UniRadio::loop()
         // send was successful
         log("Sent to Radio");
         // Drop the sent entry
-        for (int i = 1; i < (tx_results_count - 1); i++) {
+        for (int i = 1; i < tx_results_count; i++) {
           memcpy(results_to_transmit[i - 1], results_to_transmit[i], MAX_MESSAGE_LENGTH);
         }
-        tx_results_count = 0;
+        memset(results_to_transmit[tx_results_count - 1], 0, MAX_MESSAGE_LENGTH);
+        tx_results_count -= 1;
       } else {
         Serial.println("Error sending via radio");
       }
