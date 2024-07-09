@@ -1,5 +1,6 @@
 // DISPLAY
 #include "uni_display.h"
+#include <sys/param.h>
 
 // 7-Segment codes for displaying some letters.
 // Right-most Octet:
@@ -139,7 +140,9 @@ void UniDisplay::displayTest() {
 // INTERNAL
 // **************************
 void UniDisplay::setBlink(bool blink) {
+  #ifdef SEVEN_SEGMENT_DISPLAY
   _display.blinkRate(blink ? 2 : 0);
+  #endif
 }
 
 void UniDisplay::all() {
@@ -151,42 +154,52 @@ void UniDisplay::all() {
 }
 
 void UniDisplay::good() {
+  #ifdef SEVEN_SEGMENT_DISPLAY
   _display.writeDigitNum(0, 0x6);
   _display.writeDigitRaw(1, LETTER_O);
   _display.writeDigitRaw(3, LETTER_O);
   _display.writeDigitNum(4, 0xd);
   _display.writeDisplay();
+#endif
 }
 
 void UniDisplay::bad() {
+  #ifdef SEVEN_SEGMENT_DISPLAY
   _display.writeDigitRaw(0, 0x0);
   _display.writeDigitNum(1, 0xb);
   _display.writeDigitNum(3, 0xa);
   _display.writeDigitNum(4, 0xd);
   _display.writeDisplay();
+#endif
 }
 
 void UniDisplay::sd() {
+  #ifdef SEVEN_SEGMENT_DISPLAY
   _display.clear();
   _display.writeDigitNum(3, 0x5);
   _display.writeDigitNum(4, 0xd);
   _display.writeDisplay();
+#endif
 }
 
 void UniDisplay::gps() {
+  #ifdef SEVEN_SEGMENT_DISPLAY
   _display.clear();
   _display.writeDigitNum(1, 0x9);
   _display.writeDigitRaw(3, LETTER_P);
   _display.writeDigitNum(4, 0x5);
   _display.writeDisplay();
+#endif
 }
 
 void UniDisplay::radio() {
+  #ifdef SEVEN_SEGMENT_DISPLAY
   _display.clear();
   _display.writeDigitRaw(1, LETTER_R);
   _display.writeDigitRaw(3, LETTER_A);
   _display.writeDigitRaw(4, LETTER_D);
   _display.writeDisplay();
+#endif
 }
 
 void UniDisplay::sens() {
@@ -261,19 +274,36 @@ void UniDisplay::show(char x) {
   print(buf);
 }
 
+bool printed = false;
+
 void UniDisplay::print(const char *message, const char *message2) {
 #ifdef LCD_DISPLAY
   // always ensure that we aren't exceeding 16 characters
-  char msg1[16 + 1] = {0}; // 1 extra for the final null, if we have 16 char input
-  char msg2[16 + 1] = {0}; // 1 extra for the final null, if we have 16 char input
+  char msg1[16 + 1]; // 1 extra for the final null, if we have 16 char input
+  char msg2[16 + 1]; // 1 extra for the final null, if we have 16 char input
+  memset(msg1, 0x20, sizeof(msg1));
+  memset(msg2, 0x20, sizeof(msg2));
+  msg1[16] = 0;
+  msg2[16] = 0;
   if (message != NULL) {
-    memcpy(msg1, message, 16);
+    strncpy(msg1, message, MIN(strlen(message), 16));
   }
   if (message2 != NULL) {
-    memcpy(msg2, message2, 16);
+    strncpy(msg2, message2, MIN(strlen(message2), 16));
   }
-  _lcd.clear();
-  _lcd.home();
+  if (!printed) {
+    for (int i = 0; i < 17; i++) {
+      Serial.print("Char ");
+      Serial.print(i);
+      Serial.print(":");
+      Serial.print((uint8_t) msg1[i]);
+      Serial.print(":");
+      Serial.print((uint8_t) msg2[i]);
+      Serial.println();
+    }
+    printed = true;
+  }
+  _lcd.setCursor(0, 0);
   _lcd.print(msg1);
   _lcd.setCursor(0, 1); // Move to the beginning of the second row
   _lcd.print(msg2);

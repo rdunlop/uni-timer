@@ -69,11 +69,10 @@ class UniDisplay
     #ifdef SEVEN_SEGMENT_DISPLAY
     Adafruit_7segment _display;
     #endif
-    int _wait_state;
-
     #ifdef LCD_DISPLAY
     Adafruit_LiquidCrystal _lcd;
-    char _buffer[2][17];
     #endif
+    int _wait_state;
+    char _buffer[2][17];
 };
 #endif

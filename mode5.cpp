@@ -142,6 +142,8 @@ void digit_check() {
   } else if (last_key_pressed == 'A') {
     mode5_fsm.trigger(ACCEPT);
   } else if (last_key_pressed == 'C') {
+    display.setup();
+    display.clear();
     mode5_fsm.trigger(DELETE);
     log("CLEARED RACER NUMBER");
   } else if (sensor.blocked()) {
