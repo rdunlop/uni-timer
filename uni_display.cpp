@@ -1,7 +1,4 @@
 // DISPLAY
-#include <Adafruit_GFX.h>
-#include "Adafruit_LEDBackpack.h"
-#include "Adafruit_LiquidCrystal.h"
 #include "uni_display.h"
 
 // 7-Segment codes for displaying some letters.
@@ -30,7 +27,7 @@
 uint8_t difficulty_to_letter_code(uint8_t difficulty);
 
 // If defined, use the 7-segment display, otherwise ignore this, and move faster
-// #define SEVEN_SEGMENT_DISPLAY true
+
 
 // ***************************
 // API
@@ -41,14 +38,18 @@ void UniDisplay::setup() {
   Serial.println("Display Done init");
 #endif
 
+#ifdef LCD_DISPLAY
+  memset(_buffer, 0, sizeof(_buffer));
+
   if (!_lcd.begin(16, 2)) { // should update these pins to be constants
     Serial.println("Could not init backpack. Check wiring.");
   }
-//   Print a message to the LCD.
-  _lcd.print("UDA Initializing!");
+  //   Print a message to the LCD.
+  print("UDA Initializing!");
   _lcd.setBacklight(1);
    // set the display to automatically scroll:
   // _lcd.autoscroll();
+#endif
 }
 
 void UniDisplay::sdGood(bool delay_for_segment) {
@@ -59,9 +60,7 @@ void UniDisplay::sdGood(bool delay_for_segment) {
     good();
   }
 #endif
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print("SD Good");
+  print("SD Good");
 }
 
 void UniDisplay::sdBad(bool delay_for_segment) {
@@ -72,9 +71,7 @@ void UniDisplay::sdBad(bool delay_for_segment) {
     bad();
   }
 #endif
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print("SD Bad");
+  print("SD Bad");
 }
 
 void UniDisplay::radioGood(bool delay_for_segment) {
@@ -85,9 +82,7 @@ void UniDisplay::radioGood(bool delay_for_segment) {
     good();
   }
 #endif
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print("Radio Good");
+  print("Radio Good");
 }
 
 void UniDisplay::radioBad(bool delay_for_segment) {
@@ -98,9 +93,7 @@ void UniDisplay::radioBad(bool delay_for_segment) {
     bad();
   }
 #endif
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print("Radio Bad");
+  print("Radio Bad");
 }
 
 void UniDisplay::gpsGood(bool delay_for_segment) {
@@ -111,9 +104,7 @@ void UniDisplay::gpsGood(bool delay_for_segment) {
     good();
   }
 #endif
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print("GPS Good");
+  print("GPS Good");
 }
 
 void UniDisplay::gpsBad(bool delay_for_segment) {
@@ -124,27 +115,21 @@ void UniDisplay::gpsBad(bool delay_for_segment) {
     bad();
   }
 #endif
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print("GPS Bad");
+  print("GPS Bad");
 }
 
 void UniDisplay::allGood() {
 #ifdef SEVEN_SEGMENT_DISPLAY
   good();
 #endif
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print("All Good");
+  print("All Good");
 }
 
 void UniDisplay::notAllGood() {
 #ifdef SEVEN_SEGMENT_DISPLAY
   bad();
 #endif
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print("NOT All Good");
+  print("NOT All Good");
 }
 
 void UniDisplay::displayTest() {
@@ -162,11 +147,7 @@ void UniDisplay::all() {
   _display.print(0x8888, HEX);
   _display.writeDisplay();
 #endif
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print("1234567890123456");
-  _lcd.setCursor(0, 1); // Move to the beginning of the second row
-  _lcd.print("1234567890123456");
+  print("1234567890123456", "1234567890123456");
 }
 
 void UniDisplay::good() {
@@ -217,27 +198,31 @@ void UniDisplay::sens() {
   _display.writeDisplay();
 #endif
 
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print("Sensor!");
+  print("Sensor!");
 }
 
 // Indicate that we have the racer number entered, and we're waiting
 // for the sensor to be triggered
-void UniDisplay::waitingForSensor() {
+void UniDisplay::waitingForSensor(const int racer_number) {
 #ifdef SEVEN_SEGMENT_DISPLAY
   setBlink(true);
 #endif
-  _lcd.print(" READY!");
+  char buf[17] = { 0};
+  snprintf(buf, 16, "%d READY!", racer_number);
+  print(buf);
+#ifdef LCD_DISPLAY
   _lcd.blink();
+#endif
 }
 
 void UniDisplay::doneWaitingForSensor() {
 #ifdef SEVEN_SEGMENT_DISPLAY
   setBlink(false);
 #endif
-  _lcd.clear();
+  print();
+#ifdef LCD_DISPLAY
   _lcd.noBlink();
+#endif
 }
 
 boolean isDigit(char c) {
@@ -271,22 +256,28 @@ void UniDisplay::show(char x) {
   _display.writeDisplay();
 #endif
 
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print(x);
+  char buf[10];
+  sprintf(buf, "%c", x);
+  print(buf);
 }
 
 void UniDisplay::print(const char *message, const char *message2) {
+#ifdef LCD_DISPLAY
   // always ensure that we aren't exceeding 16 characters
   char msg1[16 + 1] = {0}; // 1 extra for the final null, if we have 16 char input
   char msg2[16 + 1] = {0}; // 1 extra for the final null, if we have 16 char input
-  memcpy(msg1, message, 16);
-  memcpy(msg2, message2, 16);
+  if (message != NULL) {
+    memcpy(msg1, message, 16);
+  }
+  if (message2 != NULL) {
+    memcpy(msg2, message2, 16);
+  }
   _lcd.clear();
   _lcd.home();
   _lcd.print(msg1);
   _lcd.setCursor(0, 1); // Move to the beginning of the second row
   _lcd.print(msg2);
+#endif
 }
 
 void UniDisplay::showTimeResult(TimeResult *time_result) {
@@ -298,13 +289,11 @@ void UniDisplay::showTimeResult(TimeResult *time_result) {
   showNumber(time_result->millisecond);
   delay(500);
 #endif
-  _lcd.clear();
-  _lcd.home();
 
   // Extract into common helper?
   char data_string[DISPLAY_MAX_LINE_LENGTH];
   snprintf(data_string, DISPLAY_MAX_LINE_LENGTH, "%02d:%02d.%03d", time_result->minute, time_result->second, time_result->millisecond);
-  _lcd.print(data_string);
+  print(data_string);
 }
 
 void UniDisplay::showNumber(int x) {
@@ -313,9 +302,9 @@ void UniDisplay::showNumber(int x) {
   _display.writeDisplay();
 #endif
 
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print(x);
+  char data_string[DISPLAY_MAX_LINE_LENGTH];
+  snprintf(data_string, DISPLAY_MAX_LINE_LENGTH, "%d", x);
+  print(data_string);
 }
 
 void UniDisplay::displayConfig(UniConfig *config) {
@@ -326,25 +315,21 @@ void UniDisplay::displayConfig(UniConfig *config) {
   _display.writeDigitNum(4, config->get_race_number());
   _display.writeDisplay();
 #endif
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print(config->get_start() ? "Start" : "Finish"); // 6
-  _lcd.print("-"); // 7
-  switch(config->get_difficulty()) {
-    case 0: // Beginner
-      _lcd.print("Beginner"); // 15
-      break;
-     case 1: // Advanced
-      _lcd.print("Advanced"); // 15
-      break;
-     case 2: // Expert
-      _lcd.print("Expert"); // 13
-      break;
-  }
-  _lcd.setCursor(0, 1);
-  _lcd.print(config->get_up() ? "up" : "down"); // 4
-  _lcd.print(" - Race:"); // 12
-  _lcd.print(config->get_race_number()); // 13
+  char buf1[17] = { 0 };
+  char buf2[17] = { 0 };
+
+  snprintf(buf1, 16, "%s-%s",
+      config->get_start() ? "Start" : "Finish", // 6
+      config->get_difficulty() == 0 ? "Beginner" : // 8
+      config->get_difficulty() == 1 ? "Advanced" : // 8
+      config->get_difficulty() == 2 ? "Expert" : // 6
+      "");
+
+  snprintf(buf2, 16, "%s - Race: %d",
+    config->get_up() ? "up" : "down", // 4
+    config->get_race_number()
+  ); // 13
+  print(buf1, buf2);
 }
 
 void UniDisplay::showRacerDigits(int numDigits) {
@@ -352,39 +337,25 @@ void UniDisplay::showRacerDigits(int numDigits) {
   showNumber(numDigits);
 #endif
 
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print("Racer Bib Digits:");
-  _lcd.setCursor(0, 1);
-  _lcd.print(numDigits);
+  char buf[16];
+  snprintf(buf, 15, "%d", numDigits);
+  print("Racer Bib Digits:", buf);
 }
 void UniDisplay::startLineCountdown(bool startLineMode) {
 #ifdef SEVEN_SEGMENT_DISPLAY
   showNumber(startLineMode ? 1 : 2);
 #endif
 
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print("Start Line Mode:");
-  _lcd.setCursor(0, 1);
-  if (startLineMode) {
-    _lcd.print("ENABLED");
-  } else {
-    _lcd.print("Disabled");
-  }
+  print("Start Line Mode:", startLineMode ? "ENABLED" : "Disabled");
 }
 void UniDisplay::triggerIntervalDelay(uint16_t interval) {
 #ifdef SEVEN_SEGMENT_DISPLAY
   showNumber(interval);
 #endif
 
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print("Sensor Trigger");
-  _lcd.setCursor(0, 1);
-  _lcd.print("Interval: ");
-  _lcd.print(interval);
-  _lcd.print("ms");
+  char buf[17] = { 0 };
+  snprintf(buf, 16, "Delay: %d ms", interval);
+  print("Sensor Trigger", buf);
 }
 
 
@@ -400,11 +371,9 @@ void UniDisplay::showEntriesRemaining(int x) {
   }
   _display.writeDisplay();
 #endif
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print("Entries:");
-  _lcd.setCursor(0, 1);
-  _lcd.print(x);
+  char buf[17] = { 0 };
+  snprintf(buf, 16, "%d", x);
+  print("Entries", buf);
 }
 
 void UniDisplay::clear() {
@@ -412,8 +381,7 @@ void UniDisplay::clear() {
   _display.clear();
   _display.writeDisplay();
 #endif
-  _lcd.clear();
-  _lcd.home();
+  print();
 }
 
 // create a wait-indicator movement
@@ -462,27 +430,25 @@ void UniDisplay::waitingPattern() {
 }
 
 void UniDisplay::waitingForGps() {
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print("Waiting for GPS");
+  print("Waiting for GPS");
+#ifdef LCD_DISPLAY
   _lcd.blink();
+#endif
 }
 
 void UniDisplay::doneWaitingForGps() {
+  print();
+#ifdef LCD_DISPLAY
   _lcd.noBlink();
-  _lcd.clear();
+#endif
 }
 
 void UniDisplay::configNotFound() {
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print("Config Not Found");
+  print("Config Not Found");
 }
 
 void UniDisplay::configLoaded() {
-  _lcd.clear();
-  _lcd.home();
-  _lcd.print("Config Loaded!");
+  print("Config Loaded!");
 }
 
 uint8_t difficulty_to_letter_code(uint8_t difficulty) {

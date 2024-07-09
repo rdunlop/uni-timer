@@ -1,7 +1,7 @@
 #ifndef UNI_SD_H
 #define UNI_SD_H
 #include <SPI.h>
-#include <SD.h>
+#include <SdFat.h>
 
 class UniSd
 {
@@ -27,6 +27,9 @@ class UniSd
     int _cs;
     bool initInternalSD();
     bool initExternalSD();
+    bool _internal_ok;
+    bool _external_ok;
+    SdFs sd;
 };
 
 #endif

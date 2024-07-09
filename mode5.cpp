@@ -56,27 +56,44 @@ void sensor_exit();
 
 void init_entry() {
   #ifdef FSM_DEBUG
-  Serial.println("STATE: initial - ENTRY");
+  log("STATE: initial - ENTRY");
   #endif
 }
 
 void init_exit() {
   #ifdef FSM_DEBUG
-  Serial.println("STATE: initial - EXIT");
+  log("STATE: initial - EXIT");
   #endif
 }
 
 void digit_entry() {
   #ifdef FSM_DEBUG
-  Serial.println("STATE: digit - ENTRY");
+  log("STATE: digit - ENTRY");
   #endif
 }
 
 void digit_exit() {
   #ifdef FSM_DEBUG
-  Serial.println("STATE: digit - EXIT");
+  log("STATE: digit - EXIT");
   #endif
 }
+
+#ifdef FSM_DEBUG
+uint32_t last_fsm_debug_time = 0;
+
+void printFsmStateName(const char *stateName) {
+  // if millis() or timer wraps around, we'll just reset it
+  if (last_fsm_debug_time > millis())  last_fsm_debug_time = millis();
+  // approximately every 10 seconds or so, print out the current state name
+  if (millis() - last_fsm_debug_time > 10000) {
+    last_fsm_debug_time = millis(); // reset the timer
+
+    Serial.println(F("State Name"));
+    Serial.println(stateName);
+    log(stateName);
+  }
+}
+#endif
 
 State initial(&init_entry, &initial_check, &init_exit);
 State digits_entered(&digit_entry, &digit_check, &digit_exit);
@@ -93,6 +110,9 @@ Fsm mode5_fsm(&initial);
 #define START 6
 
 void initial_check() {
+  #ifdef FSM_DEBUG
+  printFsmStateName("initial_check");
+  #endif
   char last_key_pressed = keypad.readChar();
   if (keypad.isDigit(last_key_pressed)) {
     mode5_fsm.trigger(NUMBER_PRESSED);
@@ -106,6 +126,9 @@ void initial_check() {
 }
 
 void digit_check() {
+  #ifdef FSM_DEBUG
+  printFsmStateName("digit_check");
+  #endif
   // - 0-9 -> TWO_DIGITS_ENTERED or THREE_DIGITS_ENTERED
   // - A -> ACCEPTING
   // - C -> INITIAL
@@ -130,6 +153,9 @@ void digit_check() {
 void countdown(); // forward declaration
 
 void sensor_check() {
+  #ifdef FSM_DEBUG
+  printFsmStateName("sensor_check");
+  #endif
   if (keypad.newKeyPressed() && keypad.keyPressed('C')) {
     mode5_fsm.trigger(DELETE);
     log("DELETED RACER NUMBER");
@@ -241,18 +267,17 @@ void sensor_triggered() {
 
 void sensor_entry() {
   #ifdef FSM_DEBUG
-  Serial.println("STATE: sensor_check - ENTRY");
+  log("STATE: sensor_check - ENTRY");
   #endif
   log("ACCEPTED");
   clear_sensor_interrupt_millis();
-  display.waitingForSensor();
+  // display.waitingForSensor(racer_number());
 }
 
 void sensor_exit() {
   #ifdef FSM_DEBUG
-  Serial.println("STATE: sensor_check - EXIT");
+  log("STATE: sensor_check - EXIT");
   #endif
-  Serial.println("exiting");
   display.doneWaitingForSensor();
   countdown_start_time = 0;
 }
@@ -277,17 +302,20 @@ int simulated_racer_number = 1;
 void simulate_racer_number() {
   _racer_number = simulated_racer_number;
   char str1[20], str2[20];
-  snprintf(str1, 20, "Uptime: %ld", millis() / 1000);
+  snprintf(str1, 20, "Uptime: %ld min", millis() / 1000 / 60);
   snprintf(str2, 20, "Racer: %d", _racer_number);
   display.print(str1, str2);
+  #ifdef SEVEN_SEGMENT_DISPLAY
+  display.showNumber(millis() / 1000 / 60);
+  #endif
   simulated_racer_number += 1;
 }
 
 #endif
 void mode5_fsm_setup() {
   #ifdef SIMULATE
-  mode5_fsm.add_timed_transition(&initial, &ready_for_sensor, 30, &simulate_racer_number);
-  mode5_fsm.add_timed_transition(&ready_for_sensor, &initial, 50, &start_beeped);
+  mode5_fsm.add_timed_transition(&initial, &ready_for_sensor, 300, &simulate_racer_number);
+  mode5_fsm.add_timed_transition(&ready_for_sensor, &initial, 500, &start_beeped);
   #endif
   mode5_fsm.add_transition(&initial, &digits_entered, NUMBER_PRESSED, &store_racer_number);
   

@@ -145,10 +145,10 @@ void UniRadio::loop()
     // There is a message to send
     if (_rf95.mode() == RHGenericDriver::RHModeIdle) { // ? should it be != RHModeTx ?
       // the radio is available
-      log("Sending to radio");
+      log("RADIO - Sending to radio");
       if (_rf95.send((uint8_t *)results_to_transmit[0], strlen(results_to_transmit[0]) + 1)) {
         // send was successful
-        log("Sent to Radio");
+        log("RADIO - Sent to Radio");
         // Drop the sent entry
         for (int i = 1; i < tx_results_count; i++) {
           memcpy(results_to_transmit[i - 1], results_to_transmit[i], MAX_MESSAGE_LENGTH);
@@ -156,7 +156,7 @@ void UniRadio::loop()
         memset(results_to_transmit[tx_results_count - 1], 0, MAX_MESSAGE_LENGTH);
         tx_results_count -= 1;
       } else {
-        Serial.println("Error sending via radio");
+        log("RADIO - Error sending via radio");
       }
     }
   }
@@ -166,15 +166,19 @@ void UniRadio::loop()
 // returns true if queued
 // returns false if full
 bool UniRadio::queueToSend(char *message) {
+  log("RADIO - queuing message to send");
   if (!status()) {
+    log("RADIO - fail");
     return false;
   }
   if (tx_results_count >= MAX_MESSAGES) {
+    log("RADIO - queuing full");
     return false;
   }
 
   strcpy(results_to_transmit[tx_results_count], message);
   tx_results_count += 1;
+  log("RADIO - queued");
   return true;
 }
 

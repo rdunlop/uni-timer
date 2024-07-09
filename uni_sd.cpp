@@ -20,8 +20,8 @@ UniSd::UniSd(int cs)
 void UniSd::setup() {
 
   // Setup Internal SD Card
-  bool internal_status = initInternalSD();
-  if (internal_status) {
+  _internal_ok = initInternalSD();
+  if (_internal_ok) {
     Serial.println("Int SD initialization OK.");
   } else {
     Serial.println("Int SD Initialization Failed!");
@@ -30,8 +30,8 @@ void UniSd::setup() {
   // Setup External SD Card
   // returns 1 on success
   // returns 0 on failure
-  bool external_status = initExternalSD();
-  if (external_status) {
+  _external_ok = initExternalSD();
+  if (_external_ok) {
     Serial.println("SD initialization OK.");
   } else {
     Serial.println("SD initialization failed!");
@@ -53,43 +53,54 @@ bool UniSd::status() {
 // INTERNAL Functions
 // ****************************************
 bool UniSd::initInternalSD() {
-  return SD.begin(BUILTIN_SDCARD);
+  return sd.begin(SdioConfig(FIFO_SDIO));
 }
 
 bool UniSd::initExternalSD() {
-  return SD.begin(_cs);
+  return sd.begin(SdSpiConfig(_cs, SHARED_SPI, SD_SCK_MHZ(16)));
 }
 
 
 // Write to a file, and read back, to ensure SD card is working
 // return true on success
 bool UniSd::testWriteExternal() {
+  if (!_external_ok) { return true; }
+
   if (!initExternalSD()) {
     Serial.println("SD initialization failed!");
     return false;
+  } else {
+    Serial.println("ext SD init");
   }
-  File testFile = SD.open("testfile.txt", FILE_WRITE);
+  FsFile testFile = sd.open("testfilee.txt", O_CREAT | O_WRITE | O_AT_END);
   int result = testFile.println("testing Write 1");
   if (result > 0) {
     testFile.close();
     return true;
   } else {
+    Serial.println("EResult");
+    Serial.println(result);
     return false;
   }
 }
 
 // return true on success
 bool UniSd::testWriteInternal() {
+  if (!_internal_ok) { return true; }
   if (!initInternalSD()) {
     Serial.println("int SD initialization failed!");
     return false;
+  } else {
+    Serial.println("int SD init");
   }
-  File testFile = SD.open("inttestfile.txt", FILE_WRITE);
+  FsFile testFile = sd.open("inttestfilei.txt", O_CREAT | O_WRITE | O_AT_END);
   int result = testFile.println("testing Write 1");
   if (result > 0) {
     testFile.close();
     return true;
   } else {
+    Serial.println("IResult");
+    Serial.println(result);
     return false;
   }
 }
@@ -98,20 +109,24 @@ bool UniSd::testWriteInternal() {
 bool UniSd::writeFile(const char *filename, const char *text) {
   bool success = true;
 
-  if (!testWriteInternal()) {
-    success = false;
-  } else {
-    if (!writeFilePrivate(filename, text)) {
+  if (_internal_ok) {
+    if (!testWriteInternal()) {
       success = false;
+    } else {
+      if (!writeFilePrivate(filename, text)) {
+        success = false;
+      }
     }
   }
 
-  // EXTERNAL SD
-  if (!testWriteExternal()) {
-    success = false;
-  } else {
-    if (!writeFilePrivate(filename, text)) {
+  if (_external_ok) {
+    // EXTERNAL SD
+    if (!testWriteExternal()) {
       success = false;
+    } else {
+      if (!writeFilePrivate(filename, text)) {
+        success = false;
+      }
     }
   }
 
@@ -121,7 +136,7 @@ bool UniSd::writeFile(const char *filename, const char *text) {
 bool UniSd::writeFilePrivate(const char *filename, const char *text) {
   // open the file. note that only one file can be open at a time,
   // so you have to close this one before opening another.
-  File myFile = SD.open(filename, FILE_WRITE);
+  FsFile myFile = sd.open(filename, O_CREAT | O_WRITE | O_AT_END);
 
   // if the file opened okay, write to it:
   if (myFile) {
@@ -146,14 +161,19 @@ bool UniSd::writeFilePrivate(const char *filename, const char *text) {
 
 bool UniSd::readConfig(char *result, int max_result) {
   // re-open the file for reading:
-  initInternalSD();
-  File myFile = SD.open(CONFIG_FILENAME);
+  if (_internal_ok) {
+    initInternalSD();
+  } else {
+    initExternalSD();
+  }
+
+  FsFile myFile = sd.open(CONFIG_FILENAME, O_READ);
 
   // retry if failure
   // this may happen if the SD card was removed between uses
   if (!myFile) {
     setup();
-    myFile = SD.open(CONFIG_FILENAME);
+    myFile = sd.open(CONFIG_FILENAME, O_READ);
   }
 
   if (myFile) {
@@ -181,8 +201,12 @@ bool UniSd::readConfig(char *result, int max_result) {
 }
 
 bool UniSd::writeConfig(const char *config_string) {
-  initInternalSD();
-  SD.remove(CONFIG_FILENAME);
+  if (_internal_ok) {
+    initInternalSD();
+  } else {
+    initExternalSD();
+  }
+  sd.remove(CONFIG_FILENAME);
   return writeFile(CONFIG_FILENAME, config_string);
 }
 
