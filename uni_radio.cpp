@@ -150,10 +150,12 @@ void UniRadio::loop()
         // send was successful
         log("RADIO - Sent to Radio");
         // Drop the sent entry
+        checkStatus(15);
         for (int i = 1; i < tx_results_count; i++) {
           memcpy(results_to_transmit[i - 1], results_to_transmit[i], MAX_MESSAGE_LENGTH);
         }
         memset(results_to_transmit[tx_results_count - 1], 0, MAX_MESSAGE_LENGTH);
+        checkStatus(16);
         tx_results_count -= 1;
       } else {
         log("RADIO - Error sending via radio");
@@ -176,7 +178,9 @@ bool UniRadio::queueToSend(char *message) {
     return false;
   }
 
+        checkStatus(17);
   strcpy(results_to_transmit[tx_results_count], message);
+        checkStatus(18);
   tx_results_count += 1;
   log("RADIO - queued");
   return true;
@@ -214,5 +218,14 @@ bool UniRadio::receive(uint8_t *message, uint8_t *message_length) {
   } else {
     Serial.print("Receive failed");
     return false;
+  }
+}
+
+/* For Troubleshooting purposes */
+void UniRadio::checkStatus(int position) {
+  if (!status()) {
+    char msg[20];
+    snprintf(msg, 19, "STATUS CHANGE %d", position);
+    log(msg);
   }
 }

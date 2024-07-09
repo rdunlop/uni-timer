@@ -276,19 +276,27 @@ void printMemoryPeriodically() {
 
     Serial.println(F("Memory Free"));
     Serial.println(freeMemory());
+    radio.displayQueue();
+    // radio.displayRx();
   }
 }
 
 // MODE Selection FSM
 void loop() {
+  radio.checkStatus(30);
   mode_fsm.run_machine();
+  radio.checkStatus(31);
   
   gps.readData();
+  radio.checkStatus(32);
   if (radio.status()) {
     radio.loop();
   }
+  // radio.checkStatus(33);
   checkForModeSelection();
+  // radio.checkStatus(34);
   printMemoryPeriodically();
+  radio.checkStatus(35);
 }
 
 void setup_fsm() {

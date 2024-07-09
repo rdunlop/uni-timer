@@ -1,6 +1,7 @@
 #include "uni_display.h"
 #include "uni_keypad.h"
 #include "uni_sd.h"
+#include "uni_radio.h"
 #include "recording.h"
 #include "uni_config.h"
 
@@ -8,6 +9,7 @@ extern UniDisplay display;
 extern UniKeypad keypad;
 extern UniSd sd;
 extern UniConfig config;
+extern UniRadio radio; // For troubleshooting only
 
 int _racer_number = 0;
 TimeResult recentResult[RECENT_RESULT_COUNT];
@@ -49,24 +51,28 @@ bool maximum_digits_racer_number() {
 
 // **((((((((( NEW FILE )))))))))))))))))
 void format_string(int racer_number, TimeResult data, bool fault, char *message, const int max_message) {
+  radio.checkStatus(1);
   snprintf(message, max_message, "%d,,%02d,%02d,%03d,%d",
     racer_number,
     (data.hour * 60) + data.minute, data.second, data.millisecond,
     fault ? 1 : 0
   );
+  radio.checkStatus(2);
 }
 
 bool print_racer_data_to_sd(int racer_number, TimeResult data, bool fault) {
 #define FILENAME_LENGTH 35
   char filename[FILENAME_LENGTH];
   char full_string[FILENAME_LENGTH];
-
+  radio.checkStatus(3);
   format_string(racer_number, data, fault, full_string, FILENAME_LENGTH);
 
+  radio.checkStatus(4);
   #define REC_LINE_LENGTH 55
   char log_string[REC_LINE_LENGTH];
   snprintf(log_string, REC_LINE_LENGTH, "recording: %s", full_string);
   log(log_string);
+  radio.checkStatus(5);
 
   // Store result for review on the system as desired
   for (int i = RECENT_RESULT_COUNT - 1; i > 0; i--) {
@@ -75,14 +81,19 @@ bool print_racer_data_to_sd(int racer_number, TimeResult data, bool fault) {
     memcpy(&recentResult[i], &recentResult[i - 1], sizeof(TimeResult));
     recentRacer[i] = recentRacer[i - 1];
   }
+  radio.checkStatus(6);
   // store result in slot 0
   memcpy(&recentResult[0], &data, sizeof(TimeResult));
   recentRacer[0] = racer_number;
 
+  radio.checkStatus(7);
   strlcpy(filename, config.filename(), FILENAME_LENGTH);
+  radio.checkStatus(8);
   if (sd.writeFile(filename, full_string)) {
+    radio.checkStatus(9);
     return true;
   } else {
+    radio.checkStatus(10);
     // Error writing to SD
     Serial.println("Error writing to SD");
     display.sdBad();
@@ -94,7 +105,9 @@ void print_data_to_log(TimeResult data, bool fault) {
   #define LINE_LENGTH 35
   char data_string[LINE_LENGTH];
   snprintf(data_string, LINE_LENGTH, "sensor: %2d,%02d,%02d,%03d,%d", data.hour, data.minute, data.second, data.millisecond, fault);
+    radio.checkStatus(11);
   log(data_string);
+    radio.checkStatus(12);
 }
 
 void clear_previous_entry() {
@@ -103,10 +116,12 @@ void clear_previous_entry() {
   char filename[MAX_FILENAME];
   char message[MAX_MESSAGE];
   strlcpy(filename, config.filename(), MAX_FILENAME);
+    radio.checkStatus(13);
 
   snprintf(message, MAX_MESSAGE, "CLEAR_PREVIOUS");
   Serial.println("Clear previous entry");
   sd.writeFile(filename, message);
+    radio.checkStatus(14);
   log("Clear Previous entry");
 }
 

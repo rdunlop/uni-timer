@@ -58,21 +58,25 @@ void init_entry() {
   #ifdef FSM_DEBUG
   log("STATE: initial - ENTRY");
   #endif
+  // radio.checkStatus(24);
 }
 
 void init_exit() {
   #ifdef FSM_DEBUG
   log("STATE: initial - EXIT");
   #endif
+  // radio.checkStatus(25);
 }
 
 void digit_entry() {
+  // radio.checkStatus(26);
   #ifdef FSM_DEBUG
   log("STATE: digit - ENTRY");
   #endif
 }
 
 void digit_exit() {
+  // radio.checkStatus(27);
   #ifdef FSM_DEBUG
   log("STATE: digit - EXIT");
   #endif
@@ -110,6 +114,7 @@ Fsm mode5_fsm(&initial);
 #define START 6
 
 void initial_check() {
+  // radio.checkStatus(28);
   #ifdef FSM_DEBUG
   printFsmStateName("initial_check");
   #endif
@@ -123,6 +128,7 @@ void initial_check() {
     log("Clear previous entry");
     clear_previous_entry();
   }
+  radio.checkStatus(29);
 }
 
 void digit_check() {
@@ -304,9 +310,12 @@ int simulated_racer_number = 1;
 void simulate_racer_number() {
   _racer_number = simulated_racer_number;
   char str1[20], str2[20];
+  radio.checkStatus(19);
   snprintf(str1, 20, "Uptime: %ld min", millis() / 1000 / 60);
   snprintf(str2, 20, "Racer: %d", _racer_number);
+  radio.checkStatus(20);
   display.print(str1, str2);
+  radio.checkStatus(21);
   #ifdef SEVEN_SEGMENT_DISPLAY
   display.showNumber(millis() / 1000 / 60);
   #endif
@@ -367,7 +376,9 @@ void mode5_setup() {
   // - On Entry -> Success Music
 }
 void mode5_loop() {
+  // radio.checkStatus(22);
   mode5_fsm.run_machine();
+  radio.checkStatus(23);
 }
 
 void mode5_teardown() {
