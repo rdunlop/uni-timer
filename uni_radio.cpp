@@ -248,3 +248,7 @@ void UniRadio::checkStatus(int position) {
 bool UniRadio::statusOk() {
   return status(); // change this based on radio presence/non-presence
 }
+
+void *UniRadio::statusAddr() {
+  return &_status;
+}

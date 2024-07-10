@@ -288,19 +288,37 @@ void printMemoryPeriodically() {
 
 // MODE Selection FSM
 void loop() {
+  uint32_t loop_start = millis();
   radio.checkStatus(30);
   mode_fsm.run_machine();
   radio.checkStatus(31);
+  if (millis() - loop_start > 100) {
+    log("Loop took longer than expected 1");
+  }
+  loop_start = millis();
   
   gps.readData();
+  if (millis() - loop_start > 100) {
+    log("Loop took longer than expected 2");
+  }
+  loop_start = millis();
+
   radio.checkStatus(32);
   if (radio.status()) {
     radio.loop();
   }
+  if (millis() - loop_start > 100) {
+    log("Loop took longer than expected 3");
+  }
+  loop_start = millis();
   // radio.checkStatus(33);
   checkForModeSelection();
   // radio.checkStatus(34);
   printMemoryPeriodically();
+  if (millis() - loop_start > 100) {
+    log("Loop took longer than expected 4");
+  }
+
   radio.checkStatus(35);
 }
 

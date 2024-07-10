@@ -98,14 +98,28 @@ bool UniGps::current_time(TimeResult *output, unsigned long current_millis) {
 int chars_skipped = 0;
 uint8_t robin_sat_index = 0;
 uint8_t robin_msg_id = 0;
+void *robin_tracked_ptr = NULL;
+#define GPS_BUF_SIZE 300
+char gps_buffer[GPS_BUF_SIZE];
+int gps_buffer_position = 0;
+bool gps_buffer_printed = false;
+
+bool printed_once = false;
 void UniGps::readData() {
+  if (chars_skipped > 100 && (!printed_once)) {
+    printed_once = true;
+    Serial.println("ROBIN DEBUG");
+    char robinmsg[50];
+    snprintf(robinmsg, 49, "tracked_ptr: %p", robin_tracked_ptr);
+    log(robinmsg);
+    snprintf(robinmsg, 49, "radio valid: %p", radio.statusAddr());
+    log(robinmsg);
+  }
   radio.checkStatus(41);
   int bytesAvailable;
   char msg[50];
-  int bytesRead = 0;
   while ((bytesAvailable = Serial2.available()))
   {
-    bytesRead += 1;
     chars_skipped += 1;
     if (!radio.statusOk() && chars_skipped > 200) {
       snprintf(msg, 29, "ABytes available: %d", bytesAvailable);
@@ -115,6 +129,10 @@ void UniGps::readData() {
     // radio.checkStatus(42);
     char c = Serial2.read();
     // radio.checkStatus(43);
+    gps_buffer[gps_buffer_position] = c;
+    if (gps_buffer_position >= GPS_BUF_SIZE) {
+      gps_buffer_position = 0;
+    }
     #ifdef GPSECHO
       Serial.write(c); // uncomment this line if you want to see the GPS data flowing
     #endif
@@ -123,6 +141,20 @@ void UniGps::readData() {
       newData = true;
     }
     if (!radio.statusOk()) {
+      if (!gps_buffer_printed) {
+        gps_buffer_printed = true;
+
+        char gps_buf_out[GPS_BUF_SIZE + 1 + 10];
+        char gps_buf_out_hex[(GPS_BUF_SIZE * 4) + 1];
+        for (int i = 0; i < GPS_BUF_SIZE; i++) {
+          sprintf(&gps_buf_out[i], "%c", gps_buffer[i] != 0 ? gps_buffer[i] : '-');
+          sprintf(&gps_buf_out_hex[i], "0x%d", (uint8_t) gps_buffer[i]);
+        }
+        snprintf(msg, 49, "GPS BUffer (position: %d)", gps_buffer_position);
+        log(msg);
+        log(gps_buf_out);
+        log(gps_buf_out_hex);
+      }
       snprintf(msg, 49, "GPS Info: MsgId:%d SatIndex:%d", robin_msg_id, robin_sat_index);
       log(msg);
     }

@@ -19,6 +19,7 @@ UniSd::UniSd(int cs)
 // Initialize the SD cards, ensure that they are both functional
 void UniSd::setup() {
 
+  uint32_t setup_start = millis();
   // Setup Internal SD Card
   _internal_ok = initInternalSD();
   if (_internal_ok) {
@@ -26,6 +27,9 @@ void UniSd::setup() {
   } else {
     Serial.println("Int SD Initialization Failed!");
   }
+  Serial.println("Internal init took");
+  Serial.println(millis() - setup_start);
+  setup_start = millis();
 
   // Setup External SD Card
   // returns 1 on success
@@ -36,11 +40,18 @@ void UniSd::setup() {
   } else {
     Serial.println("SD initialization failed!");
   }
+  Serial.println("External init took");
+  Serial.println(millis() - setup_start);
+  setup_start = millis();
+
   if (status()) {
     Serial.println("BOTH SD write-test passed");
   } else {
     Serial.println("Failed performing write-test");
   }
+  Serial.println("Status took");
+  Serial.println(millis() - setup_start);
+  setup_start = millis();
 }
 
 // Return true when both SD cards are fully functioning
