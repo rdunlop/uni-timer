@@ -10,11 +10,6 @@ volatile TimeResult last_sensor_time;
 
 #include "uni_gps.h"
 extern UniGps gps;
-#include "uni_radio.h" // troubleshooting
-extern UniRadio radio;
-
-volatile bool failed = false;
-volatile int failure_id = 0;
 
 // A pulse-per-second (PPS) signal occurs every 1 second,
 // And we want to use this to synchronize our clock
@@ -22,24 +17,13 @@ volatile int failure_id = 0;
 // we can determine the current time accurately.
 // NOTE: The GPS PPS signal will ONLY fire when there is GPS lock.
 void pps_interrupt() {
-  if ((!failed) && !radio.statusOk()) {
-    failed = true;
-    failure_id = 1;
-  }
   unsigned long now = millis();
 
   gps.synchronizeClocks(now);
-  if ((!failed) && !radio.statusOk()) {
-    failed = true;
-    failure_id = 2;
-  }
 }
 
 #include "uni_config.h"
 extern UniConfig config;
-#include "uni_sd.h"
-extern UniSd sd;
-#include "recording.h" // for print_data_to_log
 
 /* RULES FOR INTERRUPTS
  * Don't attempt to delay, eg: delay (100);
@@ -50,10 +34,6 @@ extern UniSd sd;
 void sensor_interrupt() {
   unsigned long now = millis();
   // Don't trigger 2x in 0.5 seconds (by default 500ms)
-  if ((!failed) && !radio.statusOk()) {
-    failed = true;
-    failure_id = 3;
-  }
   unsigned long required_spacing = config.get_finish_line_spacing();
   if (now - _last_interrupt_millis < required_spacing) {
     // Serial.println("Ignoring as too close to previous crossing");
@@ -66,15 +46,6 @@ void sensor_interrupt() {
     last_sensor_time.minute = temp.minute;
     last_sensor_time.second = temp.second;
     last_sensor_time.millisecond = temp.millisecond;
-
-    if ((!failed) && !radio.statusOk()) {
-      failed = true;
-      failure_id = 4;
-    }
-  }
-  if ((!failed) && !radio.statusOk()) {
-    failed = true;
-    failure_id = 6;
   }
 }
 

@@ -161,12 +161,7 @@ UniDisplay display(DISPLAY_I2CADDR, DISPLAY_LCD_I2CADDR);
 #endif
 
 #ifdef ENABLE_GPS
-#ifdef USE_TINY
 UniGps gps(GPS_PPS_DIGITAL_INPUT);
-#endif
-#ifdef USE_ADA
-UniGps gps(GPS_PPS_DIGITAL_INPUT, &Serial2);
-#endif
 #endif
 
 #ifdef ENABLE_BUZZER
@@ -202,9 +197,6 @@ State mode7(&mode7_setup, &mode7_loop, &mode7_teardown);
 State mode_resume_5(&mode_resume_setup, &mode_resume_loop, &mode_resume_teardown);
 State mode_resume_6(&mode_resume_setup, &mode_resume_loop, &mode_resume_teardown);
 
-
-extern volatile bool failed;
-extern bool failed_printed;
 
 Fsm mode_fsm(&mode0);
 // *******************************************************************
@@ -271,8 +263,6 @@ void setup () {
   setup_fsm();
   memset(recentRacer, 0, sizeof(recentRacer));
   memset(recentResult, 0, sizeof(recentResult));
-  failed = false; // reset after setup
-  failed_printed = false;
 }
 
 uint32_t last_memory_output_time = 0;
@@ -293,38 +283,32 @@ void printMemoryPeriodically() {
 
 // MODE Selection FSM
 void loop() {
+  gps.printPeriodically();
   uint32_t loop_start = millis();
-  radio.checkStatus(30);
   mode_fsm.run_machine();
-  radio.checkStatus(31);
   if (millis() - loop_start > 100) {
-    log("Loop took longer than expected 1");
+    // log("Loop took longer than expected 1");
   }
   loop_start = millis();
   
   gps.readData();
   if (millis() - loop_start > 100) {
-    log("Loop took longer than expected 2");
+    // log("Loop took longer than expected 2");
   }
   loop_start = millis();
 
-  radio.checkStatus(32);
   if (radio.status()) {
     radio.loop();
   }
   if (millis() - loop_start > 100) {
-    log("Loop took longer than expected 3");
+    // log("Loop took longer than expected 3");
   }
   loop_start = millis();
-  // radio.checkStatus(33);
   checkForModeSelection();
-  // radio.checkStatus(34);
   printMemoryPeriodically();
   if (millis() - loop_start > 100) {
-    log("Loop took longer than expected 4");
+    // log("Loop took longer than expected 4");
   }
-
-  radio.checkStatus(35);
 }
 
 void setup_fsm() {

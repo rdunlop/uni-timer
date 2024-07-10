@@ -145,17 +145,13 @@ void UniRadio::loop()
     // There is a message to send
     if (_rf95.mode() == RHGenericDriver::RHModeIdle) { // ? should it be != RHModeTx ?
       // the radio is available
-      log("RADIO - Sending to radio");
       if (_rf95.send((uint8_t *)results_to_transmit[0], strlen(results_to_transmit[0]) + 1)) {
         // send was successful
-        log("RADIO - Sent to Radio");
         // Drop the sent entry
-        checkStatus(15);
         for (int i = 1; i < tx_results_count; i++) {
           memcpy(results_to_transmit[i - 1], results_to_transmit[i], MAX_MESSAGE_LENGTH);
         }
         memset(results_to_transmit[tx_results_count - 1], 0, MAX_MESSAGE_LENGTH);
-        checkStatus(16);
         tx_results_count -= 1;
       } else {
         log("RADIO - Error sending via radio");
@@ -168,21 +164,18 @@ void UniRadio::loop()
 // returns true if queued
 // returns false if full
 bool UniRadio::queueToSend(char *message) {
-  log("RADIO - queuing message to send");
   if (!status()) {
-    log("RADIO - fail");
+    Serial.println("RADIO - fail");
     return false;
   }
   if (tx_results_count >= MAX_MESSAGES) {
-    log("RADIO - queuing full");
+    Serial.println("RADIO - queuing full");
     return false;
   }
 
-        checkStatus(17);
   strcpy(results_to_transmit[tx_results_count], message);
-        checkStatus(18);
   tx_results_count += 1;
-  log("RADIO - queued");
+  Serial.println("RADIO - queued");
   return true;
 }
 
@@ -210,45 +203,11 @@ bool UniRadio::receive(uint8_t *message, uint8_t *message_length) {
     return false;
   }
   if (_rf95.recv(message, message_length)) {
-    log("received: ");
-    log((char*)message);
-    Serial.print("RSSI: ");
-    Serial.println(_rf95.lastRssi(), DEC);
+    Serial.println("received: ");
+    Serial.println((char*)message);
     return true;
   } else {
-    Serial.print("Receive failed");
+    Serial.println("Receive failed");
     return false;
   }
-}
-
-extern volatile bool failed;
-extern volatile int failure_id;
-bool failed_printed = false;
-
-/* For Troubleshooting purposes */
-void UniRadio::checkStatus(int position) {
-  noInterrupts();
-  if (failed && !failed_printed) {
-    failed_printed = true;
-    char msg[25];
-    snprintf(msg, 24, "STATUS CHANGE FAIL %d", failure_id);
-    interrupts();
-    log(msg);
-  } else {
-    interrupts();
-  }
-
-  if (!statusOk()) {
-    char msg[25];
-    snprintf(msg, 24, "STATUS CHANGE %d", position);
-    log(msg);
-  }
-}
-
-bool UniRadio::statusOk() {
-  return status(); // change this based on radio presence/non-presence
-}
-
-void *UniRadio::statusAddr() {
-  return &_status;
 }

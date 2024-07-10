@@ -31,7 +31,9 @@ void mode2_loop() {
       // A - show GPS date, if locked
       if (gps.lock()) {
         TimeResult time;
+        Serial.println("Get Current time");
         gps.current_time(&time, millis());
+        Serial.println("Show current time");
         display.showTimeResult(&time);
       } else {
         // no lock

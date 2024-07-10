@@ -21,9 +21,6 @@ class UniRadio
     bool status();
     bool senderTest(char *, int *);
     bool receiverTest(char *, int *);
-    void checkStatus(int);
-    bool statusOk();
-    void *statusAddr();
   private:
     bool _status;
     uint8_t _interrupt;

@@ -54,53 +54,8 @@ void sensor_check();
 void sensor_entry();
 void sensor_exit();
 
-void init_entry() {
-  #ifdef FSM_DEBUG
-  log("STATE: initial - ENTRY");
-  #endif
-  // radio.checkStatus(24);
-}
-
-void init_exit() {
-  #ifdef FSM_DEBUG
-  log("STATE: initial - EXIT");
-  #endif
-  // radio.checkStatus(25);
-}
-
-void digit_entry() {
-  // radio.checkStatus(26);
-  #ifdef FSM_DEBUG
-  log("STATE: digit - ENTRY");
-  #endif
-}
-
-void digit_exit() {
-  // radio.checkStatus(27);
-  #ifdef FSM_DEBUG
-  log("STATE: digit - EXIT");
-  #endif
-}
-
-#ifdef FSM_DEBUG
-uint32_t last_fsm_debug_time = 0;
-
-void printFsmStateName(const char *stateName) {
-  // if millis() or timer wraps around, we'll just reset it
-  if (last_fsm_debug_time > millis())  last_fsm_debug_time = millis();
-  // approximately every 10 seconds or so, print out the current state name
-  if (millis() - last_fsm_debug_time > 10000) {
-    last_fsm_debug_time = millis(); // reset the timer
-
-    Serial.println(F("State Name"));
-    Serial.println(stateName);
-    log(stateName);
-  }
-}
-#endif
-
-State initial(&init_entry, &initial_check, &init_exit);
-State digits_entered(&digit_entry, &digit_check, &digit_exit);
+State initial(NULL, &initial_check, NULL);
+State digits_entered(NULL, &digit_check, NULL);
 State ready_for_sensor(&sensor_entry, &sensor_check, &sensor_exit);
 bool fsm_5_transition_setup_complete = false;
 
@@ -114,10 +69,6 @@ Fsm mode5_fsm(&initial);
 #define START 6
 
 void initial_check() {
-  // radio.checkStatus(28);
-  #ifdef FSM_DEBUG
-  printFsmStateName("initial_check");
-  #endif
   char last_key_pressed = keypad.readChar();
   if (keypad.isDigit(last_key_pressed)) {
     mode5_fsm.trigger(NUMBER_PRESSED);
@@ -128,13 +79,9 @@ void initial_check() {
     log("Clear previous entry");
     clear_previous_entry();
   }
-  radio.checkStatus(29);
 }
 
 void digit_check() {
-  #ifdef FSM_DEBUG
-  printFsmStateName("digit_check");
-  #endif
   // - 0-9 -> TWO_DIGITS_ENTERED or THREE_DIGITS_ENTERED
   // - A -> ACCEPTING
   // - C -> INITIAL
@@ -161,9 +108,6 @@ void digit_check() {
 void countdown(); // forward declaration
 
 void sensor_check() {
-  #ifdef FSM_DEBUG
-  printFsmStateName("sensor_check");
-  #endif
   if (keypad.newKeyPressed() && keypad.keyPressed('C')) {
     mode5_fsm.trigger(DELETE);
     log("DELETED RACER NUMBER");
@@ -274,17 +218,11 @@ void sensor_triggered() {
 }
 
 void sensor_entry() {
-  #ifdef FSM_DEBUG
-  log("STATE: sensor_check - ENTRY");
-  #endif
   clear_sensor_interrupt_millis();
   // display.waitingForSensor(racer_number());
 }
 
 void sensor_exit() {
-  #ifdef FSM_DEBUG
-  log("STATE: sensor_check - EXIT");
-  #endif
   display.doneWaitingForSensor();
   countdown_start_time = 0;
 }
@@ -309,12 +247,9 @@ int simulated_racer_number = 1;
 void simulate_racer_number() {
   _racer_number = simulated_racer_number;
   char str1[20], str2[20];
-  radio.checkStatus(19);
   snprintf(str1, 20, "Uptime: %ld min", millis() / 1000 / 60);
   snprintf(str2, 20, "Racer: %d", _racer_number);
-  radio.checkStatus(20);
   display.print(str1, str2);
-  radio.checkStatus(21);
   #ifdef SEVEN_SEGMENT_DISPLAY
   display.showNumber(millis() / 1000 / 60);
   #endif
@@ -375,9 +310,7 @@ void mode5_setup() {
   // - On Entry -> Success Music
 }
 void mode5_loop() {
-  // radio.checkStatus(22);
   mode5_fsm.run_machine();
-  radio.checkStatus(23);
 }
 
 void mode5_teardown() {
