@@ -161,7 +161,12 @@ UniDisplay display(DISPLAY_I2CADDR, DISPLAY_LCD_I2CADDR);
 #endif
 
 #ifdef ENABLE_GPS
+#ifdef USE_TINY
 UniGps gps(GPS_PPS_DIGITAL_INPUT);
+#endif
+#ifdef USE_ADA
+UniGps gps(GPS_PPS_DIGITAL_INPUT, &Serial2);
+#endif
 #endif
 
 #ifdef ENABLE_BUZZER
