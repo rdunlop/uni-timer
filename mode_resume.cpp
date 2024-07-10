@@ -27,6 +27,7 @@ void mode_resume_setup() {
   display.waitingForGps();
 }
 void mode_resume_loop() {
+  gps.printPeriodically();
   gps.readData();
   if (gps.lock()) {
     mode_fsm.trigger(MODE_GPS_LOCK);

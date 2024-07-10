@@ -221,11 +221,30 @@ bool UniRadio::receive(uint8_t *message, uint8_t *message_length) {
   }
 }
 
+extern volatile bool failed;
+extern volatile int failure_id;
+bool failed_printed = false;
+
 /* For Troubleshooting purposes */
 void UniRadio::checkStatus(int position) {
-  if (!status()) {
-    char msg[20];
-    snprintf(msg, 19, "STATUS CHANGE %d", position);
+  noInterrupts();
+  if (failed && !failed_printed) {
+    failed_printed = true;
+    char msg[25];
+    snprintf(msg, 24, "STATUS CHANGE FAIL %d", failure_id);
+    interrupts();
+    log(msg);
+  } else {
+    interrupts();
+  }
+
+  if (!statusOk()) {
+    char msg[25];
+    snprintf(msg, 24, "STATUS CHANGE %d", position);
     log(msg);
   }
+}
+
+bool UniRadio::statusOk() {
+  return status(); // change this based on radio presence/non-presence
 }

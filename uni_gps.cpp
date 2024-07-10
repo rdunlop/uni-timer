@@ -2,7 +2,10 @@
 // - This file assumes that the GPS is connected on Serial2
 
 #include "uni_gps.h"
-//#define GPSECHO
+#include "uni_radio.h" // for troubleshooting
+#include "recording.h" // for troubleshooting
+extern UniRadio radio;
+// #define GPSECHO
 
 UniGps::UniGps(int pps_signal_input)
 {
@@ -24,11 +27,13 @@ void UniGps::setup(void (*interrupt_handler)()) {
   Serial.println("GPS Done init");
 }
 
+// NOTE: This is effectively an ISR routine
+//
 // this method is triggered whenever we have GPS Lock and PPS
 // This means that this method is called exactly on the second
 // But not necessarily on EVERY second
 bool UniGps::synchronizeClocks(unsigned long current_millis) {
-  _last_pps_millis = current_millis;
+  _last_pps_millis = current_millis; // USED OUTSIDE OF THIS ISR
   // time is returned as hhmmsscc
   unsigned long time;
   unsigned long age; // I think that we can do something smart with `age` to deal with loss of lock...maybe?
@@ -45,8 +50,19 @@ bool UniGps::synchronizeClocks(unsigned long current_millis) {
 
   byte minute = (time / 10000) % 100;
   byte second = (time / 100) % 100;
-  _last_gps_time_in_seconds = (hour * 3600) + (minute * 60) + second;
+  _last_gps_time_in_seconds = (hour * 3600) + (minute * 60) + second; // USED OUTSIDE OF THIS ISR
   return true;
+}
+
+bool disableInterrupts() {
+  uint32_t primask;
+  __asm__ volatile("mrs %0, primask\n" : "=r" (primask)::);
+  __disable_irq();
+  return (primask == 0) ? true : false;
+}
+
+void enableInterrupts(bool doit) {
+  if (doit) __enable_irq();
 }
 
 // return true on success
@@ -54,10 +70,23 @@ bool UniGps::synchronizeClocks(unsigned long current_millis) {
 // return the current hour/minute in GPS time, including milliseconds from
 // the PPS pulse
 bool UniGps::current_time(TimeResult *output, unsigned long current_millis) {
-  unsigned long offset_milliseconds = (current_millis - _last_pps_millis);
+  unsigned long last_pps_millis;
+  unsigned long last_gps_time_in_seconds;
+
+  // this function may be called from an interrupt handler, OR from normal code
+  // so we use this mechanism to disable interrupts, if they are enabled, and restore
+  // the interrupt state at the end
+  bool interruptState = disableInterrupts();
+  // disable interrupts while we read volatiles or we might get an
+  // inconsistent value (e.g. in the middle of a write to _last_pps_millis)
+  last_pps_millis = _last_pps_millis;
+  last_gps_time_in_seconds = _last_gps_time_in_seconds;
+  enableInterrupts(interruptState);
+
+  unsigned long offset_milliseconds = (current_millis - last_pps_millis);
   output->millisecond = offset_milliseconds % 1000;
 
-  unsigned long current_seconds = _last_gps_time_in_seconds + (offset_milliseconds / 1000);
+  unsigned long current_seconds = last_gps_time_in_seconds + (offset_milliseconds / 1000);
 
   output->second = current_seconds % 60;
   output->minute = (current_seconds / 60) % 60;
@@ -66,16 +95,40 @@ bool UniGps::current_time(TimeResult *output, unsigned long current_millis) {
   return true;
 }
 
+int chars_skipped = 0;
+uint8_t robin_sat_index = 0;
+uint8_t robin_msg_id = 0;
 void UniGps::readData() {
-  while (Serial2.available())
+  radio.checkStatus(41);
+  int bytesAvailable;
+  char msg[50];
+  int bytesRead = 0;
+  while ((bytesAvailable = Serial2.available()))
   {
+    bytesRead += 1;
+    chars_skipped += 1;
+    if (!radio.statusOk() && chars_skipped > 200) {
+      snprintf(msg, 29, "ABytes available: %d", bytesAvailable);
+      log(msg);
+      chars_skipped = 0;
+    }
+    // radio.checkStatus(42);
     char c = Serial2.read();
+    // radio.checkStatus(43);
     #ifdef GPSECHO
       Serial.write(c); // uncomment this line if you want to see the GPS data flowing
     #endif
-    if (gps.encode(c)) // Did a new valid sentence come in?
+    if (gps.encode(c)) {
+      // Did a new valid sentence come in?
       newData = true;
+    }
+    if (!radio.statusOk()) {
+      snprintf(msg, 49, "GPS Info: MsgId:%d SatIndex:%d", robin_msg_id, robin_sat_index);
+      log(msg);
+    }
+    // radio.checkStatus(44);
   }
+  radio.checkStatus(54);
 }
 
 bool UniGps::detected() {

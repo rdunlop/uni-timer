@@ -1,8 +1,8 @@
 #ifndef UNI_DISPLAY_H
 #define UNI_DISPLAY_H
 
-#define SEVEN_SEGMENT_DISPLAY true
-// #define LCD_DISPLAY true
+// #define SEVEN_SEGMENT_DISPLAY true
+#define LCD_DISPLAY true
 
 #ifdef SEVEN_SEGMENT_DISPLAY
 #include "Adafruit_LEDBackpack.h"

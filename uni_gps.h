@@ -25,8 +25,8 @@ class UniGps
   private:
     bool newData;
     uint32_t last_gps_print_time;
-    unsigned long _last_pps_millis;
-    unsigned long _last_gps_time_in_seconds;
+    volatile unsigned long _last_pps_millis;
+    volatile unsigned long _last_gps_time_in_seconds;
     byte _last_hour; // to prevent the 'hour' from wrapping around when GPS date advances
     int _pps_signal_input;
     TinyGPS gps;

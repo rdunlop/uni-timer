@@ -198,6 +198,9 @@ State mode_resume_5(&mode_resume_setup, &mode_resume_loop, &mode_resume_teardown
 State mode_resume_6(&mode_resume_setup, &mode_resume_loop, &mode_resume_teardown);
 
 
+extern volatile bool failed;
+extern bool failed_printed;
+
 Fsm mode_fsm(&mode0);
 // *******************************************************************
 
@@ -263,6 +266,8 @@ void setup () {
   setup_fsm();
   memset(recentRacer, 0, sizeof(recentRacer));
   memset(recentResult, 0, sizeof(recentResult));
+  failed = false; // reset after setup
+  failed_printed = false;
 }
 
 uint32_t last_memory_output_time = 0;

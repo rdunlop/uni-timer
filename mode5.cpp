@@ -214,7 +214,7 @@ void start_beeped() {
   currentTime(&data);
 
   if (print_racer_data_to_sd(racer_number(), data)) {
-    buzzer.start_beep();
+    // buzzer.start_beep();
   } else {
     display.sdBad();
     buzzer.failure();
@@ -225,7 +225,7 @@ void start_beeped() {
   snprintf(full_message, 27, "%s,%s", "S", message);
   radio.queueToSend(full_message);
 
-  clear_racer_number();
+  // clear_racer_number();
   clear_sensor_interrupt_millis();
 }
 
@@ -277,7 +277,6 @@ void sensor_entry() {
   #ifdef FSM_DEBUG
   log("STATE: sensor_check - ENTRY");
   #endif
-  log("ACCEPTED");
   clear_sensor_interrupt_millis();
   // display.waitingForSensor(racer_number());
 }
