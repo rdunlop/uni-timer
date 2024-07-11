@@ -23,6 +23,8 @@ void UniGps::setup(void (*interrupt_handler)()) {
 // this method is triggered whenever we have GPS Lock and PPS
 // This means that this method is called exactly on the second
 // But not necessarily on EVERY second
+//
+// NOTE: NO "Serial.println" is allowed in this function/path (becaues it's in an interrupt path)
 bool UniGps::synchronizeClocks(unsigned long current_millis) {
   _last_pps_millis = current_millis; // USED OUTSIDE OF THIS ISR
   // time is returned as hhmmsscc
@@ -60,6 +62,8 @@ void enableInterrupts(bool doit) {
 // return false on error
 // return the current hour/minute in GPS time, including milliseconds from
 // the PPS pulse
+//
+// NOTE: NO "Serial.println" is allowed in this function/path (becaues it's in an interrupt path)
 bool UniGps::current_time(TimeResult *output, unsigned long current_millis) {
   unsigned long last_pps_millis;
   unsigned long last_gps_time_in_seconds;

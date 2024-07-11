@@ -34,3 +34,7 @@ void UniBuzzer::failure() {
   delay(200);
   tone(_output, 233, 200); // should be Failure music
 }
+
+void UniBuzzer::fault() {
+  tone(_output, 466, 200); // should be Failure music
+}

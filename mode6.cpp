@@ -107,6 +107,7 @@ void store_timing_data() {
   buzzer.beep();
   TimeResult data;
   lastSensorTime(&data);
+  print_data_to_log(data);
   store_data_result(&data);
 
   clear_sensor_interrupt_millis();
@@ -213,6 +214,7 @@ void mode6_store_result() {
     } else {
       display.sdBad();
       buzzer.failure();
+      delay(2000);
     }
   }
 }

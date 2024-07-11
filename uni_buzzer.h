@@ -12,6 +12,7 @@ class UniBuzzer
     void start_beep();
     void success();
     void failure();
+    void fault();
   private:
     int _output;
 };

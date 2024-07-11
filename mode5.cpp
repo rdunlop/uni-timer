@@ -68,13 +68,22 @@ Fsm mode5_fsm(&initial);
 #define SENSOR 5
 #define START 6
 
+void mode5_store_timing_data() {
+  // Log any crossings to the file
+  buzzer.beep();
+  display.sens();
+  TimeResult data;
+  lastSensorTime(&data);
+  print_data_to_log(data);
+  clear_sensor_interrupt_millis();
+}
 void initial_check() {
+  if (sensor_has_triggered()) {
+    mode5_fsm.trigger(SENSOR);
+  }
   char last_key_pressed = keypad.readChar();
   if (keypad.isDigit(last_key_pressed)) {
     mode5_fsm.trigger(NUMBER_PRESSED);
-  } else if(sensor.blocked()) {
-    buzzer.beep();
-    display.sens();
   } else if (keypad.keyPressed('D') && keypad.keyPressed('#')) { // D+#
     log("Clear previous entry");
     clear_previous_entry();
@@ -82,6 +91,9 @@ void initial_check() {
 }
 
 void digit_check() {
+  if (sensor_has_triggered()) {
+    mode5_fsm.trigger(SENSOR);
+  }
   // - 0-9 -> TWO_DIGITS_ENTERED or THREE_DIGITS_ENTERED
   // - A -> ACCEPTING
   // - C -> INITIAL
@@ -99,9 +111,6 @@ void digit_check() {
     display.clear();
     mode5_fsm.trigger(DELETE);
     log("CLEARED RACER NUMBER");
-  } else if (sensor.blocked()) {
-    buzzer.beep();
-    display.sens();
   }
 }
 
@@ -162,6 +171,7 @@ void start_beeped() {
   } else {
     display.sdBad();
     buzzer.failure();
+    delay(2000);
   }
   char message[25];
   format_string(racer_number(), data, false, message, 25);
@@ -186,9 +196,10 @@ void sensor_triggered() {
   if (config.get_start_line_countdown()) {
     if (print_racer_data_to_sd(racer_number(), data, true)) {
       // fault, but let them race
-      buzzer.failure();
+      buzzer.fault();
     } else {
       display.sdBad();
+      delay(2000);
     }
     print_data_to_log(data, true);
 
@@ -219,7 +230,7 @@ void sensor_triggered() {
 
 void sensor_entry() {
   clear_sensor_interrupt_millis();
-  // display.waitingForSensor(racer_number());
+  display.waitingForSensor(racer_number());
 }
 
 void sensor_exit() {
@@ -263,10 +274,12 @@ void mode5_fsm_setup() {
   mode5_fsm.add_timed_transition(&ready_for_sensor, &initial, 500, &start_beeped);
   #endif
   mode5_fsm.add_transition(&initial, &digits_entered, NUMBER_PRESSED, &store_racer_number);
+  mode5_fsm.add_transition(&initial, &initial, SENSOR, &mode5_store_timing_data);
   
   mode5_fsm.add_transition(&digits_entered, &initial, DELETE, &clear_racer_number);
   mode5_fsm.add_transition(&digits_entered, &digits_entered, NUMBER_PRESSED, &store_racer_number);
   mode5_fsm.add_transition(&digits_entered, &ready_for_sensor, ACCEPT, NULL);
+  mode5_fsm.add_transition(&digits_entered, &digits_entered, SENSOR, &mode5_store_timing_data);
 
   mode5_fsm.add_transition(&ready_for_sensor, &initial, SENSOR, &sensor_triggered);
   mode5_fsm.add_transition(&ready_for_sensor, &initial, START, &start_beeped);

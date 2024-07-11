@@ -277,22 +277,22 @@ void printMemoryPeriodically() {
     Serial.println(F("Memory Free"));
     Serial.println(freeMemory());
     radio.displayQueue();
-    // radio.displayRx();
   }
 }
 
 // MODE Selection FSM
 void loop() {
-  gps.printPeriodically();
   uint32_t loop_start = millis();
   mode_fsm.run_machine();
   if (millis() - loop_start > 100) {
+    Serial.println("Loop long 1");
     // log("Loop took longer than expected 1");
   }
   loop_start = millis();
   
   gps.readData();
   if (millis() - loop_start > 100) {
+    Serial.println("Loop long 2");
     // log("Loop took longer than expected 2");
   }
   loop_start = millis();
@@ -301,12 +301,14 @@ void loop() {
     radio.loop();
   }
   if (millis() - loop_start > 100) {
+    Serial.println("Loop long 3");
     // log("Loop took longer than expected 3");
   }
   loop_start = millis();
   checkForModeSelection();
   printMemoryPeriodically();
   if (millis() - loop_start > 100) {
+    Serial.println("Loop long 4");
     // log("Loop took longer than expected 4");
   }
 }
