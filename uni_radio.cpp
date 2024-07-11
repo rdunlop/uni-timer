@@ -103,8 +103,9 @@ bool UniRadio::receiverTest( char *message_received, int *rssi_received) {
       log((char*)buf);
       Serial.print("RSSI: ");
       Serial.println(_rf95.lastRssi(), DEC);
-      strncpy(message_received, (char *)buf, 15);
-      message_received[15] = 0; // null-terminate the response message
+      sprintf(message_received, "To: %d, From: %d", _rf95.headerTo() & 0xF, _rf95.headerFrom() & 0xF);
+      // strncpy(message_received, (char *)buf, 16);
+      message_received[17] = 0; // null-terminate the response message
       *rssi_received = _rf95.lastRssi();
       return true;
     }

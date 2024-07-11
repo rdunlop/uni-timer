@@ -19,6 +19,7 @@ extern UniRadio radio;
 
 #include <Fsm.h>
 
+#define SIMULATE true
 #define FSM_DEBUG true
 /*********************************************************************************** */
 //### Mode 5 - Race Run (Start Line)
@@ -236,7 +237,9 @@ void sensor_triggered() {
 
 void sensor_entry() {
   clear_sensor_interrupt_millis();
+  #ifndef SIMULATE
   display.waitingForSensor(racer_number());
+  #endif
 }
 
 void sensor_exit() {
@@ -257,7 +260,7 @@ void sensor_exit() {
  * DIGITS
  * READY
  */
-// #define SIMULATE true
+
 #ifdef SIMULATE
 extern int _racer_number;
 int simulated_racer_number = 1;
