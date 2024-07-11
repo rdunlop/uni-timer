@@ -84,6 +84,8 @@ void initial_check() {
   char last_key_pressed = keypad.readChar();
   if (keypad.isDigit(last_key_pressed)) {
     mode5_fsm.trigger(NUMBER_PRESSED);
+  } else if (sensor.blocked()) {
+    buzzer.beep();
   } else if (keypad.keyPressed('D') && keypad.keyPressed('#')) { // D+#
     log("Clear previous entry");
     clear_previous_entry();
@@ -111,6 +113,8 @@ void digit_check() {
     display.clear();
     mode5_fsm.trigger(DELETE);
     log("CLEARED RACER NUMBER");
+  } else if (sensor.blocked()) {
+    buzzer.beep();
   }
 }
 
@@ -167,7 +171,9 @@ void start_beeped() {
   currentTime(&data);
 
   if (print_racer_data_to_sd(racer_number(), data)) {
-    // buzzer.start_beep();
+    #ifndef SIMULATE
+    buzzer.start_beep();
+    #endif
   } else {
     display.sdBad();
     buzzer.failure();
@@ -179,7 +185,7 @@ void start_beeped() {
   snprintf(full_message, 27, "%s,%s", "S", message);
   radio.queueToSend(full_message);
 
-  // clear_racer_number();
+  clear_racer_number();
   clear_sensor_interrupt_millis();
 }
 
@@ -251,7 +257,7 @@ void sensor_exit() {
  * DIGITS
  * READY
  */
-#define SIMULATE true
+// #define SIMULATE true
 #ifdef SIMULATE
 extern int _racer_number;
 int simulated_racer_number = 1;

@@ -131,6 +131,8 @@ void mode6_initial_check() {
     deleting = true;
   } else if (deleting && !keypad.anyKeyPressed()) {
     deleting = false;
+  } else if (sensor.blocked()) {
+    buzzer.beep();
   }
 #ifdef FSM_DEBUG
   Serial.println("Initial Check ");
@@ -190,6 +192,8 @@ void mode6_digit_check() {
     mode6_fsm.trigger(DELETE);
   } else if (keypad.keyPressed('A')) {
     mode6_fsm.trigger(ACCEPT);
+  } else if (sensor.blocked()) {
+    buzzer.beep();
   }
 #ifdef FSM_DEBUG
   Serial.println("Digit Check ");
