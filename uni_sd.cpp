@@ -215,7 +215,8 @@ bool UniSd::writeConfig(const char *config_string) {
   if (_internal_ok) {
     initInternalSD();
     sd.remove(CONFIG_FILENAME);
-  } else {
+  }
+  if (_external_ok) {
     initExternalSD();
     sd.remove(CONFIG_FILENAME);
   }
