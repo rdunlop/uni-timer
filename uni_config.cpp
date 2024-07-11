@@ -23,6 +23,9 @@ void UniConfig::setup() {
     _config.start_line_countdown = false;
     _config.finish_line_spacing = 500;
     _config.mode = 1;
+    _config.radio_enabled = false;
+    _config.radio_id = 0;
+    _config.radio_target_id = 0;
   } else {
     _loadedFromDefault = false;
   }
@@ -41,6 +44,36 @@ char *UniConfig::filename() {
     _config.race_number);
 
   return _config.filename;
+}
+
+bool UniConfig::radioEnabled() {
+  return _config.radio_enabled;
+}
+
+uint8_t UniConfig::radioID() {
+  return _config.radio_id;
+}
+
+uint8_t UniConfig::radioTargetID() {
+  return _config.radio_target_id;
+}
+
+void UniConfig::toggleRadioEnabled() {
+  _config.radio_enabled = !_config.radio_enabled;
+}
+
+void UniConfig::incrementRadioID() {
+  _config.radio_id += 1;
+  if (_config.radio_id > MAX_RADIO_ID) {
+    _config.radio_id = 0;
+  }
+}
+
+void UniConfig::incrementRadioTargetID() {
+  _config.radio_target_id += 1;
+  if (_config.radio_target_id > MAX_RADIO_ID) {
+    _config.radio_target_id = 0;
+  }
 }
 
 // Start/difficulty/up/race_number
@@ -139,10 +172,10 @@ char *UniConfig::value(const char *str, const char *prefix)
 */
 
 // Read the config, return true on success
+#define MAX_CONFIG_STRING 200
 bool UniConfig::readConfig() {
-  int max_config_string = 100;
-  char data_string[max_config_string];
-  if (sd.readConfig(data_string, max_config_string)) {
+  char data_string[MAX_CONFIG_STRING];
+  if (sd.readConfig(data_string, MAX_CONFIG_STRING)) {
     char *token;
     token = strtok(data_string, "\n");
     while(token != NULL) {
@@ -162,6 +195,12 @@ bool UniConfig::readConfig() {
         _config.finish_line_spacing = atoi(value(token, "SPACING:"));
       } else if (prefix(token, "MODE:")) {
         _config.mode = atoi(value(token, "MODE:"));
+      } else if (prefix(token, "RADIO_ENABLED:")) {
+        _config.radio_enabled = atoi(value(token, "RADIO_ENABLED:")) == 1;
+      } else if (prefix(token, "RADIO_ID:")) {
+        _config.radio_id = atoi(value(token, "RADIO_ID:"));
+      } else if (prefix(token, "RADIO_TARGET_ID:")) {
+        _config.radio_target_id = atoi(value(token, "RADIO_TARGET_ID:"));
       }
       Serial.println("Got Config: ");
       Serial.println(token);
@@ -178,9 +217,11 @@ bool UniConfig::readConfig() {
 // the format is:
 // config_name|configuration value
 bool UniConfig::writeConfig() {
-  int max_config_string = 100;
-  char data_string[max_config_string];
-  snprintf(data_string, max_config_string,
+  char data_string[MAX_CONFIG_STRING];
+  snprintf(data_string, MAX_CONFIG_STRING,
+    "%s%d\n"
+    "%s%d\n"
+    "%s%d\n"
     "%s%d\n"
     "%s%d\n"
     "%s%d\n"
@@ -196,7 +237,10 @@ bool UniConfig::writeConfig() {
     "BIB_DIGITS:", _config.bib_number_length,
     "COUNTDOWN:", _config.start_line_countdown ? 1 : 0,
     "SPACING:", _config.finish_line_spacing,
-    "MODE:", _config.mode
+    "MODE:", _config.mode,
+    "RADIO_ENABLED:", _config.radio_enabled ? 1 : 0,
+    "RADIO_ID:", _config.radio_id,
+    "RADIO_TARGET_ID:", _config.radio_target_id
     );
   if (sd.writeConfig(data_string)) {
     Serial.println("Write File");

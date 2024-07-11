@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 
+#define MAX_RADIO_ID 10
 // NOTE: Adjustments to this structure MUST ALSO
 // be reflected in the readConfig and writeConfig methods
 // or else the config won't persist/parse properly
@@ -27,6 +28,10 @@ typedef struct {
 
   // Resume the race mode stored
   int mode;
+
+  bool radio_enabled;
+  uint8_t radio_id;
+  uint8_t radio_target_id;
 } Config;
 
 class UniConfig
@@ -36,6 +41,14 @@ class UniConfig
     UniConfig();
     void setup();
     bool loadedFromDefault();
+
+    // Radio configuration
+    bool radioEnabled();
+    uint8_t radioID();
+    uint8_t radioTargetID();
+    void toggleRadioEnabled();
+    void incrementRadioID();
+    void incrementRadioTargetID();
 
     void toggle_start();
     void increase_difficulty();

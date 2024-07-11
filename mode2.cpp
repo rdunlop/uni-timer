@@ -14,10 +14,12 @@ extern UniRadio radio;
 
 //### Mode 2 - GPS/SD Test
 //
-//- If you press A, it will show the GPS time, and beep positively.
+// - If you press A, it will show the GPS time, and beep positively.
 // - If you press B, it will display the # chars received from GPS
 // - If you press A, it will show the GPS time (if GPS signal found), otherwise it will wait for lock, and beep positively.
-//- If you press C, it will test writing/reading from the SD card, and display either 6ood or bAd
+// - If you press C, it will test writing/reading from the SD card, and display either 6ood or bAd
+// - If you press D, it will test sending a message over the radio every second
+// - If you press #, it will wait up to 10 seconds to receive a message over the radio.
 unsigned long gps_millis = 0;
 char last_key2 = NO_KEY;
 int subMode = 0;
@@ -54,27 +56,21 @@ void mode2_loop() {
     } else if (subMode == 4) {
       // D - Radio Sender mode
       display.print("Radio Send Test", "");
-      if (radio.senderTest(message, &lastRssi)) {
-        // message sent, and reply returned
+      if (radio.senderTest()) {
+        display.print("Message sent");
+      }
+    } else if (subMode == 5) {
+      display.print("Radio Rec. Test", "");
+      if (radio.receiverTest(message, &lastRssi)) {
+        // message received
         char buf[100];
         sprintf(buf, "RSSI: %d", lastRssi);
         display.print(message, buf);
+      } else {
+        display.print("No message rec'd");
       }
-    } else if (subMode == 5) {
-      log("radio rec. test loop");
-      // logic is outside of "periodic" loop
     }
     gps_millis = millis();
-  }
-
-  if (subMode == 5) {
-    // # - Radio receiver Mode
-    if (radio.receiverTest(message, &lastRssi)) {
-      // message sent, and reply returned
-      char buf[100];
-      sprintf(buf, "RSSI: %d", lastRssi);
-      display.print(message, buf);
-    }
   }
 
   char key = keypad.readChar();

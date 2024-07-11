@@ -362,6 +362,25 @@ void UniDisplay::displayConfig(UniConfig *config) {
   print(buf1, buf2);
 }
 
+void UniDisplay::displayRadioConfig(UniConfig *config) {
+#ifdef SEVEN_SEGMENT_DISPLAY
+  _display.writeDigitNum(0, config->radioEnabled() ? 1 : 0);
+  _display.writeDigitNum(1, config->radioID());
+  _display.writeDigitNum(3, config->radioTargetID());
+  _display.writeDisplay();
+#endif
+  char buf1[17] = { 0 };
+  char buf2[17] = { 0 };
+
+  snprintf(buf1, 16, "Radio: %s",
+      config->radioEnabled() ? "Enabled" : "Disabled");
+
+  snprintf(buf2, 16, "ID: %d - To: %d",
+    config->radioID(),
+    config->radioTargetID());
+  print(buf1, buf2);
+}
+
 void UniDisplay::showRacerDigits(int numDigits) {
 #ifdef SEVEN_SEGMENT_DISPLAY
   showNumber(numDigits);

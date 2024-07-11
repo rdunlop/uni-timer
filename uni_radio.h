@@ -10,8 +10,8 @@
 class UniRadio
 {
   public:
-    UniRadio(int cs, int interrupt) : _interrupt(interrupt), _rf95(cs, interrupt) {};
-    void setup();
+    UniRadio(int cs, int interrupt) : _enabled(false), _initialized(false), _interrupt(interrupt), _rf95(cs, interrupt) {};
+    void setup(bool enabled, uint8_t radio_id, uint8_t radio_target_id);
     void loop();
     bool messageAvailable();
     bool receive(uint8_t *message, uint8_t *message_length);
@@ -19,9 +19,11 @@ class UniRadio
     int queueSize();
     void displayQueue();
     bool status();
-    bool senderTest(char *, int *);
+    bool senderTest();
     bool receiverTest(char *, int *);
   private:
+    bool _enabled;
+    bool _initialized;
     bool _status;
     uint8_t _interrupt;
     RH_RF95 _rf95;

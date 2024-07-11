@@ -1,81 +1,87 @@
 #include "uni_radio.h"
 #include "recording.h" // for log()
 
-void UniRadio::setup() {
+void UniRadio::setup(bool enabled, uint8_t radio_id, uint8_t radio_target_id) {
   // pinMode(RFM95_RST, OUTPUT);
   // digitalWrite(RFM95_RST, HIGH);
 
-  pinMode(_interrupt, INPUT);
-
-  Serial.println("Arduino LoRa TX Test!");
+  _enabled = enabled;
+  if (!_enabled) {
+    // do not try to initialize radio.
+    return;
+  }
   // manual reset
   // digitalWrite(RFM95_RST, LOW);
   // delay(10);
   // digitalWrite(RFM95_RST, HIGH);
   // delay(10);
 
-  if (!_rf95.init()) {
-    _status = false;
-    Serial.println("init failed");
-  } else {
-    _status = true;
+  if (!_initialized) {
+    _initialized = true;
+    if (!_rf95.init()) {
+      _status = false;
+      Serial.println("init failed");
+    } else {
+      _status = true;
+    }
+
+    _rf95.setFrequency(915.0); // TBD
+
+    _rf95.setModemConfig(RH_RF95::ModemConfigChoice::Bw125Cr48Sf4096);
+
+    _rf95.setTxPower(23);
   }
 
-  _rf95.setFrequency(915.0); // TBD
+  if (radio_id != 0) {
+    _rf95.setThisAddress(radio_id);
+    _rf95.setHeaderFrom(radio_id);
+    _rf95.setPromiscuous(false);
+  } else {
+    _rf95.setThisAddress(RH_BROADCAST_ADDRESS);
+    _rf95.setHeaderFrom(RH_BROADCAST_ADDRESS);
+    _rf95.setPromiscuous(true);
+  }
 
-  _rf95.setModemConfig(RH_RF95::ModemConfigChoice::Bw125Cr48Sf4096);
-
-  _rf95.setTxPower(23);
+  if (radio_target_id != 0) {
+    _rf95.setHeaderTo(radio_target_id);
+  } else {
+    _rf95.setHeaderTo(RH_BROADCAST_ADDRESS);
+  }
 }
 
 // Returns true on success
 bool UniRadio::status() {
+  if (!_enabled) { return false; }
+
   return _status;
 }
 
-// Sends a message, and waits for a reply for 3 seconds
-// Returns true upon reply receipt, the returns message and RSSI upon receipt
+// Sends a message, and then returns
+// Returns true if was sent successfully
 // Returns false if no message received
-bool UniRadio::senderTest(char *message_received, int *rssi_received) {
+//
+// NOTE: this honors the radio configuration/id set on this unit
+bool UniRadio::senderTest() {
+  if (!_enabled) { return false; }
+
   Serial.println("Sending to rf95_server");
   // Send a message to rf95_server
-  char data[220];
-  snprintf(data, 16, "%d HelloWorld", millis());
-  log("sending ~20 char message");
-  _rf95.send((uint8_t *)data, strlen(data));
-  log("send() complete");
+  char data[17];
+  snprintf(data, 16, "%ld HelloWorld", millis());
+  log("sending ~16 char message");
+  if (_rf95.send((uint8_t *)data, strlen(data))) {
+    log("send() complete");
 
-  _rf95.waitPacketSent();
-  log("waitPacketSent() complete");
-  // Now wait for a reply
-  uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
-  uint8_t len = sizeof(buf);
-
-  if (_rf95.waitAvailableTimeout(3000))
-  {
-    // Should be a reply message for us now
-    if (_rf95.recv(buf, &len))
-   {
-     log("got reply: ");
-     log((char*)buf);
-     Serial.print("RSSI: ");
-     Serial.println(_rf95.lastRssi(), DEC);
-     strncpy(message_received, (char *)buf, 15); // copy first 15 chars
-     message_received[15] = 0; // null-terminate the response message in the 16th char
-     *rssi_received = _rf95.lastRssi();
-     return true;
+    if (_rf95.waitPacketSent()) {
+      log("waitPacketSent() complete");
+      return true;
+    } else {
+      log("waitPacketSent() failed");
     }
-    else
-    {
-      Serial.println("recv failed");
-      return false;
-    }
+  } else {
+    log("Send() failed");
   }
-  else
-  {
-    Serial.println("No reply, is rf95_server running?");
-    return false;
-  }
+  return false;
 }
 
 // Designed to be run in a loop, so that it immediately receives/displays the message
@@ -84,7 +90,7 @@ bool UniRadio::senderTest(char *message_received, int *rssi_received) {
 // Returns true if there's a new message, and returns the message and rssi
 // Returns false if there's no new message
 bool UniRadio::receiverTest( char *message_received, int *rssi_received) {
-  if (_rf95.available())
+  if (_rf95.waitAvailableTimeout(1000))
   {
     // Should be a message for us now
     uint8_t buf[RH_RF95_MAX_MESSAGE_LEN];
@@ -93,20 +99,13 @@ bool UniRadio::receiverTest( char *message_received, int *rssi_received) {
     {
       // digitalWrite(led, HIGH);
 //      RH_RF95::printBuffer("request: ", buf, len);
-     log("received: ");
-     log((char*)buf);
-     Serial.print("RSSI: ");
-     Serial.println(_rf95.lastRssi(), DEC);
-     strncpy(message_received, (char *)buf, 15);
-     message_received[15] = 0; // null-terminate the response message
-     *rssi_received = _rf95.lastRssi();
-
-      // Send a reply
-      uint8_t data[] = "And hello to you";
-      _rf95.send(data, sizeof(data));
-      _rf95.waitPacketSent();
-      log("Sent a reply");
-       // digitalWrite(led, LOW);
+      log("received: ");
+      log((char*)buf);
+      Serial.print("RSSI: ");
+      Serial.println(_rf95.lastRssi(), DEC);
+      strncpy(message_received, (char *)buf, 15);
+      message_received[15] = 0; // null-terminate the response message
+      *rssi_received = _rf95.lastRssi();
       return true;
     }
     else

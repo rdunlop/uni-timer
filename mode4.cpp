@@ -1,6 +1,7 @@
 #include "uni_keypad.h"
 #include "uni_display.h"
 #include "uni_config.h"
+#include "uni_radio.h"
 #include "modes.h"
 
 #include "recording.h"
@@ -8,11 +9,13 @@
 extern UniKeypad keypad;
 extern UniDisplay display;
 extern UniConfig config;
+extern UniRadio radio;
 
 void filename_config(char key);
 void racer_digits_config(char key);
 void start_line_config(char key);
 void finish_line_config(char key);
+void radio_config(char key);
 
 
 //### Mode 4.1 - Race Setup
@@ -21,6 +24,13 @@ void finish_line_config(char key);
 //- If you press B, toggle between b/A/E on digit 2
 //- If you press C, toggle between U/d on digit 3
 //- If you press D, toggle between 1..9 on digit 4.
+//
+
+//### Mode 4.5 - Radio Setup
+//
+//- If you press A, toggle between Radio Enabled/Disabled
+//- If you press B, increment Radio ID
+//- If you press C, increment Radio Target ID
 //
 char last_key4 = NO_KEY;
 
@@ -48,6 +58,9 @@ void mode4_loop() {
         case '4':
           config_mode = 4;
           break;
+        case '5':
+          config_mode = 5;
+          break;
       }
       switch(config_mode) {
         case 1:
@@ -62,6 +75,9 @@ void mode4_loop() {
         case 4:
           finish_line_config(key);
           break;
+        case 5:
+          radio_config(key);
+          break;
       }
     }
   }
@@ -71,6 +87,7 @@ void mode4_loop() {
 
 void mode4_teardown() {
   config.writeConfig();
+  radio.setup(config.radioEnabled(), config.radioID(), config.radioTargetID());
 }
 
 void racer_digits_config(char key) {
@@ -123,4 +140,20 @@ void filename_config(char key) {
   }
 
   display.displayConfig(&config);
+}
+
+void radio_config(char key) {
+  switch(key) {
+  case 'A':
+    config.toggleRadioEnabled();
+    break;
+  case 'B':
+    config.incrementRadioID();
+    break;
+  case 'C':
+    config.incrementRadioTargetID();
+    break;
+  }
+
+  display.displayRadioConfig(&config);
 }

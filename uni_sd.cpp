@@ -214,10 +214,11 @@ bool UniSd::readConfig(char *result, int max_result) {
 bool UniSd::writeConfig(const char *config_string) {
   if (_internal_ok) {
     initInternalSD();
+    sd.remove(CONFIG_FILENAME);
   } else {
     initExternalSD();
+    sd.remove(CONFIG_FILENAME);
   }
-  sd.remove(CONFIG_FILENAME);
   return writeFile(CONFIG_FILENAME, config_string);
 }
 

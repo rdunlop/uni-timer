@@ -45,6 +45,7 @@ class UniDisplay
     void showTimeResult(TimeResult *time_result);
     void showNumber(int);
     void displayConfig(UniConfig *config);
+    void displayRadioConfig(UniConfig *config);
     void showRacerDigits(int);
     void startLineCountdown(bool);
     void triggerIntervalDelay(uint16_t);

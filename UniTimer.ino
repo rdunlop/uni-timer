@@ -245,10 +245,6 @@ void setup () {
   sd.setup();
 #endif
 
-#ifdef ENABLE_RADIO
-  radio.setup();
-#endif
-
   config.setup();
   if (config.loadedFromDefault()) {
     Serial.println("Config File not found, loaded defaults");
@@ -259,6 +255,10 @@ void setup () {
     buzzer.success();
     display.configLoaded();
   }
+
+#ifdef ENABLE_RADIO
+  radio.setup(config.radioEnabled(), config.radioID(), config.radioTargetID());
+#endif
 
   setup_fsm();
   memset(recentRacer, 0, sizeof(recentRacer));
@@ -297,7 +297,7 @@ void loop() {
   }
   loop_start = millis();
 
-  if (radio.status()) {
+  if (radio.status()) { // if radio is enabled
     radio.loop();
   }
   if (millis() - loop_start > 100) {
@@ -365,17 +365,19 @@ void mode0_run() {
 #endif
 
 #ifdef ENABLE_RADIO
-  if (radio.status()) {
-    Serial.println("Radio OK");
-    display.radioGood(true);
-    buzzer.success();
-  } else {
-    Serial.println("Radio error");
-    success = false;
-    display.radioBad(true);
-    buzzer.failure();
+  if (config.radioEnabled()) {
+    if (radio.status()) {
+      Serial.println("Radio OK");
+      display.radioGood(true);
+      buzzer.success();
+    } else {
+      Serial.println("Radio error");
+      success = false;
+      display.radioBad(true);
+      buzzer.failure();
+    }
+    delay(1000);
   }
-  delay(1000);
 #endif
 
   // TODO: Check GPS
