@@ -33,10 +33,12 @@ void mode7_digit_check();
 void mode7_display();
 void mode7_clear_display();
 void mode7_receive_radio();
+void mode7_store_result_display_time();
+uint32_t _result_display_time = 0;
 
-State mode7_initial(NULL, &mode7_initial_check, NULL);
+State mode7_initial(&mode7_clear_display, &mode7_initial_check, NULL);
 State mode7_digits_entered(NULL, &mode7_digit_check, NULL);
-State mode7_display_result(&mode7_display, &mode7_digit_check, &mode7_clear_display);
+State mode7_display_result(&mode7_display, &mode7_digit_check, NULL);
 bool fsm_7_transition_setup_complete = false;
 
 Fsm mode7_fsm(&mode7_initial);
@@ -55,12 +57,18 @@ void mode7_initial_check() {
   if (keypad.isDigit(last_key_pressed)) {
     mode7_fsm.trigger(NUMBER_PRESSED);
   }
-#ifdef FSM_DEBUG
-  Serial.println("Initial Check ");
-#endif
+}
+
+// store the time that we entered the display-state
+// so that we can auto-transition out
+void mode7_store_result_display_time() {
+  _result_display_time = millis();
 }
 
 void mode7_digit_check() {
+  if (_result_display_time != 0 && (millis() - _result_display_time) > 10000) {
+    mode7_fsm.trigger(DELETE);
+  }
   if (radio.messageAvailable()) {
     mode7_fsm.trigger(SENSOR);
   }
@@ -81,9 +89,6 @@ void mode7_digit_check() {
     mode7_fsm.trigger(DELETE);
     log("CLEARED RACER NUMBER");
   }
-#ifdef FSM_DEBUG
-  Serial.println("Digit Check");
-#endif
 }
 
 /*
@@ -92,12 +97,10 @@ void mode7_digit_check() {
  * Number
  * C
  * A
- * D*
  * 
  * Possible States:
  * INITIAL
  * DIGITS
- * READY
  */
 
 void mode7_fsm_setup() {
@@ -106,12 +109,11 @@ void mode7_fsm_setup() {
   
   mode7_fsm.add_transition(&mode7_digits_entered, &mode7_initial, DELETE, &clear_racer_number);
   mode7_fsm.add_transition(&mode7_digits_entered, &mode7_digits_entered, NUMBER_PRESSED, &store_racer_number);
-  mode7_fsm.add_transition(&mode7_digits_entered, &mode7_display_result, ACCEPT, NULL);
+  mode7_fsm.add_transition(&mode7_digits_entered, &mode7_display_result, ACCEPT, &mode7_store_result_display_time);
   mode7_fsm.add_transition(&mode7_digits_entered, &mode7_digits_entered, SENSOR, &mode7_receive_radio);
 
   // make this a timed transition?
   mode7_fsm.add_transition(&mode7_display_result, &mode7_initial, DELETE, &clear_racer_number);
-  mode7_fsm.add_timed_transition(&mode7_display_result, &mode7_initial, 10000, &clear_racer_number); // 10 seconds
   mode7_fsm.add_transition(&mode7_display_result, &mode7_display_result, SENSOR, &mode7_receive_radio);
 }
 
@@ -121,7 +123,6 @@ void mode7_setup() {
     fsm_7_transition_setup_complete = true;
   }
   Serial.println("starting mode 7");
-  display.clear();
 }
 
 void mode7_loop() {
@@ -215,7 +216,7 @@ void displayRx() {
 // show the entered racer number's data
 void mode7_display() {
   char racer[15], line2[16];
-  snprintf(racer, 15, "racer: %d", racer_number());
+  snprintf(racer, 15, "ID: %d", racer_number());
   bool found = false;
   for (int i = 0; i < rx_results_count; i++) {
     if (lookup_table[i].racer_number == racer_number()) {
@@ -247,7 +248,8 @@ void mode7_display() {
 }
 
 void mode7_clear_display() {
-  display.clear();
+  _result_display_time = 0;
+  display.print("Enter ID", "Then Press A");
 }
 
 // process that the radio has new data for us
@@ -257,10 +259,10 @@ void mode7_receive_radio() {
   uint8_t len = sizeof(buf);
   if (radio.receive(buf, &len))
   {
-    buzzer.pre_beep();
-    // TEMPORARY:
-    display.print("Received", (char *)buf);
-    // END TEMPORARY
+    char logbuf[RH_RF95_MAX_MESSAGE_LEN + 1];
+    snprintf(logbuf, RH_RF95_MAX_MESSAGE_LEN, "%s", buf);
+    log(logbuf);
+    buzzer.beep();
     uint16_t racer_number;
     uint16_t min, sec, mil;
     uint8_t fault;
@@ -274,9 +276,7 @@ void mode7_receive_radio() {
     } else {
       Serial.println("Error parsing message");
     }
-    // return true;
   } else {
     Serial.println("recv failed");
-    // return false;
   }
 }
