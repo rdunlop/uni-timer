@@ -18,9 +18,12 @@ extern UniRadio radio;
 /*********************************************************************************** */
 //### Mode 7 - Race Results (Near Finish Line)
 //
-//- Type in a racer number, and press A, and it will try to display the most recent race result
+//- Shows a max of MAX_RECENT_RESULTS (30) ID-number recent results
+//- Will beep every time a new piece of data is received.
+//- When a new Finish is received, it will show the most recent Start+Finish result on the bottom of the display. (if possible)
+//
+//- Type in a racer number, and press A, and it will try to display the most recent race result on the top-line.
 //- Press "C" to clear entry
-//- Press B to cycle through the stored results
 //
 
 // *****************************************************
@@ -35,6 +38,10 @@ void mode7_clear_display();
 void mode7_receive_radio();
 void mode7_store_result_display_time();
 uint32_t _result_display_time = 0;
+
+void mode7_store_racer_number();
+void mode7_clear_racer_number();
+char most_recent_result[17];
 
 State mode7_initial(&mode7_clear_display, &mode7_initial_check, NULL);
 State mode7_digits_entered(NULL, &mode7_digit_check, NULL);
@@ -91,6 +98,18 @@ void mode7_digit_check() {
   }
 }
 
+void mode7_store_racer_number() {
+  char line[17];
+  snprintf(line, 16, "%d", store_racer_number());
+
+  display.print(line, most_recent_result);
+}
+
+void mode7_clear_racer_number() {
+  clear_racer_number();
+  mode7_clear_display();
+}
+
 /*
  * Possible Actions:
  * Sensor
@@ -104,16 +123,16 @@ void mode7_digit_check() {
  */
 
 void mode7_fsm_setup() {
-  mode7_fsm.add_transition(&mode7_initial, &mode7_digits_entered, NUMBER_PRESSED, &store_racer_number);
+  mode7_fsm.add_transition(&mode7_initial, &mode7_digits_entered, NUMBER_PRESSED, &mode7_store_racer_number);
   mode7_fsm.add_transition(&mode7_initial, &mode7_initial, SENSOR, &mode7_receive_radio);
   
-  mode7_fsm.add_transition(&mode7_digits_entered, &mode7_initial, DELETE, &clear_racer_number);
-  mode7_fsm.add_transition(&mode7_digits_entered, &mode7_digits_entered, NUMBER_PRESSED, &store_racer_number);
+  mode7_fsm.add_transition(&mode7_digits_entered, &mode7_initial, DELETE, &mode7_clear_racer_number);
+  mode7_fsm.add_transition(&mode7_digits_entered, &mode7_digits_entered, NUMBER_PRESSED, &mode7_store_racer_number);
   mode7_fsm.add_transition(&mode7_digits_entered, &mode7_display_result, ACCEPT, &mode7_store_result_display_time);
   mode7_fsm.add_transition(&mode7_digits_entered, &mode7_digits_entered, SENSOR, &mode7_receive_radio);
 
   // make this a timed transition?
-  mode7_fsm.add_transition(&mode7_display_result, &mode7_initial, DELETE, &clear_racer_number);
+  mode7_fsm.add_transition(&mode7_display_result, &mode7_initial, DELETE, &mode7_clear_racer_number);
   mode7_fsm.add_transition(&mode7_display_result, &mode7_display_result, SENSOR, &mode7_receive_radio);
 }
 
@@ -213,13 +232,11 @@ void displayRx() {
   }
 }
 
-// show the entered racer number's data
-void mode7_display() {
-  char racer[15], line2[16];
-  snprintf(racer, 15, "ID: %d", racer_number());
-  bool found = false;
+// return true if there is a S+F result for this racer
+// return false if there is no S+F result
+bool print_result(int racer_number, char *result_string, const int max_result_string) {
   for (int i = 0; i < rx_results_count; i++) {
-    if (lookup_table[i].racer_number == racer_number()) {
+    if (lookup_table[i].racer_number == racer_number) {
       if (lookup_table[i].start_millis != 0 && lookup_table[i].end_millis != 0) {
         // both values exist, do some math
         if (lookup_table[i].start_millis < lookup_table[i].end_millis) {
@@ -229,27 +246,33 @@ void mode7_display() {
           thou = diff % 1000;
           sec = (diff / 1000) % 60;
           min = ((diff / 1000) - sec) / 60;
-          snprintf(line2, 16, "%02hd:%02hd.%03hd", min, sec, thou);
+          snprintf(result_string, max_result_string, "%4d: %02hd:%02hd.%03hd", racer_number, min, sec, thou);
+          return true;
         } else {
           // have newer start than end
-          snprintf(line2, 16, "No End data");
+          snprintf(result_string, max_result_string, "%4d: No End data", racer_number);
+          return false;
         }
       } else {
-        snprintf(line2, 16, "Only 1 time");
+        snprintf(result_string, max_result_string, "%4d: No data(1)", racer_number);
+        return false;
       }
-      found = true;
       break;
     }
   }
-  if (!found) {
-    sprintf(line2, "No data");
-  }
-  display.print(racer, line2);
+  snprintf(result_string, max_result_string, "%4d: No data(0)", racer_number);
+  return false;
+}
+// show the entered racer number's data
+void mode7_display() {
+  char line[17];
+  print_result(racer_number(), line, 16);
+  display.print(line, most_recent_result);
 }
 
 void mode7_clear_display() {
   _result_display_time = 0;
-  display.print("Enter ID", "Then Press A");
+  display.print("ID + Press A", most_recent_result);
 }
 
 // process that the radio has new data for us
@@ -273,6 +296,9 @@ void mode7_receive_radio() {
       Serial.println("Successfully read message");
       rxStore(start_or_end == 'S', racer_number, (((min * 60) + sec) * 1000) + mil, fault);
       displayRx();
+      if (start_or_end != 'S') {
+        print_result(racer_number, most_recent_result, 16);
+      }
     } else {
       Serial.println("Error parsing message");
     }

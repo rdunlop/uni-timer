@@ -19,8 +19,7 @@ extern UniRadio radio;
 
 #include <Fsm.h>
 
-#define SIMULATE true
-#define FSM_DEBUG true
+// #define SIMULATE true
 /*********************************************************************************** */
 //### Mode 5 - Race Run (Start Line)
 //
@@ -48,6 +47,9 @@ extern UniRadio radio;
 void good_music() {
   buzzer.success();
 }
+
+void mode5_store_racer_number();
+void mode5_clear_racer_number();
 
 void initial_check();
 void digit_check();
@@ -186,7 +188,7 @@ void start_beeped() {
   snprintf(full_message, 27, "%s,%s", "S", message);
   radio.queueToSend(full_message);
 
-  clear_racer_number();
+  mode5_clear_racer_number();
   clear_sensor_interrupt_millis();
 }
 
@@ -231,7 +233,7 @@ void sensor_triggered() {
     radio.queueToSend(full_message);
   }
   
-  clear_racer_number();
+  mode5_clear_racer_number();
   clear_sensor_interrupt_millis();
 }
 
@@ -245,6 +247,15 @@ void sensor_entry() {
 void sensor_exit() {
   display.doneWaitingForSensor();
   countdown_start_time = 0;
+}
+
+void mode5_store_racer_number() {
+  display.showNumber(store_racer_number());
+}
+
+void mode5_clear_racer_number() {
+  clear_racer_number();
+  display.clear();
 }
 
 /*
@@ -282,17 +293,17 @@ void mode5_fsm_setup() {
   mode5_fsm.add_timed_transition(&initial, &ready_for_sensor, 300, &simulate_racer_number);
   mode5_fsm.add_timed_transition(&ready_for_sensor, &initial, 500, &start_beeped);
   #endif
-  mode5_fsm.add_transition(&initial, &digits_entered, NUMBER_PRESSED, &store_racer_number);
+  mode5_fsm.add_transition(&initial, &digits_entered, NUMBER_PRESSED, &mode5_store_racer_number);
   mode5_fsm.add_transition(&initial, &initial, SENSOR, &mode5_store_timing_data);
   
-  mode5_fsm.add_transition(&digits_entered, &initial, DELETE, &clear_racer_number);
-  mode5_fsm.add_transition(&digits_entered, &digits_entered, NUMBER_PRESSED, &store_racer_number);
+  mode5_fsm.add_transition(&digits_entered, &initial, DELETE, &mode5_clear_racer_number);
+  mode5_fsm.add_transition(&digits_entered, &digits_entered, NUMBER_PRESSED, &mode5_store_racer_number);
   mode5_fsm.add_transition(&digits_entered, &ready_for_sensor, ACCEPT, NULL);
   mode5_fsm.add_transition(&digits_entered, &digits_entered, SENSOR, &mode5_store_timing_data);
 
   mode5_fsm.add_transition(&ready_for_sensor, &initial, SENSOR, &sensor_triggered);
   mode5_fsm.add_transition(&ready_for_sensor, &initial, START, &start_beeped);
-  mode5_fsm.add_transition(&ready_for_sensor, &initial, DELETE, &clear_racer_number);
+  mode5_fsm.add_transition(&ready_for_sensor, &initial, DELETE, &mode5_clear_racer_number);
 }
 
 void mode5_setup() {

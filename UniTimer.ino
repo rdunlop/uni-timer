@@ -255,6 +255,7 @@ void setup () {
     buzzer.success();
     display.configLoaded();
   }
+  delay(1000);
 
 #ifdef ENABLE_RADIO
   radio.setup(config.radioEnabled(), config.radioID(), config.radioTargetID());

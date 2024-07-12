@@ -1,35 +1,31 @@
-#include "uni_display.h"
 #include "uni_keypad.h"
 #include "uni_sd.h"
-#include "uni_radio.h"
 #include "recording.h"
 #include "uni_config.h"
 
-extern UniDisplay display;
 extern UniKeypad keypad;
 extern UniSd sd;
 extern UniConfig config;
-extern UniRadio radio; // For troubleshooting only
 
 int _racer_number = 0;
 TimeResult recentResult[RECENT_RESULT_COUNT];
 int recentRacer[RECENT_RESULT_COUNT];
 
 // Add a new digit to the current racer number
-void store_racer_number() {
+// return the whole racer number
+int store_racer_number() {
   Serial.println("Storing Racer number");
   char last_key_pressed = keypad.lastKeyPressed();
   _racer_number = (_racer_number * 10) + keypad.intFromChar(last_key_pressed);
   Serial.print("Racer #: ");
   Serial.println(_racer_number);
-  display.showNumber(_racer_number);
   sd.logCurrentRacerNumber(_racer_number);
+  return _racer_number;
 }
 
 // Methods
 void clear_racer_number() {
   _racer_number = 0;
-  display.clear();
   log("Clear Racer Number");
 }
 
@@ -58,6 +54,8 @@ void format_string(int racer_number, TimeResult data, bool fault, char *message,
   );
 }
 
+// return true if recorded successfully
+// return false if there was a problem writing to the SD card(s)
 bool print_racer_data_to_sd(int racer_number, TimeResult data, bool fault) {
 #define FILENAME_LENGTH 35
   char filename[FILENAME_LENGTH];
@@ -86,7 +84,6 @@ bool print_racer_data_to_sd(int racer_number, TimeResult data, bool fault) {
   } else {
     // Error writing to SD
     Serial.println("Error writing to SD");
-    display.sdBad();
     return false;
   }
 }

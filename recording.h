@@ -1,7 +1,7 @@
 #pragma once
 
 #include "accurate_timing.h"
-void store_racer_number();
+int store_racer_number();
 void clear_racer_number();
 int racer_number();
 bool maximum_digits_racer_number();

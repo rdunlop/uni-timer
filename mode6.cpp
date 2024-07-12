@@ -42,6 +42,9 @@ void mode6_initial_exit();
 void mode6_digit_check();
 void mode6_store_result();
 
+void mode6_store_racer_number();
+void mode6_clear_racer_number();
+
 State mode6_initial(&mode6_initial_entry, &mode6_initial_check, &mode6_initial_exit);
 State mode6_digits_entered(NULL, &mode6_digit_check, NULL);
 bool fsm_6_transition_setup_complete = false;
@@ -113,6 +116,15 @@ void store_timing_data() {
   clear_sensor_interrupt_millis();
 }
 
+void mode6_store_racer_number() {
+  display.showNumber(store_racer_number());
+}
+
+void mode6_clear_racer_number() {
+  clear_racer_number();
+  display.clear();
+}
+
 bool deleting = false;
 // While waiting for a new datapoint
 // Watch for sensor, etc
@@ -134,9 +146,6 @@ void mode6_initial_check() {
   } else if (sensor.blocked()) {
     buzzer.beep();
   }
-#ifdef FSM_DEBUG
-  Serial.println("Initial Check ");
-#endif
 }
 
 void mode6_initial_entry() {
@@ -151,11 +160,11 @@ void mode6_loop() {
 }
 
 void mode6_fsm_setup() {
-  mode6_fsm.add_transition(&mode6_initial, &mode6_digits_entered, NUMBER_PRESSED, &store_racer_number);
+  mode6_fsm.add_transition(&mode6_initial, &mode6_digits_entered, NUMBER_PRESSED, &mode6_store_racer_number);
   mode6_fsm.add_transition(&mode6_initial, &mode6_initial, SENSOR, &store_timing_data);
   
-  mode6_fsm.add_transition(&mode6_digits_entered, &mode6_initial, DELETE, &clear_racer_number);
-  mode6_fsm.add_transition(&mode6_digits_entered, &mode6_digits_entered, NUMBER_PRESSED, &store_racer_number);
+  mode6_fsm.add_transition(&mode6_digits_entered, &mode6_initial, DELETE, &mode6_clear_racer_number);
+  mode6_fsm.add_transition(&mode6_digits_entered, &mode6_digits_entered, NUMBER_PRESSED, &mode6_store_racer_number);
   mode6_fsm.add_transition(&mode6_digits_entered, &mode6_initial, ACCEPT, &mode6_store_result);
   mode6_fsm.add_transition(&mode6_digits_entered, &mode6_digits_entered, SENSOR, &store_timing_data);
 }
@@ -195,9 +204,6 @@ void mode6_digit_check() {
   } else if (sensor.blocked()) {
     buzzer.beep();
   }
-#ifdef FSM_DEBUG
-  Serial.println("Digit Check ");
-#endif
 }
 
 // Store the racer number and time together in a file
@@ -214,7 +220,7 @@ void mode6_store_result() {
       snprintf(full_message, 27, "%s,%s", "F", message);
       radio.queueToSend(full_message);
 
-      clear_racer_number();
+      mode6_clear_racer_number();
     } else {
       display.sdBad();
       buzzer.failure();
