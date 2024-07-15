@@ -4,6 +4,7 @@
 #include "uni_buzzer.h"
 #include "uni_sensor.h"
 #include "uni_radio.h"
+#include "uni_config.h"
 #include "modes.h"
 #include "recording.h"
 #include "accurate_timing.h"
@@ -14,6 +15,7 @@ extern UniDisplay display;
 extern UniSensor sensor;
 extern UniBuzzer buzzer;
 extern UniRadio radio;
+extern UniConfig config;
 
 #include <Fsm.h>
 
@@ -217,7 +219,13 @@ void mode6_store_result() {
       char message[25];
       format_string(racer_number(), data, false, message, 25);
       char full_message[27];
-      snprintf(full_message, 27, "%s,%s", "F", message);
+      snprintf(full_message, 27,
+        "%s,%s",
+        config.radioOverrideLetter() == 0 ? "F" : // not override, use F in mode 6
+        config.radioOverrideLetter() == 1 ? "S" : // override, always send S
+        config.radioOverrideLetter() == 2 ? "F" : // override, always send F
+        "F",
+        message);
       radio.queueToSend(full_message);
 
       mode6_clear_racer_number();

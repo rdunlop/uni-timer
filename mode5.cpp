@@ -175,6 +175,20 @@ void countdown() {
   }
 }
 
+void send_to_radio(int racer_number, TimeResult data, bool fault) {
+  char message[25];
+  format_string(racer_number, data, fault, message, 25);
+  char full_message[27];
+  snprintf(full_message, 27,
+    "%s,%s",
+    config.radioOverrideLetter() == 0 ? "S" : // not override, use S in mode 5
+    config.radioOverrideLetter() == 1 ? "S" : // override, always send S
+    config.radioOverrideLetter() == 2 ? "F" : // override, always send F
+    "S",
+    message);
+  radio.queueToSend(full_message);
+}
+
 // the final BEEP has triggered, and the sensor has not been crossed
 // THUS we store the current time, no fault
 void start_beeped() {
@@ -195,11 +209,8 @@ void start_beeped() {
     buzzer.failure();
     delay(2000);
   }
-  char message[25];
-  format_string(racer_number(), data, false, message, 25);
-  char full_message[27];
-  snprintf(full_message, 27, "%s,%s", "S", message);
-  radio.queueToSend(full_message);
+  bool fault = false;
+  send_to_radio(racer_number(), data, fault);
 
   mode5_clear_racer_number();
   clear_sensor_interrupt_millis();
@@ -237,13 +248,8 @@ void sensor_triggered() {
       display.sdBad();
       delay(2000);
     }
-    print_data_to_log(data, true);
-
-    char message[25];
-    format_string(racer_number(), data, true, message, 25);
-    char full_message[27];
-    snprintf(full_message, 27, "%s,%s", "S", message);
-    radio.queueToSend(full_message);
+    print_data_to_log(data, fault);
+    send_to_radio(racer_number(), data, fault);
   } else {
     if (print_racer_data_to_sd(racer_number(), data)) {
       buzzer.beep();
@@ -252,12 +258,9 @@ void sensor_triggered() {
       display.sdBad();
       delay(2000);
     }
-    print_data_to_log(data);
-    char message[25];
-    format_string(racer_number(), data, false, message, 25);
-    char full_message[27];
-    snprintf(full_message, 27, "%s,%s", "S", message);
-    radio.queueToSend(full_message);
+    bool fault = false;
+    print_data_to_log(data, fault);
+    send_to_radio(racer_number(), data, fault);
   }
   
   mode5_clear_racer_number();

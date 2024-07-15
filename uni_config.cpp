@@ -27,6 +27,7 @@ void UniConfig::setup() {
     _config.radio_enabled = false;
     _config.radio_id = 0;
     _config.radio_target_id = 0;
+    _config.radio_override_letter = 0;
   } else {
     _loadedFromDefault = false;
   }
@@ -74,6 +75,17 @@ void UniConfig::incrementRadioTargetID() {
   _config.radio_target_id += 1;
   if (_config.radio_target_id > MAX_RADIO_ID) {
     _config.radio_target_id = 0;
+  }
+}
+
+uint8_t UniConfig::radioOverrideLetter() {
+  return _config.radio_override_letter;
+}
+
+void UniConfig::incrementRadioOverrideLetter() {
+  _config.radio_override_letter += 1;
+  if (_config.radio_override_letter >= 3) {
+    _config.radio_override_letter = 0;
   }
 }
 
@@ -215,6 +227,8 @@ bool UniConfig::readConfig() {
         _config.radio_id = atoi(value(token, "RADIO_ID:"));
       } else if (prefix(token, "RADIO_TARGET_ID:")) {
         _config.radio_target_id = atoi(value(token, "RADIO_TARGET_ID:"));
+      } else if (prefix(token, "RADIO_OVERRIDE_LETTER:")) {
+        _config.radio_override_letter = atoi(value(token, "RADIO_OVERRIDE_LETTER:"));
       }
       Serial.println("Got Config: ");
       Serial.println(token);
@@ -244,6 +258,7 @@ bool UniConfig::writeConfig() {
     "%s%d\n"
     "%s%d\n"
     "%s%d\n"
+    "%s%d\n"
     "%s%d\n",
     "START:", _config.start ? 1 : 0,
     "DIFF:", _config.difficulty,
@@ -256,7 +271,8 @@ bool UniConfig::writeConfig() {
     "MODE:", _config.mode,
     "RADIO_ENABLED:", _config.radio_enabled ? 1 : 0,
     "RADIO_ID:", _config.radio_id,
-    "RADIO_TARGET_ID:", _config.radio_target_id
+    "RADIO_TARGET_ID:", _config.radio_target_id,
+    "RADIO_OVERRIDE_LETTER:", _config.radio_override_letter
     );
   if (sd.writeConfig(data_string)) {
     Serial.println("Write File");

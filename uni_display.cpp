@@ -376,8 +376,11 @@ void UniDisplay::displayRadioConfig(UniConfig *config) {
   char buf1[17] = { 0 };
   char buf2[17] = { 0 };
 
-  snprintf(buf1, 16, "Radio: %s",
-      config->radioEnabled() ? "Enabled" : "Disabled");
+  snprintf(buf1, 16, "Radio: %s [%c]",
+      config->radioEnabled() ? "On" : "Off",
+      config->radioOverrideLetter() == 0 ? '-' :
+      config->radioOverrideLetter() == 1 ? 'S' :
+      config->radioOverrideLetter() == 2 ? 'F' : '?');
 
   snprintf(buf2, 16, "ID: %d - To: %d",
     config->radioID() & 0xF, // RadioID varies from 0-10

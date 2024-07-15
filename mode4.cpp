@@ -36,14 +36,15 @@ void radio_config(char key);
 //- If you press A, toggle between Radio Enabled/Disabled
 //- If you press B, increment Radio ID
 //- If you press C, increment Radio Target ID
+//- If you press D, increment Radio Override Letter
 //
 char last_key4 = NO_KEY;
+int config_mode = 1;
 
 void mode4_setup() {
   display.displayConfig(&config);
+  config_mode = 1;
 }
-
-int config_mode = 1;
 
 void mode4_loop() {
   char key = keypad.readChar();
@@ -160,6 +161,9 @@ void radio_config(char key) {
     break;
   case 'C':
     config.incrementRadioTargetID();
+    break;
+  case 'D':
+    config.incrementRadioOverrideLetter();
     break;
   }
 

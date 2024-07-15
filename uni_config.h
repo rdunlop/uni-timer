@@ -35,6 +35,7 @@ typedef struct {
   bool radio_enabled;
   uint8_t radio_id;
   uint8_t radio_target_id;
+  uint8_t radio_override_letter;
 } Config;
 
 class UniConfig
@@ -52,6 +53,8 @@ class UniConfig
     void toggleRadioEnabled();
     void incrementRadioID();
     void incrementRadioTargetID();
+    uint8_t radioOverrideLetter();
+    void incrementRadioOverrideLetter();
 
     void toggle_start();
     void increase_difficulty();
