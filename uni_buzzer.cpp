@@ -2,7 +2,7 @@
 #include "uni_buzzer.h"
 #include <Arduino.h>
 
-#define MUTED true
+// #define MUTED true
 
 UniBuzzer::UniBuzzer(int output)
 {
