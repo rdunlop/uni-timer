@@ -21,6 +21,7 @@ void UniConfig::setup() {
     _config.race_number = 0;
     _config.bib_number_length = 3;
     _config.start_line_countdown = false;
+    _config.start_line_countdown_mode = 0;
     _config.finish_line_spacing = 500;
     _config.mode = 1;
     _config.radio_enabled = false;
@@ -127,6 +128,17 @@ bool UniConfig::get_start_line_countdown() {
   return _config.start_line_countdown;
 }
 
+int UniConfig::get_start_line_countdown_mode() {
+  return _config.start_line_countdown_mode;
+}
+
+void UniConfig::increment_start_line_countdown_mode() {
+  _config.start_line_countdown_mode += 1;
+  if (_config.start_line_countdown_mode >= 2) {
+    _config.start_line_countdown_mode = 0;
+  }
+}
+
 // finish_line_spacing
 void UniConfig::reset_finish_line_spacing() {
   _config.finish_line_spacing = 500;
@@ -191,6 +203,8 @@ bool UniConfig::readConfig() {
         _config.bib_number_length = atoi(value(token, "BIB_DIGITS:"));
       } else if (prefix(token, "COUNTDOWN:")) {
         _config.start_line_countdown = atoi(value(token, "COUNTDOWN:")) == 1;
+      } else if (prefix(token, "COUNTDOWN_MODE:")) {
+        _config.start_line_countdown_mode = atoi(value(token, "COUNTDOWN_MODE:"));
       } else if (prefix(token, "SPACING:")) {
         _config.finish_line_spacing = atoi(value(token, "SPACING:"));
       } else if (prefix(token, "MODE:")) {
@@ -229,6 +243,7 @@ bool UniConfig::writeConfig() {
     "%s%d\n"
     "%s%d\n"
     "%s%d\n"
+    "%s%d\n"
     "%s%d\n",
     "START:", _config.start ? 1 : 0,
     "DIFF:", _config.difficulty,
@@ -236,6 +251,7 @@ bool UniConfig::writeConfig() {
     "RACE:", _config.race_number,
     "BIB_DIGITS:", _config.bib_number_length,
     "COUNTDOWN:", _config.start_line_countdown ? 1 : 0,
+    "COUNTDOWN_MODE:", _config.start_line_countdown_mode,
     "SPACING:", _config.finish_line_spacing,
     "MODE:", _config.mode,
     "RADIO_ENABLED:", _config.radio_enabled ? 1 : 0,

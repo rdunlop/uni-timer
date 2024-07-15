@@ -26,6 +26,11 @@ void radio_config(char key);
 //- If you press D, toggle between 1..9 on digit 4.
 //
 
+//### Mode 4.3 - Start Line Countdown
+//
+//- If you press A, toggle between Start Line Countdown enabled/Disabled
+//- If you press B, toggle between Start Line Countdown Modes 5-beep, and 1-beep.
+
 //### Mode 4.5 - Radio Setup
 //
 //- If you press A, toggle between Radio Enabled/Disabled
@@ -104,8 +109,11 @@ void start_line_config(char key) {
     case 'A':
       config.toggle_start_line_countdown();
       break;
+    case 'B':
+      config.increment_start_line_countdown_mode();
+      break;
   }
-  display.startLineCountdown(config.get_start_line_countdown());
+  display.startLineCountdown(config.get_start_line_countdown(), config.get_start_line_countdown_mode());
 }
 
 void finish_line_config(char key) {

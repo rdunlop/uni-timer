@@ -38,7 +38,7 @@ class UniDisplay
     void notAllGood();
     void displayTest();
     void sens();
-    void waitingForSensor(const int racer_number);
+    void waitingForSensor(const int racer_number, const bool countdown);
     void doneWaitingForSensor();
     void show(char);
     void print(const char *message = NULL, const char *message2 = NULL);
@@ -47,7 +47,7 @@ class UniDisplay
     void displayConfig(UniConfig *config);
     void displayRadioConfig(UniConfig *config);
     void showRacerDigits(int);
-    void startLineCountdown(bool);
+    void startLineCountdown(bool, uint8_t);
     void triggerIntervalDelay(uint16_t);
     void showEntriesRemaining(int);
     void waitingForGps();

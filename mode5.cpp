@@ -112,7 +112,6 @@ void digit_check() {
   } else if (last_key_pressed == 'A') {
     mode5_fsm.trigger(ACCEPT);
   } else if (last_key_pressed == 'C') {
-    display.setup();
     display.clear();
     mode5_fsm.trigger(DELETE);
     log("CLEARED RACER NUMBER");
@@ -150,33 +149,47 @@ void countdown() {
     buzzer.pre_beep(); // beep for 0.5 second for each tone
     countdown_step = 1;
   }
-  // there are 4 additional pre-beeps (5 total pre-beeps)
+  switch (config.get_start_line_countdown_mode()) {
+  case 0:
+    // there are 4 additional pre-beeps (5 total pre-beeps)
 
-  // Second tone occurs at 3 seconds
-  if (countdown_step < 5 && countdown_start_time + (1000 * countdown_step) < millis()) {
-    buzzer.pre_beep();
-    countdown_step += 1;
-  }
+    // Second tone occurs at 3 seconds
+    if (countdown_step < 5 && countdown_start_time + (1000 * countdown_step) < millis()) {
+      buzzer.pre_beep();
+      countdown_step += 1;
+    }
 
-  // last (ie: START) tone occurs at 7 seconds
-  if (countdown_step == 5 && countdown_start_time + (1000 * countdown_step) < millis()) {
-    mode5_fsm.trigger(START);
-    countdown_step += 1;
+    // last (ie: START) tone occurs at 7 seconds
+    if (countdown_step == 5 && countdown_start_time + (1000 * countdown_step) < millis()) {
+      mode5_fsm.trigger(START);
+      countdown_step += 1;
+    }
+    break;
+  case 1:
+    if (countdown_step == 1 && (countdown_start_time + 3000) <= millis()) {
+      // The rider didn't cross the line before the countdown expired
+      mode5_fsm.trigger(START);
+      countdown_step += 1;
+    }
+    break;
   }
 }
 
 // the final BEEP has triggered, and the sensor has not been crossed
 // THUS we store the current time, no fault
 void start_beeped() {
+  #ifndef SIMULATE
+  buzzer.start_beep();
+  #endif
+
   Serial.println("START BEEPED");
   Serial.println(millis());
   TimeResult data;
   currentTime(&data);
 
   if (print_racer_data_to_sd(racer_number(), data)) {
-    #ifndef SIMULATE
-    buzzer.start_beep();
-    #endif
+    // do the beep earlier, because we don't want to incur
+    // the sd-card-write delay
   } else {
     display.sdBad();
     buzzer.failure();
@@ -203,9 +216,23 @@ void sensor_triggered() {
   lastSensorTime(&data);
   // QUESTION: If someone faults, what time should be recorded? Their ACTUAL start time + penalty, right?
   if (config.get_start_line_countdown()) {
-    if (print_racer_data_to_sd(racer_number(), data, true)) {
-      // fault, but let them race
+    bool fault;
+    if (config.get_start_line_countdown_mode() == 0) {
+      fault = true;
+    } else {
+      // in start_line_countdown_mode == 1, it's not a fault
+      // to cross the line before the final buzzer.
+      fault = false;
+    }
+    // fault, but let them race
+    if (fault) {
       buzzer.fault();
+    } else {
+      buzzer.start_beep();
+    }
+    if (print_racer_data_to_sd(racer_number(), data, fault)) {
+      // Perform the buzzer earlier, because we don't want to
+      // afford the sd-write delay
     } else {
       display.sdBad();
       delay(2000);
@@ -240,7 +267,7 @@ void sensor_triggered() {
 void sensor_entry() {
   clear_sensor_interrupt_millis();
   #ifndef SIMULATE
-  display.waitingForSensor(racer_number());
+  display.waitingForSensor(racer_number(), config.get_start_line_countdown());
   #endif
 }
 

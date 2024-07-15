@@ -216,13 +216,17 @@ void UniDisplay::sens() {
 
 // Indicate that we have the racer number entered, and we're waiting
 // for the sensor to be triggered
-void UniDisplay::waitingForSensor(const int racer_number) {
+void UniDisplay::waitingForSensor(const int racer_number, const bool countdown) {
 #ifdef SEVEN_SEGMENT_DISPLAY
   setBlink(true);
 #endif
-  char buf[17] = { 0};
-  snprintf(buf, 16, "%d READY!", racer_number);
-  print(buf);
+  char buf1[17] = { 0};
+  char buf2[17] = { 0};
+  snprintf(buf1, 16, "%d READY!", racer_number);
+  if (countdown) {
+    snprintf(buf2, 16, "Counting Down");
+  }
+  print(buf1, buf2);
 #ifdef LCD_DISPLAY
   _lcd.blink();
 #endif
@@ -390,12 +394,17 @@ void UniDisplay::showRacerDigits(int numDigits) {
   snprintf(buf, 15, "%d", numDigits);
   print("Racer Bib Digits:", buf);
 }
-void UniDisplay::startLineCountdown(bool startLineMode) {
+void UniDisplay::startLineCountdown(bool startLineCountdown, uint8_t startLineCountdownMode) {
 #ifdef SEVEN_SEGMENT_DISPLAY
-  showNumber(startLineMode ? 1 : 2);
+  _display.writeDigitNum(0, startLineCountdown ? 1 : 2);
+  _display.writeDigitNum(1, startLineCountdownMode);
 #endif
 
-  print("Start Line Mode:", startLineMode ? "ENABLED" : "Disabled");
+  char line1[17];
+  char line2[17];
+  snprintf(line1, 16, "Start Beep: %s", startLineCountdown ? "On" : "Off");
+  snprintf(line2, 16, "Mode: %s", startLineCountdownMode == 0 ? "5-beep" : "1-beep");
+  print(line1, line2);
 }
 void UniDisplay::triggerIntervalDelay(uint16_t interval) {
 #ifdef SEVEN_SEGMENT_DISPLAY

@@ -22,6 +22,9 @@ typedef struct {
 
   // Start line modes
   bool start_line_countdown;
+  // mode 0 -> multi-beep: 5 normal beeps, then a single start beep
+  // mode 1 -> single beep, then starts clock 3 if they don't cross within 3 seconds
+  uint8_t start_line_countdown_mode;
 
   // Finish line spacing
   uint16_t finish_line_spacing;
@@ -65,6 +68,8 @@ class UniConfig
     // start_line_countdown
     void toggle_start_line_countdown();
     bool get_start_line_countdown();
+    int get_start_line_countdown_mode();
+    void increment_start_line_countdown_mode();
 
     // finish_line_spacing
     void reset_finish_line_spacing();
